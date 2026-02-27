@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }} | ASME Ops</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ops_pages.css') }}" />
+</head>
+<body>
+  <div class="ops-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+        <div>
+          <h1>ASME Ops</h1>
+          <p>University of Iowa</p>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <a class="side-link {{ 'active' if active_page == 'dashboard' else '' }}" href="/dashboard">Dashboard</a>
+        <a class="side-link {{ 'active' if active_page == 'attendance' else '' }}" href="/attendance">Attendance</a>
+        <a class="side-link {{ 'active' if active_page == 'inventory' else '' }}" href="/inventory">Inventory</a>
+        <a class="side-link {{ 'active' if active_page == 'prints' else '' }}" href="/prints">Printing</a>
+        <a class="side-link {{ 'active' if active_page == 'activity' else '' }}" href="/activity">Activity</a>
+        <a class="side-link {{ 'active' if active_page == 'calendar' else '' }}" href="/calendar">Calendar</a>
+      </nav>
+
+      <div class="side-tools">
+        <a href="/pair/member">Pair Member UID</a>
+        <a href="/pair/item">Pair Item UID</a>
+        <a href="/export">Export Excel</a>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-header">
+        <div>
+          <h2>{{ page_title }}</h2>
+          <p>{{ page_subtitle }}</p>
+        </div>
+      </header>
+
+      <section class="metrics-grid">
+        <article class="metric"><label>Present Today</label><strong>{{ attendance_count }}</strong></article>
+        <article class="metric"><label>Items Tracked</label><strong>{{ items|length }}</strong></article>
+        <article class="metric"><label>Low Stock</label><strong>{{ low_stock_count }}</strong></article>
+        <article class="metric"><label>Active Prints</label><strong>{{ active_prints_count }}</strong></article>
+        <article class="metric"><label>H2S Waiting</label><strong>{{ h2s_waiting_count }}</strong></article>
+        <article class="metric"><label>P1S Waiting</label><strong>{{ p1s_waiting_count }}</strong></article>
+      </section>
+
+      {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+          <section class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

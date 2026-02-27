@@ -1,5 +1,5 @@
 from flask import Flask
-from models import db, Member, Item
+from models import AttendanceScan, Item, Member, PrintJob, Transaction, db
 
 def create_app():
     app = Flask(__name__)
@@ -12,8 +12,8 @@ def seed_data():
     # Only add if tables are empty
     if Member.query.count() == 0:
         db.session.add_all([
-            Member(name="Test Member", email="test@uiowa.edu", member_class="ME Junior", nfc_tag=None),
-            Member(name="Officer Example", email="officer@uiowa.edu", member_class="Senior", nfc_tag=None),
+            Member(name="Test Member", email="test@uiowa.edu", member_class="ME Junior", nfc_tag="ASME-0001"),
+            Member(name="Officer Example", email="officer@uiowa.edu", member_class="Senior", nfc_tag="ASME-0002"),
         ])
     if Item.query.count() == 0:
         db.session.add_all([

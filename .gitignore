@@ -1,0 +1,6 @@
+# Local app/runtime files
+__pycache__/
+instance/
+
+# Keep secrets out of git
+instance/print_commands.env

@@ -1,0 +1,114 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Attendance Snapshot ({{ today }})</h3>
+      <a href="/attendance">Open Attendance</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Member</th><th>UID</th><th>Last Scan</th></tr>
+        </thead>
+        <tbody>
+          {% for s in today_attendance[:10] %}
+          <tr>
+            <td>{{ s.member.name }}</td>
+            <td><code>{{ s.scanned_uid }}</code></td>
+            <td>{{ s.scanned_at.strftime("%H:%M:%S") }}</td>
+          </tr>
+          {% endfor %}
+          {% if not today_attendance %}
+          <tr><td colspan="3" class="empty">No attendance scans yet today.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Stock Alerts</h3>
+      <a href="/inventory">Open Inventory</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Available</th><th>Total</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for it in items if it.available_qty <= 2 %}
+          <tr>
+            <td>{{ it.name }}</td>
+            <td>{{ it.available_qty }}</td>
+            <td>{{ it.total_qty }}</td>
+            <td>
+              {% if it.available_qty <= 0 %}
+              <span class="badge bad">OUT</span>
+              {% else %}
+              <span class="badge warn">LOW</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if low_stock_count == 0 %}
+          <tr><td colspan="4" class="empty">No low stock items right now.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="panel-grid two">
+  {% for printer, queue in queues.items() %}
+  <article class="panel">
+    <div class="panel-head">
+      <h3>{{ printer }} Queue</h3>
+      <a href="/prints">Open Printing</a>
+    </div>
+    {% if queue.active %}
+      <div class="active-job">
+        <p><strong>Printing:</strong> {{ queue.active.file_name }}</p>
+        <p>Member: {{ queue.active.member.name }}</p>
+        <p>Started: {{ queue.active.started_at.strftime("%m-%d %H:%M") if queue.active.started_at else "" }}</p>
+      </div>
+    {% else %}
+      <p class="empty">No active print on {{ printer }}.</p>
+    {% endif %}
+    <p><strong>{{ queue.queued|length }}</strong> jobs waiting in line.</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Recent Transactions</h3>
+    <a href="/activity">Open Activity</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Member</th><th>Item</th><th>Action</th><th>Qty</th><th>Due</th></tr>
+      </thead>
+      <tbody>
+        {% for t in recent_transactions %}
+        <tr>
+          <td>{{ t.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ t.member.name }}</td>
+          <td>{{ t.item.name }}</td>
+          <td>{{ t.action }}</td>
+          <td>{{ t.qty }}</td>
+          <td>{{ t.due_date or "" }}</td>
+        </tr>
+        {% endfor %}
+        {% if not recent_transactions %}
+        <tr><td colspan="6" class="empty">No transactions yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

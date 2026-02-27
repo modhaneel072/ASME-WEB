@@ -1,0 +1,242 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pair Item NFC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;700&display=swap");
+
+    :root {
+      --hawk-black: #000;
+      --hawk-gold: #ffcd00;
+      --line: #d9d9d9;
+      --danger: #b21f2d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(circle at 8% -10%, rgba(255, 205, 0, 0.45), transparent 34%),
+        linear-gradient(180deg, #fffef7 0%, #f6f6f6 100%);
+      color: #141414;
+    }
+
+    header {
+      background: #080808;
+      border-bottom: 5px solid var(--hawk-gold);
+      color: #fff;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--hawk-gold);
+      font-size: 33px;
+      line-height: 1;
+    }
+
+    header a {
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-weight: 700;
+    }
+
+    header a:hover {
+      background: var(--hawk-gold);
+      color: #000;
+      border-color: var(--hawk-gold);
+    }
+
+    main {
+      max-width: 980px;
+      margin: 20px auto 35px;
+      padding: 0 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 15px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .heading {
+      margin-bottom: 11px;
+      padding-left: 10px;
+      border-left: 5px solid var(--hawk-gold);
+    }
+
+    .heading h2 {
+      margin: 0;
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      text-transform: uppercase;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .flash {
+      border-radius: 11px;
+      padding: 9px 11px;
+      margin-bottom: 8px;
+      border: 1px solid;
+      font-size: 14px;
+    }
+
+    .flash-success { background: #e9f7ef; border-color: #c7e9d3; color: #175f34; }
+    .flash-error { background: #fdecef; border-color: #f2c5cd; color: #82202c; }
+    .flash-info { background: #f4f1df; border-color: #e6d493; color: #5f5000; }
+
+    label {
+      display: block;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid #c6c8cc;
+      border-radius: 10px;
+      padding: 9px;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--hawk-gold);
+      box-shadow: 0 0 0 3px rgba(255, 205, 0, 0.28);
+    }
+
+    button {
+      border: 1px solid #c7a200;
+      background: var(--hawk-gold);
+      color: #000;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 7px;
+      border-bottom: 1px solid #ececec;
+      font-size: 14px;
+    }
+
+    th {
+      background: #0d0d0d;
+      color: var(--hawk-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-size: 12px;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fbfbfb;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      background: #fff4cc;
+      border: 1px solid #e8d08a;
+      border-radius: 6px;
+      padding: 2px 5px;
+    }
+
+    .helper {
+      color: #3d3d3d;
+      font-size: 13px;
+      margin: 0 0 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Item NFC Pairing</h1>
+    <a href="/">Back to Dashboard</a>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="heading"><h2>Assign UID</h2></div>
+
+      {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <p class="helper">Scan a tag UID or type it manually, then save it to the selected inventory item.</p>
+
+      <form method="post">
+        <label>Item</label>
+        <select name="item_id" required>
+          <option value="">-- choose item --</option>
+          {% for it in items %}
+          <option value="{{ it.id }}">{{ it.name }} ({{ it.available_qty }}/{{ it.total_qty }} available)</option>
+          {% endfor %}
+        </select>
+
+        <label>UID</label>
+        <input name="tag" placeholder="Example: A91B2210..." required />
+
+        <button type="submit">Save UID</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="heading"><h2>Current Item UIDs</h2></div>
+      <table>
+        <thead><tr><th>Item</th><th>UID</th></tr></thead>
+        <tbody>
+          {% for it in paired %}
+          <tr><td>{{ it.name }}</td><td><code>{{ it.nfc_tag }}</code></td></tr>
+          {% endfor %}
+          {% if not paired %}
+          <tr><td colspan="2">No items paired yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

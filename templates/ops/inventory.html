@@ -1,0 +1,102 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Checkout / Return</h3>
+  </div>
+  <form method="post" action="/transact">
+    <input type="hidden" name="next" value="/inventory" />
+    <div class="form-grid">
+      <div>
+        <label for="member_tag">Member UID (optional)</label>
+        <input id="member_tag" name="member_tag" placeholder="Scan member UID" />
+        <label for="member_id">Or Select Member</label>
+        <select id="member_id" name="member_id">
+          <option value="">-- Select member --</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="item_tag">Item UID (optional)</label>
+        <input id="item_tag" name="item_tag" placeholder="Scan item UID" />
+        <label for="item_id">Or Select Item</label>
+        <select id="item_id" name="item_id">
+          <option value="">-- Select item --</option>
+          {% for it in items %}
+          <option value="{{ it.id }}">{{ it.name }} ({{ it.available_qty }}/{{ it.total_qty }} available)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="action">Action</label>
+        <select id="action" name="action">
+          <option value="checkout">Checkout</option>
+          <option value="return">Return</option>
+        </select>
+        <label for="qty">Quantity</label>
+        <input id="qty" name="qty" value="1" />
+      </div>
+      <div>
+        <label for="due_date">Due Date (checkout only)</label>
+        <input id="due_date" name="due_date" value="{{ default_due }}" placeholder="YYYY-MM-DD" />
+        <label for="notes">Notes</label>
+        <input id="notes" name="notes" placeholder="Optional note" />
+      </div>
+    </div>
+    <button type="submit" class="btn">Save Transaction</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Stock Information</h3>
+    <input id="stockSearch" class="search-input" placeholder="Search item/category/location..." />
+  </div>
+  <div class="table-wrap">
+    <table id="stockTable">
+      <thead>
+        <tr><th>Item</th><th>Category</th><th>Location</th><th>Available</th><th>Total</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.name }}</td>
+          <td>{{ it.category or "" }}</td>
+          <td>{{ it.location or "" }}</td>
+          <td>{{ it.available_qty }}</td>
+          <td>{{ it.total_qty }}</td>
+          <td>
+            {% if it.available_qty <= 0 %}
+            <span class="badge bad">OUT</span>
+            {% elif it.available_qty <= 2 %}
+            <span class="badge warn">LOW</span>
+            {% else %}
+            <span class="badge good">IN STOCK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const input = document.getElementById("stockSearch");
+    const table = document.getElementById("stockTable");
+    if (!input || !table) return;
+    const rows = Array.from(table.querySelectorAll("tbody tr"));
+    input.addEventListener("input", () => {
+      const query = input.value.trim().toLowerCase();
+      rows.forEach((row) => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = query && !text.includes(query) ? "none" : "";
+      });
+    });
+  })();
+</script>
+{% endblock %}

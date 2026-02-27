@@ -1,0 +1,156 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Calendar Sync Status</h3>
+  </div>
+  <p class="inline-meta"><strong>Timezone:</strong> {{ calendar_automation_status.timezone }}</p>
+  <p class="inline-meta"><strong>Service Account File:</strong> <code>{{ calendar_automation_status.service_account_file }}</code></p>
+  <p class="inline-meta"><strong>Service File Found:</strong> {{ "Yes" if calendar_automation_status.service_account_file_exists else "No" }}</p>
+  <p class="inline-meta"><strong>Default Calendar ID:</strong> {{ calendar_automation_status.default_calendar_id or "Not set" }}</p>
+  <p class="inline-meta"><strong>Robotics Calendar ID:</strong> {{ calendar_automation_status.robotics_calendar_id or "Not set" }}</p>
+  <p class="inline-meta"><strong>Fluids Calendar ID:</strong> {{ calendar_automation_status.fluids_calendar_id or "Not set" }}</p>
+  <p class="inline-meta"><strong>SMTP Ready:</strong> {{ "Yes" if calendar_automation_status.smtp_ready else "No" }}</p>
+  <p class="inline-meta"><strong>Cancellation Notify Email:</strong> {{ calendar_automation_status.cancel_notify_to or "Not set" }}</p>
+  <p class="inline-meta">Setup guide: <code>GOOGLE_CALENDAR_SETUP.md</code></p>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Live Google Calendar</h3>
+  </div>
+  {% if google_calendar_placeholder %}
+  <p class="inline-meta">
+    Showing a public fallback calendar. Set <code>ASME_GOOGLE_CALENDAR_EMBED_URL</code> or
+    <code>ASME_GOOGLE_CALENDAR_ID</code> to display your team calendar.
+  </p>
+  {% endif %}
+  <iframe
+    class="calendar-embed"
+    src="{{ google_calendar_embed_url }}"
+    title="Live Google Calendar"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+  ></iframe>
+</section>
+
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Book Meeting</h3>
+    </div>
+    <form method="post" action="/calendar/book" class="form-stack">
+      <input type="hidden" name="next" value="/calendar" />
+      <label for="team_name">Team Name</label>
+      <input id="team_name" name="team_name" placeholder="Example: Baja, Formula, Design Team" required />
+      <label for="requester_email">Requester Email</label>
+      <input id="requester_email" name="requester_email" type="email" placeholder="name@uiowa.edu" />
+
+      <label for="room">Room</label>
+      <select id="room" name="room" required>
+        {% for room in meeting_rooms %}
+        <option value="{{ room }}">{{ room }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="form-grid">
+        <div>
+          <label for="meeting_date">Date</label>
+          <input id="meeting_date" name="meeting_date" type="date" value="{{ calendar_default_date }}" min="{{ calendar_default_date }}" required />
+        </div>
+        <div>
+          <label for="start_time">Start</label>
+          <input id="start_time" name="start_time" type="time" required />
+        </div>
+        <div>
+          <label for="end_time">End</label>
+          <input id="end_time" name="end_time" type="time" required />
+        </div>
+      </div>
+
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" name="notes" placeholder="Agenda, setup needs, or special notes"></textarea>
+      <button type="submit" class="btn">Save Meeting</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Room Snapshot</h3>
+    </div>
+    <p class="inline-meta"><strong>{{ meetings_by_room.get("Robotics Room", [])|length }}</strong> upcoming meetings in Robotics Room.</p>
+    <p class="inline-meta"><strong>{{ meetings_by_room.get("Fluids Lab", [])|length }}</strong> upcoming meetings in Fluids Lab.</p>
+    <p class="inline-meta">Bookings are sorted by date/time. Overlapping meetings in the same room are blocked.</p>
+    <p class="inline-meta">Cancel workflow: user clicks cancel, then club email confirms from Gmail link.</p>
+  </article>
+</section>
+
+{% if pending_cancellations %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Pending Cancellation Requests</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Team</th><th>Room</th><th>Date</th><th>Time</th><th>Requested At</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for meeting in pending_cancellations %}
+        <tr>
+          <td>{{ meeting.team_name }}</td>
+          <td>{{ meeting.room }}</td>
+          <td>{{ meeting.meeting_date.isoformat() }}</td>
+          <td>{{ meeting.start_time.strftime("%H:%M") }} - {{ meeting.end_time.strftime("%H:%M") }}</td>
+          <td>{{ meeting.cancel_requested_at.strftime("%Y-%m-%d %H:%M") if meeting.cancel_requested_at else "" }}</td>
+          <td><span class="badge warn">EMAIL CONFIRMATION PENDING</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% for room in meeting_rooms %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>{{ room }} Schedule</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Day</th><th>Start</th><th>End</th><th>Team</th><th>Requester</th><th>Notes</th><th>Manage</th></tr>
+      </thead>
+      <tbody>
+        {% for meeting in meetings_by_room.get(room, []) %}
+        <tr>
+          <td>{{ meeting.meeting_date.isoformat() }}</td>
+          <td>{{ meeting.meeting_date.strftime("%A") }}</td>
+          <td>{{ meeting.start_time.strftime("%H:%M") }}</td>
+          <td>{{ meeting.end_time.strftime("%H:%M") }}</td>
+          <td>{{ meeting.team_name }}</td>
+          <td>{{ meeting.requester_email or "" }}</td>
+          <td>{{ meeting.notes or "" }}</td>
+          <td>
+            {% if meeting.cancel_request_token %}
+            <span class="badge warn">PENDING EMAIL CONFIRMATION</span>
+            {% else %}
+            <form method="post" action="/calendar/meeting/{{ meeting.id }}/cancel" onsubmit="return confirm('Request cancellation and send confirmation email?');">
+              <input type="hidden" name="next" value="/calendar" />
+              <button type="submit" class="btn danger">Cancel Request</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not meetings_by_room.get(room, []) %}
+        <tr><td colspan="8" class="empty">No upcoming meetings scheduled.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}
