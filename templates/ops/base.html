@@ -4,6 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ page_title }} | ASME Ops</title>
+  <script>
+    (function () {
+      var key = "asme_ops_preferences_v1";
+      var root = document.documentElement;
+      try {
+        var raw = localStorage.getItem(key);
+        var prefs = raw ? JSON.parse(raw) : {};
+        if (prefs.theme) root.setAttribute("data-theme", prefs.theme);
+        if (prefs.layout) root.setAttribute("data-layout", prefs.layout);
+        if (prefs.sidebar) root.setAttribute("data-sidebar", prefs.sidebar);
+        if (prefs.metrics) root.setAttribute("data-metrics", prefs.metrics);
+      } catch (err) {
+        // Keep initial render resilient if stored prefs are invalid.
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ops_pages.css') }}" />
 </head>
 <body>
@@ -24,6 +40,7 @@
         <a class="side-link {{ 'active' if active_page == 'prints' else '' }}" href="/prints">Printing</a>
         <a class="side-link {{ 'active' if active_page == 'activity' else '' }}" href="/activity">Activity</a>
         <a class="side-link {{ 'active' if active_page == 'calendar' else '' }}" href="/calendar">Calendar</a>
+        <a class="side-link {{ 'active' if active_page == 'settings' else '' }}" href="/settings">Settings</a>
       </nav>
 
       <div class="side-tools">
@@ -67,5 +84,91 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+  <script>
+    (function () {
+      var key = "asme_ops_preferences_v1";
+      var defaults = {
+        theme: "onyx",
+        layout: "comfortable",
+        sidebar: "default",
+        metrics: "show",
+      };
+
+      function readPrefs() {
+        try {
+          var raw = localStorage.getItem(key);
+          var saved = raw ? JSON.parse(raw) : {};
+          return {
+            theme: saved.theme || defaults.theme,
+            layout: saved.layout || defaults.layout,
+            sidebar: saved.sidebar || defaults.sidebar,
+            metrics: saved.metrics || defaults.metrics,
+          };
+        } catch (err) {
+          return Object.assign({}, defaults);
+        }
+      }
+
+      function applyPrefs(prefs) {
+        var root = document.documentElement;
+        root.setAttribute("data-theme", prefs.theme);
+        root.setAttribute("data-layout", prefs.layout);
+        root.setAttribute("data-sidebar", prefs.sidebar);
+        root.setAttribute("data-metrics", prefs.metrics);
+      }
+
+      function savePrefs(prefs) {
+        localStorage.setItem(key, JSON.stringify(prefs));
+      }
+
+      function wireSettingsUI() {
+        var form = document.querySelector("[data-settings-form]");
+        if (!form) {
+          return;
+        }
+
+        var status = document.querySelector("[data-settings-status]");
+        var resetBtn = form.querySelector("[data-action='reset']");
+        var prefs = readPrefs();
+
+        form.querySelectorAll("input[type='radio']").forEach(function (input) {
+          if (prefs[input.name] === input.value) {
+            input.checked = true;
+          }
+        });
+
+        form.addEventListener("change", function (event) {
+          var target = event.target;
+          if (!target || target.type !== "radio") {
+            return;
+          }
+          prefs[target.name] = target.value;
+          applyPrefs(prefs);
+          savePrefs(prefs);
+          if (status) {
+            status.textContent = "Saved.";
+          }
+        });
+
+        if (resetBtn) {
+          resetBtn.addEventListener("click", function () {
+            prefs = Object.assign({}, defaults);
+            applyPrefs(prefs);
+            savePrefs(prefs);
+            form.querySelectorAll("input[type='radio']").forEach(function (input) {
+              input.checked = prefs[input.name] === input.value;
+            });
+            if (status) {
+              status.textContent = "Reset to defaults.";
+            }
+          });
+        }
+      }
+
+      var prefs = readPrefs();
+      applyPrefs(prefs);
+      wireSettingsUI();
+    })();
+  </script>
 </body>
 </html>

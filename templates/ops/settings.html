@@ -1,0 +1,93 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Display Preferences</h3>
+  </div>
+  <p class="inline-meta">Preferences are saved in this browser and apply across all pages.</p>
+</section>
+
+<section class="settings-grid" data-settings-form>
+  <article class="panel settings-card">
+    <div class="panel-head">
+      <h3>Color Theme</h3>
+    </div>
+    <div class="settings-options">
+      <label class="settings-option">
+        <input type="radio" name="theme" value="onyx" />
+        <span>Onyx Gold</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="theme" value="harbor" />
+        <span>Harbor Blue</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="theme" value="daylight" />
+        <span>Daylight</span>
+      </label>
+    </div>
+  </article>
+
+  <article class="panel settings-card">
+    <div class="panel-head">
+      <h3>Density</h3>
+    </div>
+    <div class="settings-options">
+      <label class="settings-option">
+        <input type="radio" name="layout" value="compact" />
+        <span>Compact</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="layout" value="comfortable" />
+        <span>Comfortable</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="layout" value="spacious" />
+        <span>Spacious</span>
+      </label>
+    </div>
+  </article>
+
+  <article class="panel settings-card">
+    <div class="panel-head">
+      <h3>Sidebar Width</h3>
+    </div>
+    <div class="settings-options">
+      <label class="settings-option">
+        <input type="radio" name="sidebar" value="slim" />
+        <span>Slim</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="sidebar" value="default" />
+        <span>Default</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="sidebar" value="wide" />
+        <span>Wide</span>
+      </label>
+    </div>
+  </article>
+
+  <article class="panel settings-card">
+    <div class="panel-head">
+      <h3>Dashboard Metrics</h3>
+    </div>
+    <div class="settings-options">
+      <label class="settings-option">
+        <input type="radio" name="metrics" value="show" />
+        <span>Show Metrics Row</span>
+      </label>
+      <label class="settings-option">
+        <input type="radio" name="metrics" value="hide" />
+        <span>Hide Metrics Row</span>
+      </label>
+    </div>
+  </article>
+</section>
+
+<section class="panel settings-actions">
+  <button type="button" class="btn light" data-action="reset">Reset Defaults</button>
+  <p class="inline-meta" data-settings-status>Saved.</p>
+</section>
+{% endblock %}

@@ -971,6 +971,17 @@ def activity_page():
     )
 
 
+@app.get("/settings")
+def settings_page():
+    return render_ops_page(
+        template_name="ops/settings.html",
+        active_page="settings",
+        page_title="Settings",
+        page_subtitle="Customize theme and layout options for this device.",
+        transaction_limit=10,
+    )
+
+
 @app.get("/calendar")
 def calendar_page():
     ensure_meeting_schema_columns()
