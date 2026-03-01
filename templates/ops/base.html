@@ -13,7 +13,7 @@
         <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
         <div>
           <h1>ASME Ops</h1>
-          <p>University of Iowa</p>
+          <p>Operations Hub</p>
         </div>
       </div>
 
@@ -35,9 +35,13 @@
 
     <main class="workspace">
       <header class="workspace-header">
-        <div>
+        <div class="workspace-heading">
           <h2>{{ page_title }}</h2>
           <p>{{ page_subtitle }}</p>
+        </div>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>System Online</span>
         </div>
       </header>
 

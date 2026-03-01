@@ -91,8 +91,12 @@ class Meeting(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     notes = db.Column(db.String(500), nullable=True)
+    # Legacy Google fields (kept for backward compatibility).
     google_event_id = db.Column(db.String(180), nullable=True)
     google_calendar_id = db.Column(db.String(240), nullable=True)
+    # Active Outlook fields.
+    outlook_event_id = db.Column(db.String(180), nullable=True)
+    outlook_calendar_id = db.Column(db.String(240), nullable=True)
     cancel_request_token = db.Column(db.String(120), nullable=True, unique=True)
     cancel_requested_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

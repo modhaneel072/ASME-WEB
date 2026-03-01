@@ -1,51 +1,44 @@
 {% extends "ops/base.html" %}
 
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
-    <h3>Calendar Sync Status</h3>
-  </div>
-  <p class="inline-meta"><strong>Timezone:</strong> {{ calendar_automation_status.timezone }}</p>
-  <p class="inline-meta"><strong>Service Account File:</strong> <code>{{ calendar_automation_status.service_account_file }}</code></p>
-  <p class="inline-meta"><strong>Service File Found:</strong> {{ "Yes" if calendar_automation_status.service_account_file_exists else "No" }}</p>
-  <p class="inline-meta"><strong>Default Calendar ID:</strong> {{ calendar_automation_status.default_calendar_id or "Not set" }}</p>
-  <p class="inline-meta"><strong>Robotics Calendar ID:</strong> {{ calendar_automation_status.robotics_calendar_id or "Not set" }}</p>
-  <p class="inline-meta"><strong>Fluids Calendar ID:</strong> {{ calendar_automation_status.fluids_calendar_id or "Not set" }}</p>
-  <p class="inline-meta"><strong>SMTP Ready:</strong> {{ "Yes" if calendar_automation_status.smtp_ready else "No" }}</p>
-  <p class="inline-meta"><strong>Cancellation Notify Email:</strong> {{ calendar_automation_status.cancel_notify_to or "Not set" }}</p>
-  <p class="inline-meta">Setup guide: <code>GOOGLE_CALENDAR_SETUP.md</code></p>
-</section>
-
-<section class="panel">
-  <div class="panel-head">
-    <h3>Live Google Calendar</h3>
-  </div>
-  {% if google_calendar_placeholder %}
-  <p class="inline-meta">
-    Showing a public fallback calendar. Set <code>ASME_GOOGLE_CALENDAR_EMBED_URL</code> or
-    <code>ASME_GOOGLE_CALENDAR_ID</code> to display your team calendar.
-  </p>
-  {% endif %}
-  <iframe
-    class="calendar-embed"
-    src="{{ google_calendar_embed_url }}"
-    title="Live Google Calendar"
-    loading="lazy"
-    referrerpolicy="no-referrer-when-downgrade"
-  ></iframe>
-</section>
-
-<section class="panel-grid two">
-  <article class="panel">
+<section class="calendar-shell">
+  <article class="panel calendar-live-panel">
     <div class="panel-head">
-      <h3>Book Meeting</h3>
+      <h3>Live Outlook Calendar</h3>
+      {% if outlook_calendar_open_url %}
+      <a class="btn light" href="{{ outlook_calendar_open_url }}" target="_blank" rel="noopener noreferrer">Open In Outlook</a>
+      {% endif %}
     </div>
-    <form method="post" action="/calendar/book" class="form-stack">
+    {% if outlook_calendar_placeholder %}
+    <p class="inline-meta">
+      Set <code>ASME_OUTLOOK_CALENDAR_EMBED_URL</code> in <code>instance/print_commands.env</code> to display your live calendar.
+    </p>
+    {% elif outlook_calendar_embed_url %}
+    <iframe
+      class="calendar-embed"
+      src="{{ outlook_calendar_embed_url }}"
+      title="Live Outlook Calendar"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+    <p class="inline-meta">
+      If the embed is blocked by browser privacy settings, use <strong>Open In Outlook</strong>.
+    </p>
+    {% endif %}
+  </article>
+
+  <aside class="panel calendar-book-panel">
+    <div class="panel-head">
+      <h3>Schedule Meeting</h3>
+    </div>
+    <p class="inline-meta">Choose room/date/time. Overlapping meetings in the same room are blocked automatically.</p>
+    <form method="post" action="/calendar/book" class="form-stack calendar-book-form">
       <input type="hidden" name="next" value="/calendar" />
       <label for="team_name">Team Name</label>
-      <input id="team_name" name="team_name" placeholder="Example: Baja, Formula, Design Team" required />
+      <input id="team_name" name="team_name" required />
+
       <label for="requester_email">Requester Email</label>
-      <input id="requester_email" name="requester_email" type="email" placeholder="name@uiowa.edu" />
+      <input id="requester_email" name="requester_email" type="email" />
 
       <label for="room">Room</label>
       <select id="room" name="room" required>
@@ -54,7 +47,7 @@
         {% endfor %}
       </select>
 
-      <div class="form-grid">
+      <div class="form-grid calendar-time-grid">
         <div>
           <label for="meeting_date">Date</label>
           <input id="meeting_date" name="meeting_date" type="date" value="{{ calendar_default_date }}" min="{{ calendar_default_date }}" required />
@@ -70,20 +63,15 @@
       </div>
 
       <label for="notes">Notes (optional)</label>
-      <textarea id="notes" name="notes" placeholder="Agenda, setup needs, or special notes"></textarea>
-      <button type="submit" class="btn">Save Meeting</button>
+      <textarea id="notes" name="notes"></textarea>
+      <button type="submit" class="btn">Schedule Meeting</button>
     </form>
-  </article>
-
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Room Snapshot</h3>
+    <div class="calendar-room-summary">
+      <h4>Upcoming Meetings</h4>
+      <p class="inline-meta"><strong>{{ meetings_by_room.get("Robotics Room", [])|length }}</strong> Robotics Room</p>
+      <p class="inline-meta"><strong>{{ meetings_by_room.get("Fluids Lab", [])|length }}</strong> Fluids Lab</p>
     </div>
-    <p class="inline-meta"><strong>{{ meetings_by_room.get("Robotics Room", [])|length }}</strong> upcoming meetings in Robotics Room.</p>
-    <p class="inline-meta"><strong>{{ meetings_by_room.get("Fluids Lab", [])|length }}</strong> upcoming meetings in Fluids Lab.</p>
-    <p class="inline-meta">Bookings are sorted by date/time. Overlapping meetings in the same room are blocked.</p>
-    <p class="inline-meta">Cancel workflow: user clicks cancel, then club email confirms from Gmail link.</p>
-  </article>
+  </aside>
 </section>
 
 {% if pending_cancellations %}
@@ -112,6 +100,13 @@
   </div>
 </section>
 {% endif %}
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Room Schedules</h3>
+  </div>
+  <p class="inline-meta">Bookings are sorted by date/time. Cancel workflow: click cancel, then confirm from the email approval link.</p>
+</section>
 
 {% for room in meeting_rooms %}
 <section class="panel">

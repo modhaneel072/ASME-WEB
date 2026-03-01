@@ -1,15 +1,18 @@
 import os
+import json
 import secrets
 import smtplib
 import subprocess
+import time as time_module
 from datetime import date, datetime, time, timedelta
 from email.message import EmailMessage
 from mimetypes import guess_type
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlencode, urlparse
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
-import pandas as pd
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, url_for
 from sqlalchemy import and_, inspect, or_, text
 from werkzeug.utils import secure_filename
@@ -28,8 +31,25 @@ MEETING_ROOMS = ("Robotics Room", "Fluids Lab")
 ALLOWED_GCODE_EXTENSIONS = {"gcode", "gco", "3mf"}
 UPLOAD_DIR = Path(app.instance_path) / "gcode_uploads"
 PRINT_COMMANDS_ENV_FILE = Path(app.instance_path) / "print_commands.env"
-DEFAULT_GCAL_SERVICE_ACCOUNT_FILE = Path(app.instance_path) / "google_service_account.json"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+KNOWN_NON_MS_MAIL_DOMAINS = {
+    "gmail.com",
+    "yahoo.com",
+    "icloud.com",
+    "aol.com",
+    "proton.me",
+    "protonmail.com",
+    "gmx.com",
+    "mail.com",
+}
+POSSIBLY_CONSUMER_MS_DOMAINS = {"outlook.com", "hotmail.com", "live.com", "msn.com"}
+OUTLOOK_TOKEN_CACHE = {
+    "access_token": None,
+    "expires_at": 0,
+    "tenant_id": "",
+    "client_id": "",
+}
 
 
 def load_local_print_command_env():
@@ -90,34 +110,41 @@ def parse_clock_time(value):
         return None
 
 
-def google_calendar_embed_context():
-    embed_url = (os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()
+def normalize_outlook_embed_url(embed_url):
+    raw_url = (embed_url or "").strip()
+    if not raw_url:
+        return ""
+
+    try:
+        parsed = urlparse(raw_url)
+        host = (parsed.netloc or "").lower()
+        path_parts = [part for part in (parsed.path or "").split("/") if part]
+        supported_hosts = {"outlook.live.com", "outlook.office.com", "outlook.office365.com"}
+        if (
+            host in supported_hosts
+            and len(path_parts) >= 6
+            and path_parts[0] == "owa"
+            and path_parts[1] == "calendar"
+            and path_parts[-1].lower() == "index.html"
+        ):
+            owner_id = path_parts[2]
+            publish_id = path_parts[3]
+            cid = path_parts[4]
+            scheme = parsed.scheme or "https"
+            return f"{scheme}://{host}/calendar/0/published/{owner_id}/{publish_id}/{cid}/calendar.html/"
+    except Exception:
+        # Fall back to the original URL if parsing fails.
+        pass
+
+    return raw_url
+
+
+def outlook_calendar_embed_context():
+    raw_embed_url = (os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip()
+    embed_url = normalize_outlook_embed_url(raw_embed_url)
     if embed_url:
-        return {"url": embed_url, "placeholder": False}
-
-    calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ID") or "").strip()
-    if not calendar_id:
-        calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ROBOTICS_ID") or "").strip()
-    if not calendar_id:
-        calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_FLUIDS_ID") or "").strip()
-    timezone = (os.environ.get("ASME_GOOGLE_CALENDAR_TZ") or "America/Chicago").strip()
-
-    if calendar_id:
-        generated_url = (
-            "https://calendar.google.com/calendar/embed"
-            f"?src={quote_plus(calendar_id)}"
-            f"&ctz={quote_plus(timezone)}"
-            "&mode=WEEK&showTabs=0&showPrint=0&showCalendars=0&showTz=0"
-        )
-        return {"url": generated_url, "placeholder": False}
-
-    # Public fallback so the page always shows a live Google Calendar embed.
-    fallback_url = (
-        "https://calendar.google.com/calendar/embed"
-        "?src=en.usa%23holiday%40group.v.calendar.google.com"
-        "&ctz=America%2FChicago&mode=WEEK&showTabs=0&showPrint=0&showCalendars=0&showTz=0"
-    )
-    return {"url": fallback_url, "placeholder": True}
+        return {"url": embed_url, "open_url": embed_url, "placeholder": False}
+    return {"url": "", "open_url": "", "placeholder": True}
 
 
 MEETING_SCHEMA_READY = False
@@ -145,6 +172,10 @@ def ensure_meeting_schema_columns():
         alters.append("ALTER TABLE meetings ADD COLUMN google_event_id VARCHAR(180)")
     if "google_calendar_id" not in existing_columns:
         alters.append("ALTER TABLE meetings ADD COLUMN google_calendar_id VARCHAR(240)")
+    if "outlook_event_id" not in existing_columns:
+        alters.append("ALTER TABLE meetings ADD COLUMN outlook_event_id VARCHAR(180)")
+    if "outlook_calendar_id" not in existing_columns:
+        alters.append("ALTER TABLE meetings ADD COLUMN outlook_calendar_id VARCHAR(240)")
     if "cancel_request_token" not in existing_columns:
         alters.append("ALTER TABLE meetings ADD COLUMN cancel_request_token VARCHAR(120)")
     if "cancel_requested_at" not in existing_columns:
@@ -159,13 +190,13 @@ def ensure_meeting_schema_columns():
 
 
 def get_calendar_timezone():
-    return (os.environ.get("ASME_GOOGLE_CALENDAR_TZ") or "America/Chicago").strip()
+    return (os.environ.get("ASME_OUTLOOK_CALENDAR_TZ") or "Central Standard Time").strip()
 
 
-def get_google_calendar_id_for_room(room):
-    robotics_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ROBOTICS_ID") or "").strip()
-    fluids_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_FLUIDS_ID") or "").strip()
-    default_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ID") or "").strip()
+def get_outlook_calendar_id_for_room(room):
+    robotics_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_ROBOTICS_ID") or "").strip()
+    fluids_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_FLUIDS_ID") or "").strip()
+    default_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_ID") or "").strip()
 
     if room == "Robotics Room" and robotics_calendar_id:
         return robotics_calendar_id
@@ -174,46 +205,171 @@ def get_google_calendar_id_for_room(room):
     return default_calendar_id
 
 
-def get_google_calendar_service():
-    service_account_file = (
-        os.environ.get("ASME_GCAL_SERVICE_ACCOUNT_FILE") or str(DEFAULT_GCAL_SERVICE_ACCOUNT_FILE)
-    ).strip()
-    if not service_account_file:
-        return None, "ASME_GCAL_SERVICE_ACCOUNT_FILE is not set."
-    if not Path(service_account_file).exists():
-        return None, f"Google service account file not found: {service_account_file}"
+def get_outlook_oauth_config():
+    tenant_id = (os.environ.get("ASME_OUTLOOK_TENANT_ID") or "").strip()
+    client_id = (os.environ.get("ASME_OUTLOOK_CLIENT_ID") or "").strip()
+    client_secret = (os.environ.get("ASME_OUTLOOK_CLIENT_SECRET") or "").strip()
+    return tenant_id, client_id, client_secret
 
-    try:
-        from google.oauth2 import service_account
-        from googleapiclient.discovery import build
-    except Exception:
-        return None, "Google API libraries missing. Install google-api-python-client and google-auth."
 
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            service_account_file,
-            scopes=["https://www.googleapis.com/auth/calendar"],
+def validate_outlook_sync_config():
+    errors = []
+    warnings = []
+
+    mailbox_user = (os.environ.get("ASME_OUTLOOK_CALENDAR_USER") or "").strip()
+    tenant_id, client_id, client_secret = get_outlook_oauth_config()
+
+    if not mailbox_user:
+        errors.append("ASME_OUTLOOK_CALENDAR_USER is missing.")
+    if not tenant_id:
+        errors.append("ASME_OUTLOOK_TENANT_ID is missing.")
+    elif tenant_id.lower() in {"common", "organizations", "consumers"}:
+        errors.append("ASME_OUTLOOK_TENANT_ID must be your tenant ID/domain, not common/organizations/consumers.")
+    if not client_id:
+        errors.append("ASME_OUTLOOK_CLIENT_ID is missing.")
+    if not client_secret:
+        errors.append("ASME_OUTLOOK_CLIENT_SECRET is missing.")
+
+    if mailbox_user and "@" in mailbox_user:
+        domain = mailbox_user.split("@", 1)[1].strip().lower()
+        if domain in KNOWN_NON_MS_MAIL_DOMAINS:
+            errors.append(
+                "ASME_OUTLOOK_CALENDAR_USER must be a Microsoft mailbox (Outlook/Microsoft 365), "
+                "not a consumer mailbox such as Gmail/Yahoo."
+            )
+        elif domain in POSSIBLY_CONSUMER_MS_DOMAINS:
+            warnings.append(
+                "Consumer Outlook domains may not support app-only Graph calendar access. "
+                "Microsoft 365 tenant mailboxes are recommended."
+            )
+    elif mailbox_user:
+        warnings.append("ASME_OUTLOOK_CALENDAR_USER is not in email format.")
+
+    return errors, warnings
+
+
+def has_any_outlook_sync_inputs():
+    mailbox_user = (os.environ.get("ASME_OUTLOOK_CALENDAR_USER") or "").strip()
+    tenant_id, client_id, client_secret = get_outlook_oauth_config()
+    return bool(mailbox_user or tenant_id or client_id or client_secret)
+
+
+def is_outlook_sync_configured():
+    errors, _warnings = validate_outlook_sync_config()
+    return len(errors) == 0
+
+
+def _http_json_request(method, url, headers=None, form_data=None, json_data=None, timeout=30, retries=0, retry_backoff=0.8):
+    body = None
+    request_headers = dict(headers or {})
+
+    if form_data is not None:
+        body = urlencode(form_data).encode("utf-8")
+        request_headers["Content-Type"] = "application/x-www-form-urlencoded"
+    elif json_data is not None:
+        body = json.dumps(json_data).encode("utf-8")
+        request_headers["Content-Type"] = "application/json"
+
+    req = Request(url=url, data=body, method=method)
+    for key, value in request_headers.items():
+        req.add_header(key, value)
+
+    for attempt in range(retries + 1):
+        try:
+            with urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8") if resp else ""
+                payload = json.loads(raw) if raw else {}
+                return resp.status, payload, None
+        except HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="ignore")
+            try:
+                payload = json.loads(error_body) if error_body else {}
+            except Exception:
+                payload = {"raw": error_body}
+
+            if exc.code in (429, 500, 502, 503, 504) and attempt < retries:
+                time_module.sleep(retry_backoff * (2**attempt))
+                continue
+            return exc.code, payload, error_body
+        except URLError as exc:
+            if attempt < retries:
+                time_module.sleep(retry_backoff * (2**attempt))
+                continue
+            return None, {}, str(exc)
+        except Exception as exc:
+            if attempt < retries:
+                time_module.sleep(retry_backoff * (2**attempt))
+                continue
+            return None, {}, str(exc)
+
+    return None, {}, "HTTP request failed"
+
+
+def get_outlook_access_token():
+    now = time_module.time()
+    tenant_id, client_id, client_secret = get_outlook_oauth_config()
+    if not tenant_id or not client_id or not client_secret:
+        return None, (
+            "Outlook OAuth is not configured. Set ASME_OUTLOOK_TENANT_ID, "
+            "ASME_OUTLOOK_CLIENT_ID, and ASME_OUTLOOK_CLIENT_SECRET."
         )
-        service = build("calendar", "v3", credentials=credentials, cache_discovery=False)
-        return service, None
-    except Exception as exc:
-        return None, f"Failed to create Google Calendar client: {str(exc)[:250]}"
+
+    cached_token = OUTLOOK_TOKEN_CACHE.get("access_token")
+    cached_expiry = OUTLOOK_TOKEN_CACHE.get("expires_at") or 0
+    cached_tenant = OUTLOOK_TOKEN_CACHE.get("tenant_id") or ""
+    cached_client = OUTLOOK_TOKEN_CACHE.get("client_id") or ""
+    if (
+        cached_token
+        and cached_expiry > (now + 60)
+        and cached_tenant == tenant_id
+        and cached_client == client_id
+    ):
+        return cached_token, None
+
+    token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+    status, payload, error = _http_json_request(
+        method="POST",
+        url=token_url,
+        form_data={
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": "https://graph.microsoft.com/.default",
+        },
+        retries=2,
+    )
+    if status != 200:
+        error_text = payload.get("error_description") or payload.get("error") or error or "token request failed"
+        return None, f"Outlook token request failed: {str(error_text)[:250]}"
+
+    access_token = payload.get("access_token")
+    if not access_token:
+        return None, "Outlook token response missing access_token."
+
+    expires_in = int(payload.get("expires_in") or 0)
+    OUTLOOK_TOKEN_CACHE["access_token"] = access_token
+    OUTLOOK_TOKEN_CACHE["tenant_id"] = tenant_id
+    OUTLOOK_TOKEN_CACHE["client_id"] = client_id
+    OUTLOOK_TOKEN_CACHE["expires_at"] = now + max(60, expires_in - 120) if expires_in else (now + 900)
+    return access_token, None
 
 
-def create_google_calendar_event(meeting):
-    calendar_id = get_google_calendar_id_for_room(meeting.room)
-    if not calendar_id:
-        return None, None, (
-            "Google Calendar ID is not configured. Set ASME_GOOGLE_CALENDAR_ID or room-specific IDs."
-        )
+def create_outlook_calendar_event(meeting):
+    validation_errors, _warnings = validate_outlook_sync_config()
+    if validation_errors:
+        return None, None, " ".join(validation_errors)
 
-    service, service_error = get_google_calendar_service()
-    if service_error:
-        return None, None, service_error
+    mailbox_user = (os.environ.get("ASME_OUTLOOK_CALENDAR_USER") or "").strip()
+
+    access_token, token_error = get_outlook_access_token()
+    if token_error:
+        return None, None, token_error
 
     timezone = get_calendar_timezone()
     start_dt = datetime.combine(meeting.meeting_date, meeting.start_time)
     end_dt = datetime.combine(meeting.meeting_date, meeting.end_time)
+    calendar_id = get_outlook_calendar_id_for_room(meeting.room)
+
     description_lines = []
     if meeting.requester_email:
         description_lines.append(f"Requested by: {meeting.requester_email}")
@@ -221,43 +377,75 @@ def create_google_calendar_event(meeting):
         description_lines.append(f"Notes: {meeting.notes}")
 
     event_body = {
-        "summary": f"{meeting.team_name} - {meeting.room}",
-        "description": "\n".join(description_lines).strip() or None,
-        "start": {"dateTime": start_dt.isoformat(), "timeZone": timezone},
-        "end": {"dateTime": end_dt.isoformat(), "timeZone": timezone},
+        "subject": f"{meeting.team_name} - {meeting.room}",
+        "body": {
+            "contentType": "Text",
+            "content": "\n".join(description_lines).strip() or "Created from ASME website scheduler.",
+        },
+        "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": timezone},
+        "end": {"dateTime": end_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": timezone},
+        "location": {"displayName": meeting.room},
     }
 
-    try:
-        created_event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
-        return calendar_id, created_event.get("id"), None
-    except Exception as exc:
-        return None, None, f"Google Calendar event create failed: {str(exc)[:250]}"
+    encoded_user = quote(mailbox_user, safe="")
+    if calendar_id:
+        encoded_calendar = quote(calendar_id, safe="")
+        endpoint = f"https://graph.microsoft.com/v1.0/users/{encoded_user}/calendars/{encoded_calendar}/events"
+    else:
+        endpoint = f"https://graph.microsoft.com/v1.0/users/{encoded_user}/events"
+
+    status, payload, error = _http_json_request(
+        method="POST",
+        url=endpoint,
+        headers={"Authorization": f"Bearer {access_token}"},
+        json_data=event_body,
+        retries=2,
+    )
+    if status not in (200, 201):
+        msg = payload.get("error", {}).get("message") if isinstance(payload.get("error"), dict) else None
+        error_text = msg or error or "event create failed"
+        return None, None, f"Outlook event create failed: {str(error_text)[:250]}"
+
+    event_id = payload.get("id")
+    if not event_id:
+        return None, None, "Outlook event created but no event ID returned."
+    return calendar_id, event_id, None
 
 
-def delete_google_calendar_event(meeting):
-    if not meeting.google_event_id:
+def delete_outlook_calendar_event(meeting):
+    if not meeting.outlook_event_id:
         return None
 
-    calendar_id = (meeting.google_calendar_id or "").strip() or get_google_calendar_id_for_room(meeting.room)
-    if not calendar_id:
-        return "Missing Google Calendar ID for cancellation."
+    validation_errors, _warnings = validate_outlook_sync_config()
+    if validation_errors:
+        return " ".join(validation_errors)
 
-    service, service_error = get_google_calendar_service()
-    if service_error:
-        return service_error
+    mailbox_user = (os.environ.get("ASME_OUTLOOK_CALENDAR_USER") or "").strip()
 
-    try:
-        service.events().delete(calendarId=calendar_id, eventId=meeting.google_event_id).execute()
+    access_token, token_error = get_outlook_access_token()
+    if token_error:
+        return token_error
+
+    encoded_user = quote(mailbox_user, safe="")
+    encoded_event = quote(meeting.outlook_event_id, safe="")
+    endpoint = f"https://graph.microsoft.com/v1.0/users/{encoded_user}/events/{encoded_event}"
+
+    status, payload, error = _http_json_request(
+        method="DELETE",
+        url=endpoint,
+        headers={"Authorization": f"Bearer {access_token}"},
+        retries=2,
+    )
+    if status in (200, 202, 204, 404):
         return None
-    except Exception as exc:
-        status_code = getattr(getattr(exc, "resp", None), "status", None)
-        if status_code == 404:
-            return None
-        return f"Google Calendar event delete failed: {str(exc)[:250]}"
+
+    msg = payload.get("error", {}).get("message") if isinstance(payload.get("error"), dict) else None
+    error_text = msg or error or "event delete failed"
+    return f"Outlook event delete failed: {str(error_text)[:250]}"
 
 
 def send_meeting_cancel_confirmation_email(meeting, confirm_url, reject_url):
-    smtp_host = (os.environ.get("ASME_SMTP_HOST") or "smtp.gmail.com").strip()
+    smtp_host = (os.environ.get("ASME_SMTP_HOST") or "smtp.office365.com").strip()
     smtp_port = int((os.environ.get("ASME_SMTP_PORT") or "587").strip())
     smtp_user = (os.environ.get("ASME_SMTP_USER") or "").strip()
     smtp_pass = (os.environ.get("ASME_SMTP_PASS") or "").strip()
@@ -301,20 +489,21 @@ def send_meeting_cancel_confirmation_email(meeting, confirm_url, reject_url):
 
 
 def calendar_automation_status():
-    default_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ID") or "").strip()
-    robotics_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_ROBOTICS_ID") or "").strip()
-    fluids_calendar_id = (os.environ.get("ASME_GOOGLE_CALENDAR_FLUIDS_ID") or "").strip()
-    service_account_file = (
-        os.environ.get("ASME_GCAL_SERVICE_ACCOUNT_FILE") or str(DEFAULT_GCAL_SERVICE_ACCOUNT_FILE)
-    ).strip()
+    default_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_ID") or "").strip()
+    robotics_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_ROBOTICS_ID") or "").strip()
+    fluids_calendar_id = (os.environ.get("ASME_OUTLOOK_CALENDAR_FLUIDS_ID") or "").strip()
+    mailbox_user = (os.environ.get("ASME_OUTLOOK_CALENDAR_USER") or "").strip()
+    tenant_id, client_id, client_secret = get_outlook_oauth_config()
     smtp_user = (os.environ.get("ASME_SMTP_USER") or "").strip()
     smtp_pass = (os.environ.get("ASME_SMTP_PASS") or "").strip()
     cancel_notify_to = (os.environ.get("ASME_CANCEL_NOTIFY_TO") or "").strip()
 
     has_any_calendar_id = bool(default_calendar_id or robotics_calendar_id or fluids_calendar_id)
     return {
-        "service_account_file": service_account_file,
-        "service_account_file_exists": Path(service_account_file).exists(),
+        "tenant_id_set": bool(tenant_id),
+        "client_id_set": bool(client_id),
+        "client_secret_set": bool(client_secret),
+        "calendar_user": mailbox_user,
         "default_calendar_id": default_calendar_id,
         "robotics_calendar_id": robotics_calendar_id,
         "fluids_calendar_id": fluids_calendar_id,
@@ -789,7 +978,7 @@ def calendar_page():
     meetings_by_room = {room: [] for room in MEETING_ROOMS}
     for meeting in upcoming_meetings:
         meetings_by_room.setdefault(meeting.room, []).append(meeting)
-    google_calendar = google_calendar_embed_context()
+    outlook_calendar = outlook_calendar_embed_context()
     automation_status = calendar_automation_status()
     pending_cancellations = (
         Meeting.query.filter(Meeting.cancel_request_token.isnot(None))
@@ -806,8 +995,9 @@ def calendar_page():
             "meeting_rooms": MEETING_ROOMS,
             "meetings_by_room": meetings_by_room,
             "calendar_default_date": str(date.today()),
-            "google_calendar_embed_url": google_calendar["url"],
-            "google_calendar_placeholder": google_calendar["placeholder"],
+            "outlook_calendar_embed_url": outlook_calendar["url"],
+            "outlook_calendar_open_url": outlook_calendar["open_url"],
+            "outlook_calendar_placeholder": outlook_calendar["placeholder"],
             "calendar_automation_status": automation_status,
             "pending_cancellations": pending_cancellations,
         }
@@ -874,21 +1064,44 @@ def book_meeting():
         notes=notes,
     )
 
-    calendar_id, event_id, calendar_error = create_google_calendar_event(meeting)
-    if calendar_error:
-        flash(f"Meeting was not saved: {calendar_error}", "error")
-        return redirect_home("calendar")
-
-    meeting.google_calendar_id = calendar_id
-    meeting.google_event_id = event_id
+    sync_configured = is_outlook_sync_configured()
+    config_has_inputs = has_any_outlook_sync_inputs()
+    calendar_error = None
+    if sync_configured:
+        calendar_id, event_id, calendar_error = create_outlook_calendar_event(meeting)
+        if not calendar_error:
+            meeting.outlook_calendar_id = calendar_id
+            meeting.outlook_event_id = event_id
 
     db.session.add(meeting)
     db.session.commit()
-    flash(
-        f"Booked {room} for {team_name} on {meeting_date.isoformat()} "
-        f"({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}) and synced to Google Calendar.",
-        "success",
-    )
+
+    if calendar_error:
+        flash(
+            f"Booked {room} for {team_name} on {meeting_date.isoformat()} "
+            f"({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}). "
+            f"Outlook sync failed: {calendar_error}",
+            "info",
+        )
+    elif sync_configured:
+        flash(
+            f"Booked {room} for {team_name} on {meeting_date.isoformat()} "
+            f"({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}) and synced to Outlook Calendar.",
+            "success",
+        )
+    elif config_has_inputs:
+        flash(
+            f"Booked {room} for {team_name} on {meeting_date.isoformat()} "
+            f"({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}). "
+            "Outlook sync is not active yet. Run: python scripts/outlook_sync_doctor.py",
+            "info",
+        )
+    else:
+        flash(
+            f"Booked {room} for {team_name} on {meeting_date.isoformat()} "
+            f"({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}).",
+            "success",
+        )
     return redirect_home("calendar")
 
 
@@ -919,7 +1132,7 @@ def request_meeting_cancel(meeting_id):
         return redirect_home("calendar")
 
     flash(
-        "Cancellation request sent. An approval email was sent to the club Gmail for confirmation.",
+        "Cancellation request sent. An approval email was sent for confirmation.",
         "info",
     )
     return redirect_home("calendar")
@@ -936,7 +1149,7 @@ def confirm_meeting_cancel(token):
             404,
         )
 
-    calendar_error = delete_google_calendar_event(meeting)
+    calendar_error = delete_outlook_calendar_event(meeting)
     if calendar_error:
         return (
             "<h3>Cancellation could not be completed.</h3>"
@@ -953,7 +1166,7 @@ def confirm_meeting_cancel(token):
 
     return (
         "<h3>Cancellation confirmed.</h3>"
-        f"<p>{team_name} in {room} on {meeting_date} was removed from Google Calendar.</p>"
+        f"<p>{team_name} in {room} on {meeting_date} was removed from Outlook Calendar.</p>"
         "<p>You can close this tab.</p>"
     )
 
@@ -974,7 +1187,7 @@ def reject_meeting_cancel(token):
     db.session.commit()
     return (
         "<h3>Cancellation request rejected.</h3>"
-        "<p>The meeting remains on the schedule and in Google Calendar.</p>"
+        "<p>The meeting remains on the schedule and in Outlook Calendar.</p>"
         "<p>You can close this tab.</p>"
     )
 
@@ -1389,6 +1602,12 @@ def pair_item():
 
 @app.get("/export")
 def export_excel():
+    try:
+        import pandas as pd
+    except Exception:
+        flash("Excel export is unavailable because pandas is not loading correctly.", "error")
+        return redirect(url_for("dashboard_page"))
+
     ensure_meeting_schema_columns()
     members = Member.query.order_by(Member.id.asc()).all()
     items = Item.query.order_by(Item.id.asc()).all()
@@ -1487,6 +1706,8 @@ def export_excel():
                 "notes": m.notes,
                 "google_event_id": m.google_event_id,
                 "google_calendar_id": m.google_calendar_id,
+                "outlook_event_id": m.outlook_event_id,
+                "outlook_calendar_id": m.outlook_calendar_id,
                 "cancel_request_token": m.cancel_request_token,
                 "cancel_requested_at": m.cancel_requested_at,
                 "created_at": m.created_at,
