@@ -6,17 +6,243 @@
   <title>{{ page_title }} | ASME Ops</title>
   <script>
     (function () {
-      var key = "asme_ops_preferences_v1";
+      var key = "asme_ops_customization_v2";
+      var legacyKey = "asme_ops_preferences_v1";
       var root = document.documentElement;
+      var defaults = {
+        colors: {
+          accent: "#f5c518",
+          accentStrong: "#ffd54f",
+          buttonText: "#0a0a0a",
+          text: "#ffffff",
+          muted: "#a0a0a0",
+          line: "#2a2a2a",
+          bg: "#0a0a0a",
+          bgSoft: "#111111",
+          card: "#1a1a1a",
+          cardAlt: "#141414",
+          glow1: "#f5c518",
+          glow2: "#f5c518",
+          headerBg: "#0a0a0a"
+        },
+        layout: {
+          sidebarWidth: 256,
+          radius: 14,
+          workspaceGap: 14,
+          panelPad: 12,
+          controlPadY: 9,
+          controlPadX: 10,
+          fontScale: 100,
+          headerBlur: 8,
+          headerAlpha: 84,
+          glow1Alpha: 14,
+          glow2Alpha: 8,
+          panelStyle: "glass",
+          controlShape: "rounded",
+          metrics: "show"
+        }
+      };
+
+      function isObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value);
+      }
+
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function clampInt(value, fallback, min, max) {
+        var parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+          return fallback;
+        }
+        if (parsed < min) {
+          return min;
+        }
+        if (parsed > max) {
+          return max;
+        }
+        return parsed;
+      }
+
+      function normalizeHex(value, fallback) {
+        if (typeof value !== "string") {
+          return fallback;
+        }
+        var color = value.trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+          return color.toLowerCase();
+        }
+        if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+          return (
+            "#" +
+            color.charAt(1) + color.charAt(1) +
+            color.charAt(2) + color.charAt(2) +
+            color.charAt(3) + color.charAt(3)
+          ).toLowerCase();
+        }
+        return fallback;
+      }
+
+      function normalizeCustomization(saved) {
+        var out = clone(defaults);
+        if (!isObject(saved)) {
+          return out;
+        }
+
+        if (isObject(saved.colors)) {
+          out.colors.accent = normalizeHex(saved.colors.accent, out.colors.accent);
+          out.colors.accentStrong = normalizeHex(saved.colors.accentStrong, out.colors.accentStrong);
+          out.colors.buttonText = normalizeHex(saved.colors.buttonText, out.colors.buttonText);
+          out.colors.text = normalizeHex(saved.colors.text, out.colors.text);
+          out.colors.muted = normalizeHex(saved.colors.muted, out.colors.muted);
+          out.colors.line = normalizeHex(saved.colors.line, out.colors.line);
+          out.colors.bg = normalizeHex(saved.colors.bg, out.colors.bg);
+          out.colors.bgSoft = normalizeHex(saved.colors.bgSoft, out.colors.bgSoft);
+          out.colors.card = normalizeHex(saved.colors.card, out.colors.card);
+          out.colors.cardAlt = normalizeHex(saved.colors.cardAlt, out.colors.cardAlt);
+          out.colors.glow1 = normalizeHex(saved.colors.glow1, out.colors.glow1);
+          out.colors.glow2 = normalizeHex(saved.colors.glow2, out.colors.glow2);
+          out.colors.headerBg = normalizeHex(saved.colors.headerBg, out.colors.headerBg);
+        }
+
+        if (isObject(saved.layout)) {
+          out.layout.sidebarWidth = clampInt(saved.layout.sidebarWidth, out.layout.sidebarWidth, 200, 360);
+          out.layout.radius = clampInt(saved.layout.radius, out.layout.radius, 8, 24);
+          out.layout.workspaceGap = clampInt(saved.layout.workspaceGap, out.layout.workspaceGap, 8, 24);
+          out.layout.panelPad = clampInt(saved.layout.panelPad, out.layout.panelPad, 8, 20);
+          out.layout.controlPadY = clampInt(saved.layout.controlPadY, out.layout.controlPadY, 6, 14);
+          out.layout.controlPadX = clampInt(saved.layout.controlPadX, out.layout.controlPadX, 8, 18);
+          out.layout.fontScale = clampInt(saved.layout.fontScale, out.layout.fontScale, 90, 120);
+          out.layout.headerBlur = clampInt(saved.layout.headerBlur, out.layout.headerBlur, 0, 20);
+          out.layout.headerAlpha = clampInt(saved.layout.headerAlpha, out.layout.headerAlpha, 55, 98);
+          out.layout.glow1Alpha = clampInt(saved.layout.glow1Alpha, out.layout.glow1Alpha, 0, 30);
+          out.layout.glow2Alpha = clampInt(saved.layout.glow2Alpha, out.layout.glow2Alpha, 0, 24);
+          out.layout.panelStyle = saved.layout.panelStyle === "flat" || saved.layout.panelStyle === "outlined" ? saved.layout.panelStyle : "glass";
+          out.layout.controlShape = saved.layout.controlShape === "pill" || saved.layout.controlShape === "sharp" ? saved.layout.controlShape : "rounded";
+          out.layout.metrics = saved.layout.metrics === "hide" ? "hide" : "show";
+        }
+
+        return out;
+      }
+
+      function alphaHexToRgba(hex, alphaPercent) {
+        var color = normalizeHex(hex, "#000000");
+        var r = parseInt(color.slice(1, 3), 16);
+        var g = parseInt(color.slice(3, 5), 16);
+        var b = parseInt(color.slice(5, 7), 16);
+        var alpha = Math.max(0, Math.min(100, alphaPercent)) / 100;
+        return "rgba(" + r + ", " + g + ", " + b + ", " + alpha.toFixed(3) + ")";
+      }
+
+      function migrateLegacy() {
+        try {
+          var raw = localStorage.getItem(legacyKey);
+          if (!raw) {
+            return null;
+          }
+          var legacy = JSON.parse(raw);
+          var migrated = clone(defaults);
+          if (legacy && legacy.metrics === "hide") {
+            migrated.layout.metrics = "hide";
+          }
+          if (legacy && legacy.sidebar === "slim") {
+            migrated.layout.sidebarWidth = 220;
+          } else if (legacy && legacy.sidebar === "wide") {
+            migrated.layout.sidebarWidth = 308;
+          }
+          if (legacy && legacy.layout === "compact") {
+            migrated.layout.workspaceGap = 10;
+            migrated.layout.panelPad = 10;
+            migrated.layout.controlPadY = 7;
+            migrated.layout.controlPadX = 9;
+          } else if (legacy && legacy.layout === "spacious") {
+            migrated.layout.workspaceGap = 18;
+            migrated.layout.panelPad = 15;
+            migrated.layout.controlPadY = 11;
+            migrated.layout.controlPadX = 12;
+          }
+          if (legacy && legacy.theme === "harbor") {
+            migrated.colors.accent = "#66d9ff";
+            migrated.colors.accentStrong = "#8fe4ff";
+            migrated.colors.text = "#e9f6ff";
+            migrated.colors.muted = "#9cb8c8";
+            migrated.colors.line = "#274254";
+            migrated.colors.bg = "#06121b";
+            migrated.colors.bgSoft = "#0a1c29";
+            migrated.colors.card = "#122534";
+            migrated.colors.cardAlt = "#0d1f2c";
+            migrated.colors.glow1 = "#66d9ff";
+            migrated.colors.glow2 = "#66d9ff";
+            migrated.colors.headerBg = "#06121b";
+          } else if (legacy && legacy.theme === "daylight") {
+            migrated.colors.accent = "#0057a8";
+            migrated.colors.accentStrong = "#0a67c2";
+            migrated.colors.buttonText = "#f5f9ff";
+            migrated.colors.text = "#0b1e32";
+            migrated.colors.muted = "#4d637a";
+            migrated.colors.line = "#d5dfeb";
+            migrated.colors.bg = "#f4f7fb";
+            migrated.colors.bgSoft = "#eaf0f7";
+            migrated.colors.card = "#ffffff";
+            migrated.colors.cardAlt = "#f8fbff";
+            migrated.colors.glow1 = "#0057a8";
+            migrated.colors.glow2 = "#1d8cff";
+            migrated.colors.headerBg = "#ffffff";
+          }
+          return migrated;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function readCustomization() {
+        try {
+          var raw = localStorage.getItem(key);
+          if (raw) {
+            return normalizeCustomization(JSON.parse(raw));
+          }
+          var migrated = migrateLegacy();
+          return migrated ? normalizeCustomization(migrated) : clone(defaults);
+        } catch (err) {
+          return clone(defaults);
+        }
+      }
+
+      function applyCustomization(customization) {
+        var colors = customization.colors;
+        var layout = customization.layout;
+
+        root.setAttribute("data-metrics", layout.metrics === "hide" ? "hide" : "show");
+        root.setAttribute("data-panel-style", layout.panelStyle);
+        root.setAttribute("data-control-shape", layout.controlShape);
+        root.style.setProperty("--gold", colors.accent);
+        root.style.setProperty("--gold-strong", colors.accentStrong);
+        root.style.setProperty("--button-text", colors.buttonText);
+        root.style.setProperty("--text", colors.text);
+        root.style.setProperty("--muted", colors.muted);
+        root.style.setProperty("--line", colors.line);
+        root.style.setProperty("--line-soft", colors.line);
+        root.style.setProperty("--bg", colors.bg);
+        root.style.setProperty("--bg-soft", colors.bgSoft);
+        root.style.setProperty("--bg-card", colors.card);
+        root.style.setProperty("--bg-card-2", colors.cardAlt);
+        root.style.setProperty("--sidebar-width", layout.sidebarWidth + "px");
+        root.style.setProperty("--radius", layout.radius + "px");
+        root.style.setProperty("--workspace-gap", layout.workspaceGap + "px");
+        root.style.setProperty("--panel-pad", layout.panelPad + "px");
+        root.style.setProperty("--control-pad", layout.controlPadY + "px " + layout.controlPadX + "px");
+        root.style.setProperty("--font-scale", layout.fontScale + "%");
+        root.style.setProperty("--header-blur", layout.headerBlur + "px");
+        root.style.setProperty("--header-bg", alphaHexToRgba(colors.headerBg, layout.headerAlpha));
+        root.style.setProperty("--bg-radial-1", alphaHexToRgba(colors.glow1, layout.glow1Alpha));
+        root.style.setProperty("--bg-radial-2", alphaHexToRgba(colors.glow2, layout.glow2Alpha));
+      }
+
       try {
-        var raw = localStorage.getItem(key);
-        var prefs = raw ? JSON.parse(raw) : {};
-        if (prefs.theme) root.setAttribute("data-theme", prefs.theme);
-        if (prefs.layout) root.setAttribute("data-layout", prefs.layout);
-        if (prefs.sidebar) root.setAttribute("data-sidebar", prefs.sidebar);
-        if (prefs.metrics) root.setAttribute("data-metrics", prefs.metrics);
+        applyCustomization(readCustomization());
       } catch (err) {
-        // Keep initial render resilient if stored prefs are invalid.
+        applyCustomization(clone(defaults));
       }
     })();
   </script>
@@ -86,39 +312,317 @@
   </div>
   <script>
     (function () {
-      var key = "asme_ops_preferences_v1";
+      var key = "asme_ops_customization_v2";
+      var legacyKey = "asme_ops_preferences_v1";
       var defaults = {
-        theme: "onyx",
-        layout: "comfortable",
-        sidebar: "default",
-        metrics: "show",
+        colors: {
+          accent: "#f5c518",
+          accentStrong: "#ffd54f",
+          buttonText: "#0a0a0a",
+          text: "#ffffff",
+          muted: "#a0a0a0",
+          line: "#2a2a2a",
+          bg: "#0a0a0a",
+          bgSoft: "#111111",
+          card: "#1a1a1a",
+          cardAlt: "#141414",
+          glow1: "#f5c518",
+          glow2: "#f5c518",
+          headerBg: "#0a0a0a"
+        },
+        layout: {
+          sidebarWidth: 256,
+          radius: 14,
+          workspaceGap: 14,
+          panelPad: 12,
+          controlPadY: 9,
+          controlPadX: 10,
+          fontScale: 100,
+          headerBlur: 8,
+          headerAlpha: 84,
+          glow1Alpha: 14,
+          glow2Alpha: 8,
+          panelStyle: "glass",
+          controlShape: "rounded",
+          metrics: "show"
+        }
       };
 
-      function readPrefs() {
+      var rangeUnits = {
+        "layout.sidebarWidth": "px",
+        "layout.radius": "px",
+        "layout.workspaceGap": "px",
+        "layout.panelPad": "px",
+        "layout.controlPadY": "px",
+        "layout.controlPadX": "px",
+        "layout.fontScale": "%",
+        "layout.headerBlur": "px",
+        "layout.headerAlpha": "%",
+        "layout.glow1Alpha": "%",
+        "layout.glow2Alpha": "%"
+      };
+
+      function isObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value);
+      }
+
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function clampInt(value, fallback, min, max) {
+        var parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+          return fallback;
+        }
+        if (parsed < min) {
+          return min;
+        }
+        if (parsed > max) {
+          return max;
+        }
+        return parsed;
+      }
+
+      function normalizeHex(value, fallback) {
+        if (typeof value !== "string") {
+          return fallback;
+        }
+        var color = value.trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+          return color.toLowerCase();
+        }
+        if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+          return (
+            "#" +
+            color.charAt(1) + color.charAt(1) +
+            color.charAt(2) + color.charAt(2) +
+            color.charAt(3) + color.charAt(3)
+          ).toLowerCase();
+        }
+        return fallback;
+      }
+
+      function normalizeCustomization(saved) {
+        var out = clone(defaults);
+        if (!isObject(saved)) {
+          return out;
+        }
+
+        if (isObject(saved.colors)) {
+          out.colors.accent = normalizeHex(saved.colors.accent, out.colors.accent);
+          out.colors.accentStrong = normalizeHex(saved.colors.accentStrong, out.colors.accentStrong);
+          out.colors.buttonText = normalizeHex(saved.colors.buttonText, out.colors.buttonText);
+          out.colors.text = normalizeHex(saved.colors.text, out.colors.text);
+          out.colors.muted = normalizeHex(saved.colors.muted, out.colors.muted);
+          out.colors.line = normalizeHex(saved.colors.line, out.colors.line);
+          out.colors.bg = normalizeHex(saved.colors.bg, out.colors.bg);
+          out.colors.bgSoft = normalizeHex(saved.colors.bgSoft, out.colors.bgSoft);
+          out.colors.card = normalizeHex(saved.colors.card, out.colors.card);
+          out.colors.cardAlt = normalizeHex(saved.colors.cardAlt, out.colors.cardAlt);
+          out.colors.glow1 = normalizeHex(saved.colors.glow1, out.colors.glow1);
+          out.colors.glow2 = normalizeHex(saved.colors.glow2, out.colors.glow2);
+          out.colors.headerBg = normalizeHex(saved.colors.headerBg, out.colors.headerBg);
+        }
+
+        if (isObject(saved.layout)) {
+          out.layout.sidebarWidth = clampInt(saved.layout.sidebarWidth, out.layout.sidebarWidth, 200, 360);
+          out.layout.radius = clampInt(saved.layout.radius, out.layout.radius, 8, 24);
+          out.layout.workspaceGap = clampInt(saved.layout.workspaceGap, out.layout.workspaceGap, 8, 24);
+          out.layout.panelPad = clampInt(saved.layout.panelPad, out.layout.panelPad, 8, 20);
+          out.layout.controlPadY = clampInt(saved.layout.controlPadY, out.layout.controlPadY, 6, 14);
+          out.layout.controlPadX = clampInt(saved.layout.controlPadX, out.layout.controlPadX, 8, 18);
+          out.layout.fontScale = clampInt(saved.layout.fontScale, out.layout.fontScale, 90, 120);
+          out.layout.headerBlur = clampInt(saved.layout.headerBlur, out.layout.headerBlur, 0, 20);
+          out.layout.headerAlpha = clampInt(saved.layout.headerAlpha, out.layout.headerAlpha, 55, 98);
+          out.layout.glow1Alpha = clampInt(saved.layout.glow1Alpha, out.layout.glow1Alpha, 0, 30);
+          out.layout.glow2Alpha = clampInt(saved.layout.glow2Alpha, out.layout.glow2Alpha, 0, 24);
+          out.layout.panelStyle = saved.layout.panelStyle === "flat" || saved.layout.panelStyle === "outlined" ? saved.layout.panelStyle : "glass";
+          out.layout.controlShape = saved.layout.controlShape === "pill" || saved.layout.controlShape === "sharp" ? saved.layout.controlShape : "rounded";
+          out.layout.metrics = saved.layout.metrics === "hide" ? "hide" : "show";
+        }
+
+        return out;
+      }
+
+      function alphaHexToRgba(hex, alphaPercent) {
+        var color = normalizeHex(hex, "#000000");
+        var r = parseInt(color.slice(1, 3), 16);
+        var g = parseInt(color.slice(3, 5), 16);
+        var b = parseInt(color.slice(5, 7), 16);
+        var alpha = Math.max(0, Math.min(100, alphaPercent)) / 100;
+        return "rgba(" + r + ", " + g + ", " + b + ", " + alpha.toFixed(3) + ")";
+      }
+
+      function migrateLegacy() {
         try {
-          var raw = localStorage.getItem(key);
-          var saved = raw ? JSON.parse(raw) : {};
-          return {
-            theme: saved.theme || defaults.theme,
-            layout: saved.layout || defaults.layout,
-            sidebar: saved.sidebar || defaults.sidebar,
-            metrics: saved.metrics || defaults.metrics,
-          };
+          var raw = localStorage.getItem(legacyKey);
+          if (!raw) {
+            return null;
+          }
+          var legacy = JSON.parse(raw);
+          var migrated = clone(defaults);
+          if (legacy && legacy.metrics === "hide") {
+            migrated.layout.metrics = "hide";
+          }
+          if (legacy && legacy.sidebar === "slim") {
+            migrated.layout.sidebarWidth = 220;
+          } else if (legacy && legacy.sidebar === "wide") {
+            migrated.layout.sidebarWidth = 308;
+          }
+          if (legacy && legacy.layout === "compact") {
+            migrated.layout.workspaceGap = 10;
+            migrated.layout.panelPad = 10;
+            migrated.layout.controlPadY = 7;
+            migrated.layout.controlPadX = 9;
+          } else if (legacy && legacy.layout === "spacious") {
+            migrated.layout.workspaceGap = 18;
+            migrated.layout.panelPad = 15;
+            migrated.layout.controlPadY = 11;
+            migrated.layout.controlPadX = 12;
+          }
+          if (legacy && legacy.theme === "harbor") {
+            migrated.colors.accent = "#66d9ff";
+            migrated.colors.accentStrong = "#8fe4ff";
+            migrated.colors.text = "#e9f6ff";
+            migrated.colors.muted = "#9cb8c8";
+            migrated.colors.line = "#274254";
+            migrated.colors.bg = "#06121b";
+            migrated.colors.bgSoft = "#0a1c29";
+            migrated.colors.card = "#122534";
+            migrated.colors.cardAlt = "#0d1f2c";
+            migrated.colors.glow1 = "#66d9ff";
+            migrated.colors.glow2 = "#66d9ff";
+            migrated.colors.headerBg = "#06121b";
+          } else if (legacy && legacy.theme === "daylight") {
+            migrated.colors.accent = "#0057a8";
+            migrated.colors.accentStrong = "#0a67c2";
+            migrated.colors.buttonText = "#f5f9ff";
+            migrated.colors.text = "#0b1e32";
+            migrated.colors.muted = "#4d637a";
+            migrated.colors.line = "#d5dfeb";
+            migrated.colors.bg = "#f4f7fb";
+            migrated.colors.bgSoft = "#eaf0f7";
+            migrated.colors.card = "#ffffff";
+            migrated.colors.cardAlt = "#f8fbff";
+            migrated.colors.glow1 = "#0057a8";
+            migrated.colors.glow2 = "#1d8cff";
+            migrated.colors.headerBg = "#ffffff";
+          }
+          return migrated;
         } catch (err) {
-          return Object.assign({}, defaults);
+          return null;
         }
       }
 
-      function applyPrefs(prefs) {
-        var root = document.documentElement;
-        root.setAttribute("data-theme", prefs.theme);
-        root.setAttribute("data-layout", prefs.layout);
-        root.setAttribute("data-sidebar", prefs.sidebar);
-        root.setAttribute("data-metrics", prefs.metrics);
+      function readCustomization() {
+        try {
+          var raw = localStorage.getItem(key);
+          if (raw) {
+            return normalizeCustomization(JSON.parse(raw));
+          }
+          var migrated = migrateLegacy();
+          return migrated ? normalizeCustomization(migrated) : clone(defaults);
+        } catch (err) {
+          return clone(defaults);
+        }
       }
 
-      function savePrefs(prefs) {
-        localStorage.setItem(key, JSON.stringify(prefs));
+      function saveCustomization(customization) {
+        localStorage.setItem(key, JSON.stringify(customization));
+      }
+
+      function applyCustomization(customization) {
+        var root = document.documentElement;
+        var colors = customization.colors;
+        var layout = customization.layout;
+
+        root.setAttribute("data-metrics", layout.metrics === "hide" ? "hide" : "show");
+        root.setAttribute("data-panel-style", layout.panelStyle);
+        root.setAttribute("data-control-shape", layout.controlShape);
+        root.style.setProperty("--gold", colors.accent);
+        root.style.setProperty("--gold-strong", colors.accentStrong);
+        root.style.setProperty("--button-text", colors.buttonText);
+        root.style.setProperty("--text", colors.text);
+        root.style.setProperty("--muted", colors.muted);
+        root.style.setProperty("--line", colors.line);
+        root.style.setProperty("--line-soft", colors.line);
+        root.style.setProperty("--bg", colors.bg);
+        root.style.setProperty("--bg-soft", colors.bgSoft);
+        root.style.setProperty("--bg-card", colors.card);
+        root.style.setProperty("--bg-card-2", colors.cardAlt);
+        root.style.setProperty("--sidebar-width", layout.sidebarWidth + "px");
+        root.style.setProperty("--radius", layout.radius + "px");
+        root.style.setProperty("--workspace-gap", layout.workspaceGap + "px");
+        root.style.setProperty("--panel-pad", layout.panelPad + "px");
+        root.style.setProperty("--control-pad", layout.controlPadY + "px " + layout.controlPadX + "px");
+        root.style.setProperty("--font-scale", layout.fontScale + "%");
+        root.style.setProperty("--header-blur", layout.headerBlur + "px");
+        root.style.setProperty("--header-bg", alphaHexToRgba(colors.headerBg, layout.headerAlpha));
+        root.style.setProperty("--bg-radial-1", alphaHexToRgba(colors.glow1, layout.glow1Alpha));
+        root.style.setProperty("--bg-radial-2", alphaHexToRgba(colors.glow2, layout.glow2Alpha));
+      }
+
+      function getByPath(source, path) {
+        return path.split(".").reduce(function (acc, part) {
+          return acc && Object.prototype.hasOwnProperty.call(acc, part) ? acc[part] : undefined;
+        }, source);
+      }
+
+      function setByPath(target, path, value) {
+        var parts = path.split(".");
+        var current = target;
+        for (var i = 0; i < parts.length - 1; i += 1) {
+          if (!isObject(current[parts[i]])) {
+            current[parts[i]] = {};
+          }
+          current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = value;
+      }
+
+      function setStatus(statusEl, message) {
+        if (statusEl) {
+          statusEl.textContent = message;
+        }
+      }
+
+      function renderValueBadges(form, customization) {
+        form.querySelectorAll("[data-value-for]").forEach(function (badge) {
+          var path = badge.getAttribute("data-value-for");
+          var value = getByPath(customization, path);
+          var unit = rangeUnits[path] || "";
+          badge.textContent = String(value) + unit;
+        });
+      }
+
+      function syncForm(form, customization) {
+        form.querySelectorAll("[name]").forEach(function (field) {
+          var value = getByPath(customization, field.name);
+          if (value === undefined || value === null) {
+            return;
+          }
+          field.value = String(value);
+        });
+      }
+
+      function findJsonTextarea(form) {
+        return form.querySelector("[data-settings-json]");
+      }
+
+      function renderJson(form, customization) {
+        var textarea = findJsonTextarea(form);
+        if (!textarea) {
+          return;
+        }
+        textarea.value = JSON.stringify(customization, null, 2);
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        return Promise.reject(new Error("Clipboard API unavailable"));
       }
 
       function wireSettingsUI() {
@@ -128,45 +632,83 @@
         }
 
         var status = document.querySelector("[data-settings-status]");
-        var resetBtn = form.querySelector("[data-action='reset']");
-        var prefs = readPrefs();
+        var customization = readCustomization();
 
-        form.querySelectorAll("input[type='radio']").forEach(function (input) {
-          if (prefs[input.name] === input.value) {
-            input.checked = true;
+        function persistAndRender(message) {
+          customization = normalizeCustomization(customization);
+          applyCustomization(customization);
+          saveCustomization(customization);
+          syncForm(form, customization);
+          renderValueBadges(form, customization);
+          renderJson(form, customization);
+          if (message) {
+            setStatus(status, message);
           }
+        }
+
+        persistAndRender("Customization loaded.");
+
+        form.addEventListener("input", function (event) {
+          var target = event.target;
+          if (!target || !target.name) {
+            return;
+          }
+
+          var value = target.value;
+          if (target.dataset.cast === "int") {
+            value = clampInt(value, 0, -100000, 100000);
+          }
+          setByPath(customization, target.name, value);
+          persistAndRender("Saved.");
         });
 
         form.addEventListener("change", function (event) {
           var target = event.target;
-          if (!target || target.type !== "radio") {
+          if (!target || !target.name || target.dataset.cast === "int") {
             return;
           }
-          prefs[target.name] = target.value;
-          applyPrefs(prefs);
-          savePrefs(prefs);
-          if (status) {
-            status.textContent = "Saved.";
-          }
+          setByPath(customization, target.name, target.value);
+          persistAndRender("Saved.");
         });
 
-        if (resetBtn) {
-          resetBtn.addEventListener("click", function () {
-            prefs = Object.assign({}, defaults);
-            applyPrefs(prefs);
-            savePrefs(prefs);
-            form.querySelectorAll("input[type='radio']").forEach(function (input) {
-              input.checked = prefs[input.name] === input.value;
-            });
-            if (status) {
-              status.textContent = "Reset to defaults.";
+        form.querySelectorAll("[data-action='reset']").forEach(function (button) {
+          button.addEventListener("click", function () {
+            customization = clone(defaults);
+            persistAndRender("Reset to defaults.");
+          });
+        });
+
+        form.querySelectorAll("[data-action='copy-json']").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var payload = JSON.stringify(customization, null, 2);
+            copyText(payload)
+              .then(function () {
+                setStatus(status, "Customization JSON copied.");
+              })
+              .catch(function () {
+                setStatus(status, "Copy blocked. Use manual copy from textarea.");
+              });
+          });
+        });
+
+        form.querySelectorAll("[data-action='apply-json']").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var textarea = findJsonTextarea(form);
+            if (!textarea) {
+              setStatus(status, "No JSON input found.");
+              return;
+            }
+            try {
+              customization = normalizeCustomization(JSON.parse(textarea.value));
+              persistAndRender("JSON applied.");
+            } catch (err) {
+              setStatus(status, "Invalid JSON. Please fix and try again.");
             }
           });
-        }
+        });
       }
 
-      var prefs = readPrefs();
-      applyPrefs(prefs);
+      applyCustomization(readCustomization());
       wireSettingsUI();
     })();
   </script>

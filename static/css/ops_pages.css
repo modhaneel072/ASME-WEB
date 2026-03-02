@@ -21,11 +21,14 @@
   --bg-radial-1: rgba(245, 197, 24, 0.14);
   --bg-radial-2: rgba(245, 197, 24, 0.08);
   --header-bg: rgba(10, 10, 10, 0.84);
+  --header-blur: 8px;
   --sidebar-width: 256px;
   --workspace-gap: 14px;
   --workspace-pad: 18px 18px 22px;
   --panel-pad: 12px;
   --control-pad: 9px 10px;
+  --button-text: #0a0a0a;
+  --font-scale: 100%;
   --form-gap: 8px;
 }
 
@@ -96,6 +99,55 @@ html[data-metrics="hide"] .metrics-grid {
   display: none;
 }
 
+html[data-panel-style="flat"] .panel,
+html[data-panel-style="flat"] .metric,
+html[data-panel-style="flat"] .active-job {
+  box-shadow: none;
+  background: var(--bg-card);
+}
+
+html[data-panel-style="flat"] .workspace-header {
+  box-shadow: none;
+}
+
+html[data-panel-style="outlined"] .panel,
+html[data-panel-style="outlined"] .metric,
+html[data-panel-style="outlined"] .active-job,
+html[data-panel-style="outlined"] table,
+html[data-panel-style="outlined"] .calendar-embed {
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-panel-style="outlined"] .workspace-header {
+  box-shadow: none;
+}
+
+html[data-control-shape="pill"] .btn,
+html[data-control-shape="pill"] .side-link,
+html[data-control-shape="pill"] .side-tools a,
+html[data-control-shape="pill"] input,
+html[data-control-shape="pill"] select,
+html[data-control-shape="pill"] textarea,
+html[data-control-shape="pill"] .status-indicator {
+  border-radius: 999px;
+}
+
+html[data-control-shape="sharp"] .panel,
+html[data-control-shape="sharp"] .metric,
+html[data-control-shape="sharp"] .workspace-header,
+html[data-control-shape="sharp"] .btn,
+html[data-control-shape="sharp"] .side-link,
+html[data-control-shape="sharp"] .side-tools a,
+html[data-control-shape="sharp"] input,
+html[data-control-shape="sharp"] select,
+html[data-control-shape="sharp"] textarea,
+html[data-control-shape="sharp"] table,
+html[data-control-shape="sharp"] .calendar-embed,
+html[data-control-shape="sharp"] .status-indicator {
+  border-radius: 6px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -108,6 +160,7 @@ body {
 body {
   margin: 0;
   font-family: "Manrope", "Segoe UI", sans-serif;
+  font-size: var(--font-scale);
   color: var(--text);
   background:
     radial-gradient(circle at -5% -10%, var(--bg-radial-1), transparent 34%),
@@ -270,7 +323,7 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--header-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--header-blur));
   box-shadow: var(--shadow);
   padding: 12px 14px;
 }
@@ -527,10 +580,10 @@ textarea {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  border: 1px solid #d1a90f;
+  border: 1px solid var(--gold-strong);
   border-radius: 10px;
   background: var(--gold);
-  color: #0a0a0a;
+  color: var(--button-text);
   padding: 9px 13px;
   font-size: 12px;
   font-weight: 800;
@@ -728,35 +781,86 @@ tbody tr:last-child td {
   gap: 12px;
 }
 
+.settings-custom {
+  display: grid;
+  gap: 12px;
+}
+
 .settings-card .panel-head {
   margin-bottom: 8px;
 }
 
-.settings-options {
+.settings-fields {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
-.settings-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg-card-2);
-  padding: 10px 11px;
-  cursor: pointer;
+.settings-fields.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.settings-option input[type="radio"] {
-  width: auto;
+.settings-field {
+  display: grid;
+  gap: 6px;
   margin: 0;
 }
 
-.settings-option span {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
+.settings-field span {
+  margin: 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.settings-field input,
+.settings-field select {
+  margin: 0;
+}
+
+.settings-field input[type="color"] {
+  min-height: 42px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.settings-field-range span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.settings-field-range strong {
+  color: var(--gold);
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: 0.02em;
+  font-size: 18px;
+}
+
+.settings-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 9px 0;
+}
+
+.settings-preview-surface {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card-2);
+  padding: 12px;
+}
+
+.settings-json {
+  min-height: 240px;
+  margin: 0;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+}
+
+.settings-preview .inline-meta {
+  margin-bottom: 0;
 }
 
 .settings-actions {
@@ -805,6 +909,10 @@ h4 {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-fields.two {
     grid-template-columns: 1fr;
   }
 
