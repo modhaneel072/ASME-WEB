@@ -80,6 +80,15 @@
     </select>
     <button type="submit">Import Roster</button>
   </form>
+  <form
+    method="post"
+    action="/portal/admin/members/export-credentials"
+    class="form-stack"
+    onsubmit="return confirm('This will reset passwords for all active member/team_leader accounts and download a fresh CSV. Continue?');"
+  >
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <button type="submit">Download Fresh Credentials CSV (Resets Passwords)</button>
+  </form>
 </section>
 
 <section class="panel">

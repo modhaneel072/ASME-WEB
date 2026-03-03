@@ -4596,13 +4596,74 @@ def portal_admin_download_roster_credentials(filename):
         return redirect(url_for("portal_admin_members_page"))
     file_path = ROSTER_CREDENTIALS_DIR / safe_name
     if not file_path.exists() or not file_path.is_file():
-        flash("Credentials file not found.", "error")
+        flash(
+            (
+                "Credentials file not found. On Render free instances, uploaded/generated files can be lost on restart. "
+                "Use 'Download Fresh Credentials CSV' to regenerate working passwords."
+            ),
+            "error",
+        )
         return redirect(url_for("portal_admin_members_page"))
     return send_file(
         file_path,
         as_attachment=True,
         download_name=safe_name,
         mimetype="text/csv",
+    )
+
+
+@app.post("/portal/admin/members/export-credentials")
+@require_role("admin")
+def portal_admin_export_fresh_credentials():
+    users = (
+        User.query.filter(
+            User.is_active.is_(True),
+            User.role.in_(["member", "team_leader"]),
+        )
+        .order_by(User.name.asc(), User.id.asc())
+        .all()
+    )
+    if not users:
+        flash("No active member/team_leader users found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    reserved_usernames = {
+        (row.username or "").strip().lower()
+        for row in User.query.filter(User.username.isnot(None)).all()
+        if (row.username or "").strip()
+    }
+    rows = []
+    for user in users:
+        first_name, last_name = split_name_parts(user.name or "")
+        if not (first_name or last_name):
+            first_name, last_name = split_name_parts(user.email.split("@", 1)[0] if user.email else "")
+        if not (user.username or "").strip():
+            base_username = username_base_from_name(first_name, last_name) or (
+                user.email.split("@", 1)[0] if user.email and "@" in user.email else f"user{user.id}"
+            )
+            user.username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
+        password_plain = password_from_name(first_name, last_name)
+        user.password_hash = generate_password_hash(password_plain)
+        rows.append(
+            [
+                user.name or "",
+                user.member_id or "",
+                user.username or "",
+                password_plain,
+            ]
+        )
+
+    add_audit_log("export_fresh_member_credentials", f"user_count={len(rows)}")
+    db.session.commit()
+    csv_content = csv_stream_from_rows(
+        ["name", "member_id", "username", "password"],
+        rows,
+    )
+    download_name = f"member_credentials_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(
+        csv_content,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={download_name}"},
     )
 
 
