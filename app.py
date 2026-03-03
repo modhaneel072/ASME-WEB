@@ -440,6 +440,52 @@ def make_unique_import_email(base_local, reserved_emails=None):
         suffix += 1
 
 
+def build_fresh_member_credentials():
+    users = (
+        User.query.filter(
+            User.is_active.is_(True),
+            User.role.in_(["member", "team_leader"]),
+        )
+        .order_by(User.name.asc(), User.id.asc())
+        .all()
+    )
+    if not users:
+        return []
+
+    reserved_usernames = {
+        (row.username or "").strip().lower()
+        for row in User.query.filter(User.username.isnot(None)).all()
+        if (row.username or "").strip()
+    }
+
+    rows = []
+    for user in users:
+        first_name, last_name = split_name_parts(user.name or "")
+        if not (first_name or last_name):
+            first_name, last_name = split_name_parts(user.email.split("@", 1)[0] if user.email else "")
+        if not (user.username or "").strip():
+            base_username = username_base_from_name(first_name, last_name) or (
+                user.email.split("@", 1)[0] if user.email and "@" in user.email else f"user{user.id}"
+            )
+            user.username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
+        password_plain = password_from_name(first_name, last_name)
+        user.password_hash = generate_password_hash(password_plain)
+        member_nfc = clean_tag_value(user.member.nfc_tag) if user.member and user.member.nfc_tag else ""
+        rows.append(
+            {
+                "name": (user.name or "").strip(),
+                "first_name": first_name,
+                "last_name": last_name,
+                "member_id": user.member_id or "",
+                "nfc_uid": clean_tag_value(user.nfc_uid) or member_nfc,
+                "username": (user.username or "").strip(),
+                "password": password_plain,
+            }
+        )
+
+    return rows
+
+
 def find_user_by_login_identifier(identifier):
     cleaned = (identifier or "").strip().lower()
     if not cleaned:
@@ -4756,49 +4802,24 @@ def portal_admin_download_roster_credentials(filename):
 @app.post("/portal/admin/members/export-credentials")
 @require_role("admin")
 def portal_admin_export_fresh_credentials():
-    users = (
-        User.query.filter(
-            User.is_active.is_(True),
-            User.role.in_(["member", "team_leader"]),
-        )
-        .order_by(User.name.asc(), User.id.asc())
-        .all()
-    )
-    if not users:
+    rows = build_fresh_member_credentials()
+    if not rows:
         flash("No active member/team_leader users found.", "error")
         return redirect_to_next("portal_admin_members_page")
-
-    reserved_usernames = {
-        (row.username or "").strip().lower()
-        for row in User.query.filter(User.username.isnot(None)).all()
-        if (row.username or "").strip()
-    }
-    rows = []
-    for user in users:
-        first_name, last_name = split_name_parts(user.name or "")
-        if not (first_name or last_name):
-            first_name, last_name = split_name_parts(user.email.split("@", 1)[0] if user.email else "")
-        if not (user.username or "").strip():
-            base_username = username_base_from_name(first_name, last_name) or (
-                user.email.split("@", 1)[0] if user.email and "@" in user.email else f"user{user.id}"
-            )
-            user.username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
-        password_plain = password_from_name(first_name, last_name)
-        user.password_hash = generate_password_hash(password_plain)
-        rows.append(
-            [
-                user.name or "",
-                user.member_id or "",
-                user.username or "",
-                password_plain,
-            ]
-        )
 
     add_audit_log("export_fresh_member_credentials", f"user_count={len(rows)}")
     db.session.commit()
     csv_content = csv_stream_from_rows(
         ["name", "member_id", "username", "password"],
-        rows,
+        [
+            [
+                row.get("name") or "",
+                row.get("member_id") or "",
+                row.get("username") or "",
+                row.get("password") or "",
+            ]
+            for row in rows
+        ],
     )
     download_name = f"member_credentials_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
@@ -4806,6 +4827,159 @@ def portal_admin_export_fresh_credentials():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={download_name}"},
     )
+
+
+@app.post("/portal/admin/members/export-credentials-pdf")
+@require_role("admin")
+def portal_admin_export_fresh_credentials_pdf():
+    rows = build_fresh_member_credentials()
+    if not rows:
+        flash("No active member/team_leader users found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except Exception:
+        flash("PDF export requires reportlab. Add reportlab to requirements and redeploy.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    now = datetime.now()
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    page_width, page_height = letter
+    margin_left = 32
+    y = page_height - 42
+
+    def draw_header():
+        nonlocal y
+        pdf.setFont("Helvetica-Bold", 13)
+        pdf.drawString(margin_left, y, "ASME Member Credentials")
+        pdf.setFont("Helvetica", 8.5)
+        pdf.drawString(margin_left, y - 12, f"Generated: {now.strftime('%Y-%m-%d %H:%M')}")
+        y -= 29
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawString(margin_left, y, "Name")
+        pdf.drawString(margin_left + 130, y, "Last Name")
+        pdf.drawString(margin_left + 225, y, "NFC ID")
+        pdf.drawString(margin_left + 320, y, "Username")
+        pdf.drawString(margin_left + 415, y, "Password")
+        y -= 8
+        pdf.line(margin_left, y, page_width - margin_left, y)
+        y -= 12
+        pdf.setFont("Helvetica", 8)
+
+    draw_header()
+    for row in rows:
+        if y < 36:
+            pdf.showPage()
+            y = page_height - 42
+            draw_header()
+        pdf.drawString(margin_left, y, (row.get("name") or "")[:24])
+        pdf.drawString(margin_left + 130, y, (row.get("last_name") or "")[:18])
+        pdf.drawString(margin_left + 225, y, (row.get("nfc_uid") or "-")[:28])
+        pdf.drawString(margin_left + 320, y, (row.get("username") or "")[:17])
+        pdf.drawString(margin_left + 415, y, (row.get("password") or "")[:16])
+        y -= 12
+
+    add_audit_log("export_fresh_member_credentials_pdf", f"user_count={len(rows)}")
+    db.session.commit()
+    pdf.save()
+    buffer.seek(0)
+    download_name = f"member_credentials_name_last_nfc_user_pass_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.post("/portal/admin/members/reset")
+@require_role("admin")
+def portal_admin_reset_members():
+    confirmation = (request.form.get("confirmation") or "").strip().upper()
+    if confirmation != "RESET MEMBERS":
+        flash("Type RESET MEMBERS to confirm.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    now = datetime.utcnow()
+    deleted_users = 0
+    deactivated_users = 0
+    deleted_members = 0
+    kept_members = 0
+
+    target_users = (
+        User.query.filter(User.role.in_(["member", "team_leader"]))
+        .order_by(User.id.asc())
+        .all()
+    )
+
+    for user in target_users:
+        existing_uid = clean_tag_value(user.nfc_uid)
+        for row in NFCTag.query.filter_by(user_id=user.id, active=True).all():
+            row.active = False
+            row.unassigned_at = now
+        NFCTag.query.filter(NFCTag.assigned_by_user_id == user.id).update(
+            {NFCTag.assigned_by_user_id: None},
+            synchronize_session=False,
+        )
+        NFCTag.query.filter(NFCTag.user_id == user.id).delete(synchronize_session=False)
+        PasswordResetToken.query.filter(PasswordResetToken.user_id == user.id).delete(synchronize_session=False)
+
+        if user.member and existing_uid and clean_tag_value(user.member.nfc_tag).lower() == existing_uid.lower():
+            user.member.nfc_tag = None
+        user.nfc_uid = None
+
+        references = {
+            "transactions": Transaction.query.filter(Transaction.user_id == user.id).count(),
+            "print_requests": PrintRequest.query.filter(PrintRequest.user_id == user.id).count(),
+            "events_created": Event.query.filter(Event.created_by_user_id == user.id).count(),
+            "events_requested": Event.query.filter(Event.requested_by_user_id == user.id).count(),
+            "attendance": AttendanceRecord.query.filter(AttendanceRecord.user_id == user.id).count(),
+            "contact_messages": ContactMessage.query.filter(ContactMessage.user_id == user.id).count(),
+            "audit_logs": AuditLog.query.filter(AuditLog.admin_user_id == user.id).count(),
+        }
+        total_refs = sum(references.values())
+
+        if total_refs == 0:
+            db.session.delete(user)
+            deleted_users += 1
+            continue
+
+        user.is_active = False
+        user.member_id = None
+        deactivated_users += 1
+
+    all_members = Member.query.order_by(Member.id.asc()).all()
+    for member in all_members:
+        member.nfc_tag = None
+        has_user = User.query.filter(User.member_id == member.id).first() is not None
+        has_refs = (
+            Transaction.query.filter(Transaction.member_id == member.id).count()
+            + AttendanceScan.query.filter(AttendanceScan.member_id == member.id).count()
+            + AttendanceRecord.query.filter(AttendanceRecord.member_id == member.id).count()
+            + PrintJob.query.filter(PrintJob.member_id == member.id).count()
+            + PrintRequest.query.filter(PrintRequest.member_id == member.id).count()
+        )
+        if has_user or has_refs:
+            kept_members += 1
+            continue
+        db.session.delete(member)
+        deleted_members += 1
+
+    add_audit_log(
+        "reset_members",
+        (
+            f"deleted_users={deleted_users} deactivated_users={deactivated_users} "
+            f"deleted_members={deleted_members} kept_members={kept_members}"
+        ),
+    )
+    db.session.commit()
+    flash(
+        (
+            f"Members reset complete: {deleted_users} user accounts deleted, "
+            f"{deactivated_users} deactivated, {deleted_members} member profiles deleted, "
+            f"{kept_members} retained for history."
+        ),
+        "success",
+    )
+    return redirect_to_next("portal_admin_members_page")
 
 
 @app.post("/portal/admin/nfc/assign")

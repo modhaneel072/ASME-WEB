@@ -82,6 +82,31 @@
     <input type="hidden" name="next" value="/portal/admin/members" />
     <button type="submit">Download Fresh Credentials CSV (Resets Passwords)</button>
   </form>
+  <form
+    method="post"
+    action="/portal/admin/members/export-credentials-pdf"
+    class="form-stack"
+    onsubmit="return confirm('This will reset passwords for all active member/team_leader accounts and download a PDF. Continue?');"
+  >
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <button type="submit">Download Fresh Credentials PDF (Name + Last Name + NFC + Username + Password)</button>
+  </form>
+  <form
+    method="post"
+    action="/portal/admin/members/reset"
+    class="form-stack"
+    onsubmit="return confirm('This will reset member/team_leader accounts and unlink NFC/member associations. Continue?');"
+  >
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <label for="members_reset_confirmation">Danger Zone: Reset Members</label>
+    <input
+      id="members_reset_confirmation"
+      name="confirmation"
+      placeholder="Type RESET MEMBERS to confirm"
+      required
+    />
+    <button type="submit">Reset Members</button>
+  </form>
 </section>
 
 <section class="panel">
