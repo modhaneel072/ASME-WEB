@@ -936,6 +936,35 @@ def seed_portal_data():
 
     db.session.commit()
 
+
+def get_shared_admin_credentials():
+    email = (os.environ.get("ASME_DEFAULT_ADMIN_EMAIL") or "").strip().lower()
+    password = (os.environ.get("ASME_DEFAULT_ADMIN_PASSWORD") or "").strip()
+    return email, password
+
+
+def ensure_shared_admin_user(email, password):
+    if not email or not password:
+        return None
+    user = User.query.filter(func.lower(User.email) == email).first()
+    if not user:
+        user = User(
+            name="ASME Admin",
+            email=email,
+            password_hash=generate_password_hash(password),
+            role="admin",
+            is_active=True,
+        )
+        db.session.add(user)
+    else:
+        user.role = "admin"
+        user.is_active = True
+        if not check_password_hash(user.password_hash, password):
+            user.password_hash = generate_password_hash(password)
+    db.session.commit()
+    return user
+
+
 def get_calendar_timezone():
     return (os.environ.get("ASME_OUTLOOK_CALENDAR_TZ") or "Central Standard Time").strip()
 
@@ -2087,6 +2116,22 @@ def admin_login_page():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
+        shared_admin_email, shared_admin_password = get_shared_admin_credentials()
+
+        # Allow one shared admin login from environment variables.
+        if (
+            shared_admin_email
+            and shared_admin_password
+            and email == shared_admin_email
+            and password == shared_admin_password
+        ):
+            user = ensure_shared_admin_user(shared_admin_email, shared_admin_password)
+            if user:
+                sign_in_user(user)
+                if next_url.startswith("/"):
+                    return redirect(next_url)
+                return redirect(url_for("portal_admin_dashboard"))
+
         user = User.query.filter(func.lower(User.email) == email).first()
         if not user or not user.is_active or not check_password_hash(user.password_hash, password):
             flash("Invalid admin credentials.", "error")
