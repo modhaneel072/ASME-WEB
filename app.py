@@ -5,6 +5,7 @@ import json
 import secrets
 import smtplib
 import subprocess
+import zipfile
 import time as time_module
 import platform
 from functools import wraps
@@ -175,6 +176,12 @@ FRONT_UIOWA_CURRENT_PROJECTS = [
 ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
 PRINT_REQUEST_STATUSES = ("submitted", "approved", "printing", "completed", "rejected")
 PASSWORD_RESET_HOURS = 2
+ITEM_TYPES = ("tool", "consumable")
+
+LOGIN_RATE_WINDOW_SECONDS = int((os.environ.get("ASME_LOGIN_RATE_WINDOW_SECONDS") or "900").strip())
+LOGIN_RATE_MAX_ATTEMPTS = int((os.environ.get("ASME_LOGIN_RATE_MAX_ATTEMPTS") or "8").strip())
+LOGIN_RATE_LIMITS = {}
+PRINT_REQUEST_MAX_UPLOAD_BYTES = int((os.environ.get("ASME_PRINT_MAX_UPLOAD_MB") or "50").strip()) * 1024 * 1024
 
 
 def load_local_print_command_env():
@@ -318,6 +325,10 @@ def ensure_inventory_schema_columns():
             alters.append("ALTER TABLE items ADD COLUMN notes VARCHAR(500)")
         if "photo_url" not in item_columns:
             alters.append("ALTER TABLE items ADD COLUMN photo_url VARCHAR(500)")
+        if "item_type" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN item_type VARCHAR(20)")
+        if "min_stock_threshold" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN min_stock_threshold INTEGER")
         if "nfc_tag" not in item_columns:
             alters.append("ALTER TABLE items ADD COLUMN nfc_tag VARCHAR(120)")
 
@@ -325,6 +336,12 @@ def ensure_inventory_schema_columns():
             with db.engine.begin() as conn:
                 for statement in alters:
                     conn.execute(text(statement))
+                conn.execute(
+                    text(
+                        "UPDATE items SET item_type = COALESCE(NULLIF(item_type, ''), 'tool'), "
+                        "min_stock_threshold = COALESCE(min_stock_threshold, 0)"
+                    )
+                )
 
     if "transactions" in table_names:
         tx_columns = {col["name"] for col in inspector.get_columns("transactions")}
@@ -372,15 +389,20 @@ def ensure_inventory_schema_columns():
     db.session.commit()
 
     # Keep legacy Item.nfc_tag mappings working while enabling multiple tags per item.
-    legacy_items = Item.query.filter(Item.nfc_tag.isnot(None)).all()
-    for item in legacy_items:
-        tag_value = clean_tag_value(item.nfc_tag)
+    # Use raw SQL here so startup upgrades do not fail when ORM-mapped item columns were
+    # added in code but are not yet present in an older SQLite database.
+    with db.engine.begin() as conn:
+        legacy_items = conn.execute(
+            text("SELECT id, nfc_tag FROM items WHERE nfc_tag IS NOT NULL AND TRIM(nfc_tag) <> ''")
+        ).fetchall()
+    for item_id, raw_tag in legacy_items:
+        tag_value = clean_tag_value(raw_tag)
         if not tag_value:
             continue
         existing = ItemTag.query.filter(func.lower(ItemTag.tag_value) == tag_value.lower()).first()
         if existing:
             continue
-        db.session.add(ItemTag(item_id=item.id, tag_value=tag_value, source="legacy_item_tag"))
+        db.session.add(ItemTag(item_id=item_id, tag_value=tag_value, source="legacy_item_tag"))
     db.session.commit()
 
     INVENTORY_SCHEMA_READY = True
@@ -636,6 +658,14 @@ def parse_positive_int(raw_value, default=1):
         return default
 
 
+def parse_non_negative_int(raw_value, default=0):
+    try:
+        parsed = int(str(raw_value).strip())
+        return parsed if parsed >= 0 else default
+    except Exception:
+        return default
+
+
 def parse_json_list(raw_value):
     text_value = (raw_value or "").strip()
     if not text_value:
@@ -657,6 +687,50 @@ def redirect_to_next(default_endpoint):
     return redirect(url_for(default_endpoint))
 
 
+def request_client_ip():
+    forwarded = (request.headers.get("X-Forwarded-For") or "").strip()
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:120]
+    return (request.remote_addr or "unknown")[:120]
+
+
+def login_rate_key(email):
+    return f"{request_client_ip()}|{(email or '').strip().lower()}"
+
+
+def clear_expired_login_limits():
+    now = time_module.time()
+    expired = [key for key, info in LOGIN_RATE_LIMITS.items() if now > info.get("reset_at", 0)]
+    for key in expired:
+        LOGIN_RATE_LIMITS.pop(key, None)
+
+
+def record_login_failure(email):
+    clear_expired_login_limits()
+    now = time_module.time()
+    key = login_rate_key(email)
+    row = LOGIN_RATE_LIMITS.get(key)
+    if not row or now > row.get("reset_at", 0):
+        LOGIN_RATE_LIMITS[key] = {"count": 1, "reset_at": now + LOGIN_RATE_WINDOW_SECONDS}
+        return
+    row["count"] = int(row.get("count", 0)) + 1
+
+
+def clear_login_failures(email):
+    LOGIN_RATE_LIMITS.pop(login_rate_key(email), None)
+
+
+def is_login_rate_limited(email):
+    clear_expired_login_limits()
+    row = LOGIN_RATE_LIMITS.get(login_rate_key(email))
+    if not row:
+        return False, 0
+    if int(row.get("count", 0)) < LOGIN_RATE_MAX_ATTEMPTS:
+        return False, 0
+    retry_after = int(max(1, row.get("reset_at", 0) - time_module.time()))
+    return True, retry_after
+
+
 def portal_calendar_embed_url():
     google_embed = (os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()
     if google_embed:
@@ -665,6 +739,35 @@ def portal_calendar_embed_url():
     if outlook_embed:
         return normalize_outlook_embed_url(outlook_embed)
     return ""
+
+
+def calendar_provider_name():
+    provider = (os.environ.get("ASME_CALENDAR_PROVIDER") or "google").strip().lower()
+    if provider not in {"google", "outlook"}:
+        provider = "google"
+    return provider
+
+
+def normalize_meeting_room(raw_location):
+    location = (raw_location or "").strip()
+    if not location:
+        return ""
+    lookup = {room.lower(): room for room in MEETING_ROOMS}
+    return lookup.get(location.lower(), "")
+
+
+def find_event_room_conflict(room, start_time, end_time, exclude_event_id=None):
+    if not room:
+        return None
+    query = Event.query.filter(
+        func.lower(func.coalesce(Event.location, "")) == room.lower(),
+        Event.status.in_(["requested", "scheduled"]),
+        Event.start_time < end_time,
+        Event.end_time > start_time,
+    )
+    if exclude_event_id:
+        query = query.filter(Event.id != exclude_event_id)
+    return query.order_by(Event.start_time.asc(), Event.id.asc()).first()
 
 
 def add_audit_log(action, details=""):
@@ -694,6 +797,10 @@ def ensure_portal_schema():
             alters.append("ALTER TABLE users ADD COLUMN role VARCHAR(30)")
         if "is_active" not in user_columns:
             alters.append("ALTER TABLE users ADD COLUMN is_active BOOLEAN")
+        if "major" not in user_columns:
+            alters.append("ALTER TABLE users ADD COLUMN major VARCHAR(120)")
+        if "graduation_year" not in user_columns:
+            alters.append("ALTER TABLE users ADD COLUMN graduation_year INTEGER")
         if "member_id" not in user_columns:
             alters.append("ALTER TABLE users ADD COLUMN member_id INTEGER")
         if "last_login_at" not in user_columns:
@@ -715,10 +822,20 @@ def ensure_portal_schema():
             alters.append("ALTER TABLE items ADD COLUMN notes VARCHAR(500)")
         if "photo_url" not in item_columns:
             alters.append("ALTER TABLE items ADD COLUMN photo_url VARCHAR(500)")
+        if "item_type" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN item_type VARCHAR(20)")
+        if "min_stock_threshold" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN min_stock_threshold INTEGER")
         if alters:
             with db.engine.begin() as conn:
                 for statement in alters:
                     conn.execute(text(statement))
+                conn.execute(
+                    text(
+                        "UPDATE items SET item_type = COALESCE(NULLIF(item_type, ''), 'tool'), "
+                        "min_stock_threshold = COALESCE(min_stock_threshold, 0)"
+                    )
+                )
 
     if "transactions" in table_names:
         tx_columns = {col["name"] for col in inspector.get_columns("transactions")}
@@ -938,8 +1055,18 @@ def seed_portal_data():
 
 
 def get_shared_admin_credentials():
-    email = (os.environ.get("ASME_DEFAULT_ADMIN_EMAIL") or "").strip().lower()
-    password = (os.environ.get("ASME_DEFAULT_ADMIN_PASSWORD") or "").strip()
+    email = (
+        os.environ.get("ASME_DEFAULT_ADMIN_EMAIL")
+        or os.environ.get("ASME_SHARED_ADMIN_EMAIL")
+        or os.environ.get("ASME_ADMIN_EMAIL")
+        or ""
+    ).strip().lower()
+    password = (
+        os.environ.get("ASME_DEFAULT_ADMIN_PASSWORD")
+        or os.environ.get("ASME_SHARED_ADMIN_PASSWORD")
+        or os.environ.get("ASME_ADMIN_PASSWORD")
+        or ""
+    ).strip()
     return email, password
 
 
@@ -1895,8 +2022,16 @@ def admin_dashboard_context():
         Transaction.due_date.isnot(None),
         Transaction.due_date < now.date(),
     ).count()
+    low_stock_items_count = (
+        Item.query.filter(Item.available_qty <= Item.min_stock_threshold)
+        .order_by(Item.available_qty.asc(), Item.id.asc())
+        .count()
+    )
     upcoming_meetings_count = Event.query.filter(Event.start_time >= now).count()
     pending_print_count = PrintRequest.query.filter(PrintRequest.status.in_(["submitted", "approved", "printing"])).count()
+    calendar_provider = calendar_provider_name()
+    google_embed_set = bool((os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip())
+    outlook_embed_set = bool((os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip())
     return {
         "current_user": user,
         "members": members,
@@ -1912,10 +2047,15 @@ def admin_dashboard_context():
         "audit_logs": audit_logs,
         "roles": ["member", "team_leader", "admin"],
         "print_request_statuses": PRINT_REQUEST_STATUSES,
+        "item_types": ITEM_TYPES,
         "active_members_count": active_members_count,
         "overdue_items_count": overdue_items_count,
+        "low_stock_items_count": low_stock_items_count,
         "upcoming_meetings_count": upcoming_meetings_count,
         "pending_print_count": pending_print_count,
+        "calendar_provider": calendar_provider,
+        "google_embed_set": google_embed_set,
+        "outlook_embed_set": outlook_embed_set,
     }
 
 
@@ -2092,11 +2232,18 @@ def login_page():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
+        blocked, retry_after = is_login_rate_limited(email)
+        if blocked:
+            flash(f"Too many login attempts. Try again in about {retry_after} seconds.", "error")
+            context["next_url"] = next_url
+            return render_template("site/login.html", **context)
         user = User.query.filter(func.lower(User.email) == email).first()
         if not user or not user.is_active or not check_password_hash(user.password_hash, password):
+            record_login_failure(email)
             flash("Invalid email or password.", "error")
             context["next_url"] = next_url
             return render_template("site/login.html", **context)
+        clear_login_failures(email)
         sign_in_user(user)
         if next_url.startswith("/"):
             return redirect(next_url)
@@ -2109,14 +2256,22 @@ def login_page():
 def admin_login_page():
     context = public_site_context("Admin Login")
     next_url = (request.args.get("next") or request.form.get("next") or "").strip()
+    shared_admin_email, shared_admin_password = get_shared_admin_credentials()
+    context["shared_admin_email"] = shared_admin_email
     current = current_auth_user()
     if current and role_allows(current.role, "admin"):
         return redirect(url_for("portal_admin_dashboard"))
 
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
+        if not email and shared_admin_email:
+            email = shared_admin_email
         password = request.form.get("password") or ""
-        shared_admin_email, shared_admin_password = get_shared_admin_credentials()
+        blocked, retry_after = is_login_rate_limited(email)
+        if blocked:
+            flash(f"Too many login attempts. Try again in about {retry_after} seconds.", "error")
+            context["next_url"] = next_url
+            return render_template("site/admin_login.html", **context)
 
         # Allow one shared admin login from environment variables.
         if (
@@ -2127,6 +2282,7 @@ def admin_login_page():
         ):
             user = ensure_shared_admin_user(shared_admin_email, shared_admin_password)
             if user:
+                clear_login_failures(email)
                 sign_in_user(user)
                 if next_url.startswith("/"):
                     return redirect(next_url)
@@ -2134,13 +2290,16 @@ def admin_login_page():
 
         user = User.query.filter(func.lower(User.email) == email).first()
         if not user or not user.is_active or not check_password_hash(user.password_hash, password):
+            record_login_failure(email)
             flash("Invalid admin credentials.", "error")
             context["next_url"] = next_url
             return render_template("site/admin_login.html", **context)
         if not role_allows(user.role, "admin"):
+            record_login_failure(email)
             flash("This account is not an admin account.", "error")
             context["next_url"] = next_url
             return render_template("site/admin_login.html", **context)
+        clear_login_failures(email)
         sign_in_user(user)
         if next_url.startswith("/"):
             return redirect(next_url)
@@ -2320,6 +2479,8 @@ def portal_member_calendar():
     context["page_title"] = "Calendar"
     context["active_page"] = "member_calendar"
     context["team_mode"] = role_allows(context["current_user"].role, "team_leader")
+    context["meeting_rooms"] = MEETING_ROOMS
+    context["calendar_provider"] = calendar_provider_name()
     return render_template("portal/member_calendar.html", **context)
 
 
@@ -2443,10 +2604,17 @@ def portal_admin_attendance_page():
     context = admin_dashboard_context()
     context["page_title"] = "Attendance"
     context["active_page"] = "admin_attendance"
+    context["meeting_rooms"] = MEETING_ROOMS
     event_id = parse_positive_int(request.args.get("event_id"), default=0)
     selected_event = db.session.get(Event, event_id) if event_id else None
     if not selected_event:
-        selected_event = context["events"][0] if context["events"] else None
+        selected_event = (
+            Event.query.filter(Event.end_time >= datetime.utcnow())
+            .order_by(Event.start_time.asc(), Event.id.asc())
+            .first()
+        )
+    if not selected_event and context["events"]:
+        selected_event = context["events"][0]
     context["selected_event"] = selected_event
     if selected_event:
         context["event_attendance"] = (
@@ -2456,6 +2624,37 @@ def portal_admin_attendance_page():
         )
     else:
         context["event_attendance"] = []
+    tracked_events = [event for event in context["events"] if event.status != "cancelled"]
+    tracked_event_ids = {event.id for event in tracked_events}
+    totals = {}
+    attendance_rows = (
+        AttendanceRecord.query.filter(AttendanceRecord.user_id.isnot(None))
+        .order_by(AttendanceRecord.id.asc())
+        .all()
+    )
+    for row in attendance_rows:
+        if tracked_event_ids and row.event_id not in tracked_event_ids:
+            continue
+        user_row = row.user
+        if not user_row:
+            continue
+        bucket = totals.setdefault(user_row.id, {"user": user_row, "events": set()})
+        bucket["events"].add(row.event_id)
+    total_event_count = len(tracked_event_ids)
+    summary = []
+    for bucket in totals.values():
+        attended_count = len(bucket["events"])
+        rate = (attended_count / total_event_count * 100.0) if total_event_count else 0.0
+        summary.append(
+            {
+                "user": bucket["user"],
+                "attended_count": attended_count,
+                "attendance_rate": rate,
+            }
+        )
+    summary.sort(key=lambda row: (-row["attended_count"], row["user"].name.lower()))
+    context["attendance_summary"] = summary
+    context["tracked_event_count"] = total_event_count
     return render_template("portal/admin_attendance.html", **context)
 
 
@@ -2465,6 +2664,11 @@ def portal_admin_inventory_page():
     context = admin_dashboard_context()
     context["page_title"] = "Inventory Management"
     context["active_page"] = "admin_inventory"
+    context["low_stock_items"] = (
+        Item.query.filter(Item.available_qty <= Item.min_stock_threshold)
+        .order_by(Item.available_qty.asc(), Item.name.asc(), Item.id.asc())
+        .all()
+    )
     context["overdue_transactions"] = (
         Transaction.query.filter(
             Transaction.status == "OUT",
@@ -2520,6 +2724,333 @@ def portal_admin_announcements_page():
         Announcement.query.order_by(Announcement.created_at.desc(), Announcement.id.desc()).limit(120).all()
     )
     return render_template("portal/admin_announcements.html", **context)
+
+
+@app.get("/portal/admin/calendar")
+@require_role("admin")
+def portal_admin_calendar_page():
+    context = admin_dashboard_context()
+    context["page_title"] = "Calendar Administration"
+    context["active_page"] = "admin_calendar"
+    provider = calendar_provider_name()
+    google_embed = (os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()
+    outlook_embed = (os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip()
+    warnings = []
+    if provider == "google" and not google_embed:
+        warnings.append("ASME_GOOGLE_CALENDAR_EMBED_URL is not configured.")
+    if provider == "outlook" and not outlook_embed:
+        warnings.append("ASME_OUTLOOK_CALENDAR_EMBED_URL is not configured.")
+    if not context["events"]:
+        warnings.append("No events are currently configured.")
+    room_events = {}
+    for room in MEETING_ROOMS:
+        room_events[room] = (
+            Event.query.filter(
+                func.lower(func.coalesce(Event.location, "")) == room.lower(),
+                Event.status != "cancelled",
+                Event.end_time >= datetime.utcnow() - timedelta(hours=2),
+            )
+            .order_by(Event.start_time.asc(), Event.id.asc())
+            .all()
+        )
+    context["calendar_provider"] = provider
+    context["calendar_embed_url"] = portal_calendar_embed_url()
+    context["calendar_warnings"] = warnings
+    context["meeting_rooms"] = MEETING_ROOMS
+    context["room_events"] = room_events
+    context["requested_events"] = (
+        Event.query.filter(Event.status == "requested")
+        .order_by(Event.start_time.asc(), Event.id.asc())
+        .all()
+    )
+    return render_template("portal/admin_calendar.html", **context)
+
+
+@app.get("/portal/admin/exports")
+@require_role("admin")
+def portal_admin_exports_page():
+    context = admin_dashboard_context()
+    context["page_title"] = "Exports"
+    context["active_page"] = "admin_exports"
+    context["dataset_counts"] = {
+        "users": User.query.count(),
+        "members": Member.query.count(),
+        "items": Item.query.count(),
+        "transactions": Transaction.query.count(),
+        "print_requests": PrintRequest.query.count(),
+        "events": Event.query.count(),
+        "attendance_records": AttendanceRecord.query.count(),
+        "audit_logs": AuditLog.query.count(),
+    }
+    return render_template("portal/admin_exports.html", **context)
+
+
+@app.get("/portal/admin/exports/download.zip")
+@require_role("admin")
+def portal_admin_exports_zip():
+    datasets = {}
+
+    users = User.query.order_by(User.id.asc()).all()
+    datasets["users.csv"] = [
+        [
+            "id",
+            "name",
+            "email",
+            "role",
+            "is_active",
+            "major",
+            "graduation_year",
+            "member_id",
+            "created_at",
+            "last_login_at",
+        ]
+    ] + [
+        [
+            row.id,
+            row.name,
+            row.email,
+            row.role,
+            int(bool(row.is_active)),
+            row.major or "",
+            row.graduation_year or "",
+            row.member_id or "",
+            row.created_at.isoformat() if row.created_at else "",
+            row.last_login_at.isoformat() if row.last_login_at else "",
+        ]
+        for row in users
+    ]
+
+    members = Member.query.order_by(Member.id.asc()).all()
+    datasets["members.csv"] = [["id", "name", "email", "member_class", "nfc_tag", "created_at"]] + [
+        [
+            row.id,
+            row.name,
+            row.email,
+            row.member_class,
+            row.nfc_tag or "",
+            row.created_at.isoformat() if row.created_at else "",
+        ]
+        for row in members
+    ]
+
+    items = Item.query.order_by(Item.id.asc()).all()
+    datasets["items.csv"] = [
+        [
+            "id",
+            "name",
+            "item_type",
+            "category",
+            "location",
+            "item_condition",
+            "total_qty",
+            "available_qty",
+            "min_stock_threshold",
+            "nfc_tag",
+            "created_at",
+        ]
+    ] + [
+        [
+            row.id,
+            row.name,
+            row.item_type,
+            row.category or "",
+            row.location or "",
+            row.item_condition or "",
+            row.total_qty,
+            row.available_qty,
+            row.min_stock_threshold,
+            row.nfc_tag or "",
+            row.created_at.isoformat() if row.created_at else "",
+        ]
+        for row in items
+    ]
+
+    transactions = Transaction.query.order_by(Transaction.id.asc()).all()
+    datasets["transactions.csv"] = [
+        [
+            "id",
+            "member_id",
+            "user_id",
+            "item_id",
+            "action",
+            "status",
+            "qty",
+            "checkout_time",
+            "return_time",
+            "due_date",
+            "checkout_notes",
+            "return_condition",
+            "return_notes",
+            "timestamp",
+        ]
+    ] + [
+        [
+            row.id,
+            row.member_id,
+            row.user_id or "",
+            row.item_id,
+            row.action,
+            row.status or "",
+            row.qty,
+            row.checkout_time.isoformat() if row.checkout_time else "",
+            row.return_time.isoformat() if row.return_time else "",
+            row.due_date.isoformat() if row.due_date else "",
+            row.checkout_notes or "",
+            row.return_condition or "",
+            row.return_notes or "",
+            row.timestamp.isoformat() if row.timestamp else "",
+        ]
+        for row in transactions
+    ]
+
+    print_rows = PrintRequest.query.order_by(PrintRequest.id.asc()).all()
+    datasets["print_requests.csv"] = [
+        [
+            "id",
+            "user_id",
+            "member_id",
+            "printer_type",
+            "status",
+            "priority",
+            "file_path",
+            "file_link",
+            "deadline",
+            "notes",
+            "admin_notes",
+            "created_at",
+            "updated_at",
+        ]
+    ] + [
+        [
+            row.id,
+            row.user_id,
+            row.member_id or "",
+            row.printer_type,
+            row.status,
+            row.priority,
+            row.file_path or "",
+            row.file_link or "",
+            row.deadline.isoformat() if row.deadline else "",
+            row.notes or "",
+            row.admin_notes or "",
+            row.created_at.isoformat() if row.created_at else "",
+            row.updated_at.isoformat() if row.updated_at else "",
+        ]
+        for row in print_rows
+    ]
+
+    events = Event.query.order_by(Event.id.asc()).all()
+    datasets["events.csv"] = [
+        [
+            "id",
+            "title",
+            "location",
+            "status",
+            "start_time",
+            "end_time",
+            "requested_by_user_id",
+            "created_by_user_id",
+            "google_event_id",
+            "google_calendar_id",
+            "calendar_event_link",
+            "created_at",
+        ]
+    ] + [
+        [
+            row.id,
+            row.title,
+            row.location or "",
+            row.status,
+            row.start_time.isoformat() if row.start_time else "",
+            row.end_time.isoformat() if row.end_time else "",
+            row.requested_by_user_id or "",
+            row.created_by_user_id or "",
+            row.google_event_id or "",
+            row.google_calendar_id or "",
+            row.calendar_event_link or "",
+            row.created_at.isoformat() if row.created_at else "",
+        ]
+        for row in events
+    ]
+
+    attendance = AttendanceRecord.query.order_by(AttendanceRecord.id.asc()).all()
+    datasets["attendance_records.csv"] = [
+        ["id", "event_id", "user_id", "member_id", "tag_uid", "checkin_method", "checkin_time"]
+    ] + [
+        [
+            row.id,
+            row.event_id,
+            row.user_id or "",
+            row.member_id or "",
+            row.tag_uid or "",
+            row.checkin_method,
+            row.checkin_time.isoformat() if row.checkin_time else "",
+        ]
+        for row in attendance
+    ]
+
+    audit_logs = AuditLog.query.order_by(AuditLog.id.asc()).all()
+    datasets["audit_logs.csv"] = [["id", "admin_user_id", "action", "details", "ip_address", "created_at"]] + [
+        [
+            row.id,
+            row.admin_user_id or "",
+            row.action,
+            row.details or "",
+            row.ip_address or "",
+            row.created_at.isoformat() if row.created_at else "",
+        ]
+        for row in audit_logs
+    ]
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for filename, rows in datasets.items():
+            csv_buffer = io.StringIO()
+            writer = csv.writer(csv_buffer)
+            writer.writerows(rows)
+            archive.writestr(filename, csv_buffer.getvalue())
+    zip_buffer.seek(0)
+    add_audit_log("export_admin_zip", "portal admin csv export")
+    db.session.commit()
+    return Response(
+        zip_buffer.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": "attachment; filename=asme_admin_exports.zip"},
+    )
+
+
+@app.get("/portal/admin/settings")
+@require_role("admin")
+def portal_admin_settings_page():
+    context = admin_dashboard_context()
+    context["page_title"] = "Settings / Audit Logs"
+    context["active_page"] = "admin_settings"
+    shared_admin_email, _shared_admin_password = get_shared_admin_credentials()
+    context["env_status"] = {
+        "calendar_provider": calendar_provider_name(),
+        "google_embed_set": bool((os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()),
+        "outlook_embed_set": bool((os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip()),
+        "shared_admin_email": shared_admin_email or "",
+        "h2s_print_command_set": bool((os.environ.get("ASME_H2S_PRINT_CMD") or "").strip()),
+        "p1s_print_command_set": bool((os.environ.get("ASME_P1S_PRINT_CMD") or "").strip()),
+        "login_rate_window_seconds": LOGIN_RATE_WINDOW_SECONDS,
+        "login_rate_max_attempts": LOGIN_RATE_MAX_ATTEMPTS,
+    }
+    context["config_warnings"] = []
+    if context["env_status"]["calendar_provider"] == "google" and not context["env_status"]["google_embed_set"]:
+        context["config_warnings"].append("Google calendar provider selected but embed URL is missing.")
+    if context["env_status"]["calendar_provider"] == "outlook" and not context["env_status"]["outlook_embed_set"]:
+        context["config_warnings"].append("Outlook calendar provider selected but embed URL is missing.")
+    if not shared_admin_email:
+        context["config_warnings"].append("Shared admin email is not configured.")
+    if not context["env_status"]["h2s_print_command_set"] or not context["env_status"]["p1s_print_command_set"]:
+        context["config_warnings"].append("One or more printer automation commands are not configured.")
+    context["audit_logs"] = (
+        AuditLog.query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(300)
+        .all()
+    )
+    return render_template("portal/admin_settings.html", **context)
 
 
 @app.post("/portal/admin/announcements/<int:announcement_id>/update")
@@ -2664,6 +3195,19 @@ def portal_print_request():
     file_upload = request.files.get("print_file")
     if file_upload and file_upload.filename:
         safe_name = secure_filename(file_upload.filename)
+        if not safe_name or not allowed_gcode(safe_name):
+            flash("Upload .gcode, .gco, or .3mf files only.", "error")
+            return redirect_to_next("portal_member_prints")
+        try:
+            file_upload.stream.seek(0, os.SEEK_END)
+            file_size = file_upload.stream.tell()
+            file_upload.stream.seek(0)
+        except Exception:
+            file_size = 0
+        if file_size > PRINT_REQUEST_MAX_UPLOAD_BYTES:
+            max_mb = max(1, PRINT_REQUEST_MAX_UPLOAD_BYTES // (1024 * 1024))
+            flash(f"File is too large. Max upload size is {max_mb} MB.", "error")
+            return redirect_to_next("portal_member_prints")
         stored_name = f"printreq_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}_{safe_name}"
         output_path = UPLOAD_DIR / stored_name
         file_upload.save(output_path)
@@ -2699,19 +3243,27 @@ def portal_print_request():
 def portal_event_request():
     user = current_auth_user()
     title = (request.form.get("title") or "").strip()
-    location = (request.form.get("location") or "").strip() or None
+    room = normalize_meeting_room(request.form.get("location"))
     description = (request.form.get("description") or "").strip() or None
     start_time = parse_datetime_local(request.form.get("start_time"))
     end_time = parse_datetime_local(request.form.get("end_time"))
 
-    if not title or not start_time or not end_time or end_time <= start_time:
-        flash("Provide valid title/start/end times.", "error")
+    if not title or not room or not start_time or not end_time or end_time <= start_time:
+        flash("Provide valid title, room, start, and end times.", "error")
+        return redirect_to_next("portal_member_calendar")
+    conflict = find_event_room_conflict(room, start_time, end_time)
+    if conflict:
+        flash(
+            f"{room} is already in use by '{conflict.title}' "
+            f"({conflict.start_time.strftime('%Y-%m-%d %H:%M')} - {conflict.end_time.strftime('%H:%M')}).",
+            "error",
+        )
         return redirect_to_next("portal_member_calendar")
 
     db.session.add(
         Event(
             title=title[:220],
-            location=(location or "")[:220] or None,
+            location=room,
             description=description,
             status="requested",
             requested_by_user_id=user.id,
@@ -2756,6 +3308,86 @@ def portal_event_rsvp(event_id):
     return redirect_to_next("portal_member_calendar")
 
 
+@app.post("/portal/admin/members/create")
+@require_role("admin")
+def portal_admin_create_member():
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    member_class = (request.form.get("member_class") or "").strip() or "Member"
+    create_user = (request.form.get("create_user") or "1").strip() in {"1", "true", "on", "yes"}
+    role = normalize_role(request.form.get("role") or "member")
+    password = request.form.get("password") or ""
+    major = (request.form.get("major") or "").strip()[:120] or None
+    grad_year_raw = (request.form.get("graduation_year") or "").strip()
+    graduation_year = parse_non_negative_int(grad_year_raw, default=0) if grad_year_raw else 0
+    if graduation_year and (graduation_year < 1900 or graduation_year > 2100):
+        graduation_year = 0
+
+    if not name or "@" not in email:
+        flash("Enter a valid member name and email.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    if Member.query.filter(func.lower(Member.email) == email).first():
+        flash("A member with that email already exists.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    member = Member(
+        name=name[:120],
+        email=email[:160],
+        member_class=member_class[:80] or "Member",
+    )
+    db.session.add(member)
+    db.session.flush()
+
+    linked_user = None
+    if create_user:
+        existing_user = User.query.filter(func.lower(User.email) == email).first()
+        if existing_user:
+            if existing_user.member_id and existing_user.member_id != member.id:
+                db.session.rollback()
+                flash("That email already belongs to a different user/member link.", "error")
+                return redirect_to_next("portal_admin_members_page")
+            existing_user.member_id = member.id
+            existing_user.name = name[:160]
+            existing_user.is_active = True
+            existing_user.role = role
+            existing_user.major = major
+            existing_user.graduation_year = graduation_year or None
+            if password:
+                if len(password) < 8:
+                    db.session.rollback()
+                    flash("Password must be at least 8 characters.", "error")
+                    return redirect_to_next("portal_admin_members_page")
+                existing_user.password_hash = generate_password_hash(password)
+            linked_user = existing_user
+        else:
+            if len(password) < 8:
+                db.session.rollback()
+                flash("Password is required (min 8 chars) when creating a new login account.", "error")
+                return redirect_to_next("portal_admin_members_page")
+            linked_user = User(
+                name=name[:160],
+                email=email[:160],
+                password_hash=generate_password_hash(password),
+                role=role,
+                is_active=True,
+                major=major,
+                graduation_year=graduation_year or None,
+                member_id=member.id,
+            )
+            db.session.add(linked_user)
+
+    add_audit_log(
+        "create_member",
+        f"member_id={member.id} email={member.email} create_user={bool(linked_user)}",
+    )
+    db.session.commit()
+    if linked_user:
+        flash(f"Member created with ID #{member.id} and linked user account.", "success")
+    else:
+        flash(f"Member created with ID #{member.id}.", "success")
+    return redirect_to_next("portal_admin_members_page")
+
+
 @app.post("/portal/admin/users/create")
 @require_role("admin")
 def portal_admin_create_user():
@@ -2764,6 +3396,11 @@ def portal_admin_create_user():
     password = request.form.get("password") or ""
     role = normalize_role(request.form.get("role") or "member")
     member_id = parse_positive_int(request.form.get("member_id"), default=0)
+    major = (request.form.get("major") or "").strip()[:120] or None
+    grad_year_raw = (request.form.get("graduation_year") or "").strip()
+    graduation_year = parse_non_negative_int(grad_year_raw, default=0) if grad_year_raw else 0
+    if graduation_year and (graduation_year < 1900 or graduation_year > 2100):
+        graduation_year = 0
 
     if not name or "@" not in email or len(password) < 8:
         flash("Enter valid name, email, and password (min 8 chars).", "error")
@@ -2773,12 +3410,22 @@ def portal_admin_create_user():
         return redirect_to_next("portal_admin_members_page")
 
     member = db.session.get(Member, member_id) if member_id else None
+    if not member:
+        member = Member.query.filter(func.lower(Member.email) == email).first()
+    if member:
+        linked_existing = User.query.filter(User.member_id == member.id).first()
+        if linked_existing:
+            flash(f"Member ID #{member.id} is already linked to {linked_existing.email}.", "error")
+            return redirect_to_next("portal_admin_members_page")
+
     new_user = User(
         name=name[:160],
         email=email[:160],
         password_hash=generate_password_hash(password),
         role=role,
         is_active=True,
+        major=major,
+        graduation_year=graduation_year or None,
         member_id=member.id if member else None,
     )
     db.session.add(new_user)
@@ -2797,11 +3444,73 @@ def portal_admin_update_user_role(user_id):
         return redirect_to_next("portal_admin_members_page")
     role = normalize_role(request.form.get("role") or "member")
     active_raw = (request.form.get("is_active") or "1").strip()
+    name = (request.form.get("name") or user.name).strip()
+    email = (request.form.get("email") or user.email).strip().lower()
+    major = (request.form.get("major") or "").strip()[:120] or None
+    grad_year_raw = (request.form.get("graduation_year") or "").strip()
+    graduation_year = parse_non_negative_int(grad_year_raw, default=0) if grad_year_raw else 0
+    if graduation_year and (graduation_year < 1900 or graduation_year > 2100):
+        graduation_year = 0
+    if "@" not in email:
+        flash("Enter a valid email.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    duplicate = (
+        User.query.filter(func.lower(User.email) == email, User.id != user.id)
+        .order_by(User.id.asc())
+        .first()
+    )
+    if duplicate:
+        flash("Another user already has that email.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    user.name = name[:160] or user.name
+    user.email = email[:160]
     user.role = role
     user.is_active = active_raw == "1"
-    add_audit_log("update_user_role", f"user_id={user.id} role={role} active={user.is_active}")
+    user.major = major
+    user.graduation_year = graduation_year or None
+    add_audit_log(
+        "update_user_role",
+        f"user_id={user.id} role={role} active={user.is_active} email={user.email}",
+    )
     db.session.commit()
     flash("User updated.", "success")
+    return redirect_to_next("portal_admin_members_page")
+
+
+@app.post("/portal/admin/users/<int:user_id>/reset-password")
+@require_role("admin")
+def portal_admin_reset_user_password(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    provided = (request.form.get("new_password") or "").strip()
+    if provided and len(provided) < 8:
+        flash("Password must be at least 8 characters.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    new_password = provided or f"ASME-{uuid4().hex[:10]}"
+    user.password_hash = generate_password_hash(new_password)
+    add_audit_log("reset_user_password", f"user_id={user.id}")
+    db.session.commit()
+    flash(f"Password reset for {user.email}. Temporary password: {new_password}", "info")
+    return redirect_to_next("portal_admin_members_page")
+
+
+@app.post("/portal/admin/users/<int:user_id>/invite-link")
+@require_role("admin")
+def portal_admin_user_invite_link(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=72)
+    db.session.add(PasswordResetToken(user_id=user.id, token=token, expires_at=expires_at))
+    add_audit_log("create_user_invite_link", f"user_id={user.id}")
+    db.session.commit()
+    reset_link = url_for("reset_password_page", token=token, _external=True)
+    flash(f"Invite/reset link for {user.email}: {reset_link}", "info")
     return redirect_to_next("portal_admin_members_page")
 
 
@@ -2817,6 +3526,15 @@ def portal_admin_assign_nfc():
     user = db.session.get(User, user_id)
     if not user:
         flash("User not found.", "error")
+        return redirect_to_next("portal_admin_nfc_page")
+
+    item_tag_conflict = ItemTag.query.filter(func.lower(ItemTag.tag_value) == tag_uid.lower()).first()
+    if item_tag_conflict:
+        flash("That UID is already assigned to an inventory item tag.", "error")
+        return redirect_to_next("portal_admin_nfc_page")
+    legacy_item_conflict = Item.query.filter(func.lower(Item.nfc_tag) == tag_uid.lower()).first()
+    if legacy_item_conflict:
+        flash("That UID is already assigned to an inventory item.", "error")
         return redirect_to_next("portal_admin_nfc_page")
 
     existing_active = NFCTag.query.filter(func.lower(NFCTag.tag_uid) == tag_uid.lower(), NFCTag.active.is_(True)).first()
@@ -2871,20 +3589,30 @@ def portal_admin_create_event():
     user = current_auth_user()
     title = (request.form.get("title") or "").strip()
     description = (request.form.get("description") or "").strip() or None
-    location = (request.form.get("location") or "").strip() or None
+    room = normalize_meeting_room(request.form.get("location"))
     start_time = parse_datetime_local(request.form.get("start_time"))
     end_time = parse_datetime_local(request.form.get("end_time"))
     status = (request.form.get("status") or "scheduled").strip().lower()
     if status not in {"requested", "scheduled", "cancelled"}:
         status = "scheduled"
-    if not title or not start_time or not end_time or end_time <= start_time:
-        flash("Enter a valid event title with start/end times.", "error")
+    if not title or not room or not start_time or not end_time or end_time <= start_time:
+        flash("Enter valid title, room, start, and end times.", "error")
         return redirect_to_next("portal_admin_attendance_page")
+    if status in {"requested", "scheduled"}:
+        conflict = find_event_room_conflict(room, start_time, end_time)
+        if conflict:
+            flash(
+                f"{room} conflicts with '{conflict.title}' "
+                f"({conflict.start_time.strftime('%Y-%m-%d %H:%M')} - {conflict.end_time.strftime('%H:%M')}).",
+                "error",
+            )
+            return redirect_to_next("portal_admin_attendance_page")
+
     db.session.add(
         Event(
             title=title[:220],
             description=description,
-            location=(location or "")[:220] or None,
+            location=room,
             status=status,
             start_time=start_time,
             end_time=end_time,
@@ -2894,6 +3622,47 @@ def portal_admin_create_event():
     add_audit_log("create_event", title[:220])
     db.session.commit()
     flash("Event saved.", "success")
+    return redirect_to_next("portal_admin_attendance_page")
+
+
+@app.post("/portal/admin/events/<int:event_id>/status")
+@require_role("admin")
+def portal_admin_event_status_update(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        flash("Event not found.", "error")
+        return redirect_to_next("portal_admin_attendance_page")
+
+    status = (request.form.get("status") or event.status or "scheduled").strip().lower()
+    if status not in {"requested", "scheduled", "cancelled"}:
+        status = event.status or "scheduled"
+
+    title = (request.form.get("title") or event.title or "").strip()
+    start_time = parse_datetime_local(request.form.get("start_time")) or event.start_time
+    end_time = parse_datetime_local(request.form.get("end_time")) or event.end_time
+    room = normalize_meeting_room(request.form.get("location") or event.location)
+    if not title or not room or not start_time or not end_time or end_time <= start_time:
+        flash("Enter valid title, room, start, and end times.", "error")
+        return redirect_to_next("portal_admin_attendance_page")
+
+    if status in {"requested", "scheduled"}:
+        conflict = find_event_room_conflict(room, start_time, end_time, exclude_event_id=event.id)
+        if conflict:
+            flash(
+                f"Cannot update event. {room} conflicts with '{conflict.title}' "
+                f"({conflict.start_time.strftime('%Y-%m-%d %H:%M')} - {conflict.end_time.strftime('%H:%M')}).",
+                "error",
+            )
+            return redirect_to_next("portal_admin_attendance_page")
+
+    event.title = title[:220]
+    event.location = room
+    event.start_time = start_time
+    event.end_time = end_time
+    event.status = status
+    add_audit_log("update_event_status", f"event_id={event.id} status={status}")
+    db.session.commit()
+    flash("Event updated.", "success")
     return redirect_to_next("portal_admin_attendance_page")
 
 
@@ -2928,6 +3697,16 @@ def portal_admin_attendance_checkin():
         member = current_user_member(user)
     else:
         flash("Provide tag UID or select a user.", "error")
+        return redirect_to_next("portal_admin_attendance_page")
+
+    existing_query = AttendanceRecord.query.filter_by(event_id=event.id)
+    if user:
+        existing_query = existing_query.filter(AttendanceRecord.user_id == user.id)
+    elif member:
+        existing_query = existing_query.filter(AttendanceRecord.member_id == member.id)
+    existing_row = existing_query.order_by(AttendanceRecord.id.desc()).first()
+    if existing_row:
+        flash("This person is already checked in for the selected event.", "info")
         return redirect_to_next("portal_admin_attendance_page")
 
     db.session.add(
@@ -2987,8 +3766,12 @@ def portal_admin_inventory_item_save():
         item = Item(name=name[:160], total_qty=0, available_qty=0)
         db.session.add(item)
 
-    total_qty = parse_positive_int(request.form.get("total_qty"), default=max(item.total_qty, 1))
-    available_qty = parse_positive_int(request.form.get("available_qty"), default=min(item.available_qty, total_qty))
+    total_qty = parse_non_negative_int(request.form.get("total_qty"), default=max(item.total_qty, 0))
+    available_qty = parse_non_negative_int(request.form.get("available_qty"), default=min(item.available_qty, total_qty))
+    item_type = (request.form.get("item_type") or "").strip().lower() or "tool"
+    if item_type not in ITEM_TYPES:
+        item_type = "tool"
+    min_stock_threshold = parse_non_negative_int(request.form.get("min_stock_threshold"), default=0)
     item.name = name[:160]
     item.description = (request.form.get("description") or "").strip()[:300] or None
     item.category = (request.form.get("category") or "").strip()[:80] or None
@@ -2996,6 +3779,8 @@ def portal_admin_inventory_item_save():
     item.item_condition = (request.form.get("item_condition") or "").strip()[:120] or None
     item.notes = (request.form.get("notes") or "").strip()[:500] or None
     item.photo_url = (request.form.get("photo_url") or "").strip()[:500] or None
+    item.item_type = item_type
+    item.min_stock_threshold = min_stock_threshold
     item.total_qty = max(total_qty, 0)
     item.available_qty = max(0, min(available_qty, item.total_qty))
 
@@ -3009,8 +3794,8 @@ def portal_admin_inventory_item_save():
 @require_role("admin")
 def portal_admin_inventory_adjust():
     item_id = parse_positive_int(request.form.get("item_id"), default=0)
-    total_qty = parse_positive_int(request.form.get("total_qty"), default=0)
-    available_qty = parse_positive_int(request.form.get("available_qty"), default=0)
+    total_qty = parse_non_negative_int(request.form.get("total_qty"), default=0)
+    available_qty = parse_non_negative_int(request.form.get("available_qty"), default=0)
     notes = (request.form.get("notes") or "").strip() or "Admin quantity correction"
     item = db.session.get(Item, item_id)
     if not item:
@@ -3139,7 +3924,10 @@ def app_frontend():
 
 @app.get("/admin")
 def admin_home():
-    return redirect(url_for("dashboard_page"))
+    current = current_auth_user()
+    if current and role_allows(current.role, "admin"):
+        return redirect(url_for("portal_admin_dashboard"))
+    return redirect(url_for("admin_login_page"))
 
 
 @app.get("/dashboard")
@@ -4344,6 +5132,18 @@ def pair_member():
         if existing and existing.id != member_id:
             flash("That UID is already assigned to another member.", "error")
             return redirect(url_for("pair_member"))
+        item_tag_conflict = ItemTag.query.filter(func.lower(ItemTag.tag_value) == tag.lower()).first()
+        if item_tag_conflict:
+            flash("That UID is already assigned to an inventory item tag.", "error")
+            return redirect(url_for("pair_member"))
+        item_conflict = Item.query.filter(func.lower(Item.nfc_tag) == tag.lower()).first()
+        if item_conflict:
+            flash("That UID is already assigned to an inventory item.", "error")
+            return redirect(url_for("pair_member"))
+        user_tag_conflict = NFCTag.query.filter(func.lower(NFCTag.tag_uid) == tag.lower(), NFCTag.active.is_(True)).first()
+        if user_tag_conflict:
+            flash("That UID is already assigned to a user account tag.", "error")
+            return redirect(url_for("pair_member"))
 
         member = db.session.get(Member, member_id)
         if not member:
@@ -4380,6 +5180,10 @@ def pair_item():
         existing = Item.query.filter_by(nfc_tag=tag).first()
         if existing and existing.id != item_id:
             flash("That UID is already assigned to another item.", "error")
+            return redirect(url_for("pair_item"))
+        member_tag_conflict = NFCTag.query.filter(func.lower(NFCTag.tag_uid) == tag.lower()).first()
+        if member_tag_conflict:
+            flash("That UID is already assigned to a member tag.", "error")
             return redirect(url_for("pair_item"))
 
         item = db.session.get(Item, item_id)

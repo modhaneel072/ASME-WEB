@@ -18,6 +18,14 @@
     <p>Pending Print Requests</p>
     <strong>{{ pending_print_count }}</strong>
   </a>
+  <a class="tile" href="/portal/admin/inventory">
+    <p>Low Stock Items</p>
+    <strong>{{ low_stock_items_count }}</strong>
+  </a>
+  <a class="tile" href="/portal/admin/calendar">
+    <p>Calendar Provider</p>
+    <strong>{{ calendar_provider|upper }}</strong>
+  </a>
 </section>
 
 <section class="panel-grid two">
@@ -31,7 +39,10 @@
       <a href="/portal/admin/attendance">Attendance</a>
       <a href="/portal/admin/inventory">Inventory Management</a>
       <a href="/portal/admin/prints">3D Print Queue</a>
+      <a href="/portal/admin/calendar">Calendar Administration</a>
       <a href="/portal/admin/announcements">Announcements / Content</a>
+      <a href="/portal/admin/exports">Exports</a>
+      <a href="/portal/admin/settings">Settings / Audit Logs</a>
     </div>
   </article>
 

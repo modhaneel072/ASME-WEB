@@ -32,7 +32,10 @@
           <tr>
             <th>UID</th>
             <th>User</th>
+            <th>Assigned By</th>
             <th>Assigned At</th>
+            <th>Unassigned At</th>
+            <th>Notes</th>
             <th>State</th>
             <th>Action</th>
           </tr>
@@ -42,7 +45,10 @@
           <tr>
             <td>{{ tag.tag_uid }}</td>
             <td>{{ tag.user.name if tag.user else 'Unknown' }}</td>
+            <td>{{ tag.assigned_by.name if tag.assigned_by else 'System' }}</td>
             <td>{{ tag.assigned_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ tag.unassigned_at.strftime('%Y-%m-%d %H:%M') if tag.unassigned_at else '' }}</td>
+            <td>{{ tag.notes or '' }}</td>
             <td>{{ 'active' if tag.active else 'inactive' }}</td>
             <td>
               {% if tag.active %}
@@ -54,6 +60,9 @@
             </td>
           </tr>
           {% endfor %}
+          {% if not tags %}
+          <tr><td colspan="8" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
         </tbody>
       </table>
     </div>

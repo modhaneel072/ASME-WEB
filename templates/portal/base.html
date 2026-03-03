@@ -35,14 +35,12 @@
         <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
         <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory Mgmt</a>
         <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Print Queue Mgmt</a>
+        <a class="{{ 'active' if active_page == 'admin_calendar' else '' }}" href="/portal/admin/calendar">Calendar</a>
         <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Announcements</a>
+        <a class="{{ 'active' if active_page == 'admin_exports' else '' }}" href="/portal/admin/exports">Exports</a>
+        <a class="{{ 'active' if active_page == 'admin_settings' else '' }}" href="/portal/admin/settings">Settings / Audit</a>
       </nav>
       {% endif %}
-
-      <nav class="ops-nav">
-        <a href="/app">NFC Scan Frontend</a>
-        <a href="/dashboard">Ops Backend</a>
-      </nav>
 
       <form action="/logout" method="post">
         <button type="submit">Logout</button>

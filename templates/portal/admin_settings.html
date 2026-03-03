@@ -1,0 +1,70 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Runtime Configuration</h3>
+    </div>
+    {% if config_warnings %}
+    <div class="flash-stack">
+      {% for warning in config_warnings %}
+      <div class="flash flash-error">{{ warning }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Setting</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Calendar Provider</td><td>{{ env_status.calendar_provider }}</td></tr>
+          <tr><td>Google Embed URL Set</td><td>{{ 'Yes' if env_status.google_embed_set else 'No' }}</td></tr>
+          <tr><td>Outlook Embed URL Set</td><td>{{ 'Yes' if env_status.outlook_embed_set else 'No' }}</td></tr>
+          <tr><td>Shared Admin Email</td><td>{{ env_status.shared_admin_email or 'Not set' }}</td></tr>
+          <tr><td>H2S Print Command Set</td><td>{{ 'Yes' if env_status.h2s_print_command_set else 'No' }}</td></tr>
+          <tr><td>P1S Print Command Set</td><td>{{ 'Yes' if env_status.p1s_print_command_set else 'No' }}</td></tr>
+          <tr><td>Login Rate Window (sec)</td><td>{{ env_status.login_rate_window_seconds }}</td></tr>
+          <tr><td>Login Rate Max Attempts</td><td>{{ env_status.login_rate_max_attempts }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Admin Notes</h3>
+    </div>
+    <p class="muted">This page is read-only for safe runtime verification. Update env vars through Render or your deployment environment.</p>
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Recent Audit Logs</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Admin User</th><th>Action</th><th>Details</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for log in audit_logs %}
+        <tr>
+          <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ log.admin_user.name if log.admin_user else 'System' }}</td>
+          <td>{{ log.action }}</td>
+          <td>{{ log.details or '' }}</td>
+          <td>{{ log.ip_address or '' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not audit_logs %}
+        <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

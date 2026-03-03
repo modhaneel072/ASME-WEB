@@ -1,0 +1,98 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Calendar Configuration</h3>
+    </div>
+    <dl class="detail-grid">
+      <div>
+        <dt>Provider</dt>
+        <dd>{{ calendar_provider|upper }}</dd>
+      </div>
+      <div>
+        <dt>Embed Configured</dt>
+        <dd>{{ 'Yes' if calendar_embed_url else 'No' }}</dd>
+      </div>
+    </dl>
+    {% if calendar_warnings %}
+    <div class="flash-stack">
+      {% for warning in calendar_warnings %}
+      <div class="flash flash-error">{{ warning }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if calendar_embed_url %}
+    <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
+    {% else %}
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Requested Meetings</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Title</th><th>Room</th><th>Time</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for event in requested_events %}
+          <tr>
+            <td>{{ event.title }}</td>
+            <td>{{ event.location or '' }}</td>
+            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ event.end_time.strftime('%H:%M') }}</td>
+            <td>
+              <form method="post" action="/portal/admin/events/{{ event.id }}/status" class="inline-form">
+                <input type="hidden" name="next" value="/portal/admin/calendar" />
+                <input type="hidden" name="title" value="{{ event.title }}" />
+                <input type="hidden" name="location" value="{{ event.location or meeting_rooms[0] }}" />
+                <input type="hidden" name="start_time" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" />
+                <input type="hidden" name="end_time" value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') }}" />
+                <button type="submit" name="status" value="scheduled">Approve</button>
+                <button type="submit" name="status" value="cancelled">Reject</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not requested_events %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Room Schedules</h3>
+  </div>
+  {% for room in meeting_rooms %}
+  <h4>{{ room }}</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Event</th><th>Status</th><th>Start</th><th>End</th></tr>
+      </thead>
+      <tbody>
+        {% for event in room_events[room] %}
+        <tr>
+          <td>{{ event.title }}</td>
+          <td>{{ event.status }}</td>
+          <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ event.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+        {% if not room_events[room] %}
+        <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

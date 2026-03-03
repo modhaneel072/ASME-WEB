@@ -5,11 +5,16 @@
   <div class="section-head">
     <h3>Admin Login</h3>
   </div>
-  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <p class="muted">
+    Placeholder line: final website copy will be added here.
+    {% if shared_admin_email %}
+    Shared admin email detected: <strong>{{ shared_admin_email }}</strong> (you can leave email blank).
+    {% endif %}
+  </p>
   <form method="post" class="form-stack">
     <input type="hidden" name="next" value="{{ next_url or '' }}" />
     <label for="email">Admin Email</label>
-    <input id="email" name="email" type="email" required />
+    <input id="email" name="email" type="email" value="{{ shared_admin_email or '' }}" />
     <label for="password">Password</label>
     <input id="password" name="password" type="password" required />
     <button class="btn" type="submit">Login as Admin</button>

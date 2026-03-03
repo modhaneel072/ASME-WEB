@@ -27,6 +27,8 @@ class Item(db.Model):
     item_condition = db.Column(db.String(120), nullable=True)
     notes = db.Column(db.String(500), nullable=True)
     photo_url = db.Column(db.String(500), nullable=True)
+    item_type = db.Column(db.String(20), nullable=False, default="tool")  # tool / consumable
+    min_stock_threshold = db.Column(db.Integer, nullable=False, default=0)
 
     total_qty = db.Column(db.Integer, nullable=False, default=0)
     available_qty = db.Column(db.Integer, nullable=False, default=0)
@@ -136,6 +138,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(260), nullable=False)
     role = db.Column(db.String(30), nullable=False, default="member")
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    major = db.Column(db.String(120), nullable=True)
+    graduation_year = db.Column(db.Integer, nullable=True)
     member_id = db.Column(db.Integer, db.ForeignKey("members.id"), nullable=True, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     last_login_at = db.Column(db.DateTime, nullable=True)

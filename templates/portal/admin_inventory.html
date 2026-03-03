@@ -15,15 +15,17 @@
         <option value="{{ item.id }}">{{ item.name }}</option>
         {% endfor %}
       </select>
+
       <label for="name">Name</label>
       <input id="name" name="name" required />
+
       <div class="split-fields three-up">
         <div>
           <label for="category">Category</label>
           <input id="category" name="category" />
         </div>
         <div>
-          <label for="location">Location</label>
+          <label for="location">Location / Bin</label>
           <input id="location" name="location" />
         </div>
         <div>
@@ -31,6 +33,22 @@
           <input id="item_condition" name="item_condition" />
         </div>
       </div>
+
+      <div class="split-fields two-up">
+        <div>
+          <label for="item_type">Item Type</label>
+          <select id="item_type" name="item_type">
+            {% for item_type in item_types %}
+            <option value="{{ item_type }}">{{ item_type }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="min_stock_threshold">Min Stock Threshold</label>
+          <input id="min_stock_threshold" name="min_stock_threshold" type="number" min="0" value="0" />
+        </div>
+      </div>
+
       <div class="split-fields two-up">
         <div>
           <label for="total_qty">Total Qty</label>
@@ -41,6 +59,7 @@
           <input id="available_qty" name="available_qty" type="number" min="0" value="1" />
         </div>
       </div>
+
       <label for="description">Description</label>
       <textarea id="description" name="description"></textarea>
       <label for="notes">Notes</label>
@@ -52,7 +71,7 @@
 
     <form method="post" action="/portal/admin/inventory/adjust" class="form-stack">
       <input type="hidden" name="next" value="/portal/admin/inventory" />
-      <h4>Quantity Correction</h4>
+      <h4>Inventory Correction</h4>
       <label for="adjust_item_id">Item</label>
       <select id="adjust_item_id" name="item_id" required>
         {% for item in items %}
@@ -69,13 +88,37 @@
           <input id="adjust_available" name="available_qty" type="number" min="0" required />
         </div>
       </div>
-      <label for="adjust_notes">Notes</label>
+      <label for="adjust_notes">Adjustment Notes</label>
       <input id="adjust_notes" name="notes" />
       <button type="submit">Apply Correction</button>
     </form>
   </article>
 
   <article class="panel">
+    <div class="panel-head">
+      <h3>Low Stock</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Type</th><th>Available</th><th>Threshold</th></tr>
+        </thead>
+        <tbody>
+          {% for item in low_stock_items %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.item_type }}</td>
+            <td>{{ item.available_qty }}</td>
+            <td>{{ item.min_stock_threshold }}</td>
+          </tr>
+          {% endfor %}
+          {% if not low_stock_items %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
     <div class="panel-head">
       <h3>Overdue Checkouts</h3>
     </div>
@@ -99,28 +142,54 @@
         </tbody>
       </table>
     </div>
-
-    <div class="panel-head">
-      <h3>Transactions Log</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th></tr>
-        </thead>
-        <tbody>
-          {% for tx in transactions %}
-          <tr>
-            <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ tx.member.name }}</td>
-            <td>{{ tx.item.name }}</td>
-            <td>{{ tx.status or tx.action }}</td>
-            <td>{{ tx.qty }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
   </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Inventory Snapshot</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Stock</th></tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>{{ item.category or '' }}</td>
+          <td>{{ item.location or '' }}</td>
+          <td>{{ item.item_type }}</td>
+          <td>{{ item.available_qty }} / {{ item.total_qty }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Transactions Log</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th></tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ tx.member.name }}</td>
+          <td>{{ tx.item.name }}</td>
+          <td>{{ tx.status or tx.action }}</td>
+          <td>{{ tx.qty }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

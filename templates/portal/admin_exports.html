@@ -1,0 +1,26 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Data Exports</h3>
+    <a href="/portal/admin/exports/download.zip">Download ZIP (CSV)</a>
+  </div>
+  <p class="muted">Exports include users, members, attendance, inventory transactions, print requests, events, and audit logs.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Dataset</th><th>Rows</th></tr>
+      </thead>
+      <tbody>
+        {% for dataset_name, row_count in dataset_counts.items() %}
+        <tr>
+          <td>{{ dataset_name }}</td>
+          <td>{{ row_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

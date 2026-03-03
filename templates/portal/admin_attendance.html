@@ -10,8 +10,12 @@
       <input type="hidden" name="next" value="/portal/admin/attendance" />
       <label for="title">Title</label>
       <input id="title" name="title" required />
-      <label for="location">Location</label>
-      <input id="location" name="location" />
+      <label for="location">Room</label>
+      <select id="location" name="location" required>
+        {% for room in meeting_rooms %}
+        <option value="{{ room }}">{{ room }}</option>
+        {% endfor %}
+      </select>
       <div class="split-fields two-up">
         <div>
           <label for="start_time">Start</label>
@@ -95,5 +99,78 @@
       </table>
     </div>
   </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Event Management</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Event</th><th>Schedule</th><th>Status</th><th>Update</th></tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td>
+            <form id="event-{{ event.id }}" method="post" action="/portal/admin/events/{{ event.id }}/status" class="form-stack">
+              <input type="hidden" name="next" value="/portal/admin/attendance" />
+              <input name="title" value="{{ event.title }}" />
+            </form>
+            <select name="location" form="event-{{ event.id }}">
+              {% for room in meeting_rooms %}
+              <option value="{{ room }}" {% if (event.location or '') == room %}selected{% endif %}>{{ room }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <input name="start_time" type="datetime-local" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" form="event-{{ event.id }}" />
+            <input name="end_time" type="datetime-local" value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') }}" form="event-{{ event.id }}" />
+          </td>
+          <td>
+            <select name="status" form="event-{{ event.id }}">
+              <option value="requested" {% if event.status == 'requested' %}selected{% endif %}>requested</option>
+              <option value="scheduled" {% if event.status == 'scheduled' %}selected{% endif %}>scheduled</option>
+              <option value="cancelled" {% if event.status == 'cancelled' %}selected{% endif %}>cancelled</option>
+            </select>
+          </td>
+          <td>
+            <button type="submit" form="event-{{ event.id }}">Save Event</button>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not events %}
+        <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Member Attendance Summary</h3>
+  </div>
+  <p class="muted">Tracked events count: {{ tracked_event_count }}</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Member</th><th>Attended</th><th>Attendance %</th></tr>
+      </thead>
+      <tbody>
+        {% for row in attendance_summary %}
+        <tr>
+          <td>{{ row.user.name }}</td>
+          <td>{{ row.attended_count }}</td>
+          <td>{{ '%.1f'|format(row.attendance_rate) }}%</td>
+        </tr>
+        {% endfor %}
+        {% if not attendance_summary %}
+        <tr><td colspan="3" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}
