@@ -230,6 +230,21 @@ FRONT_UIOWA_CURRENT_PROJECTS = [
     },
 ]
 
+EXEC_PROFILE_OVERRIDES = {
+    "brayden-nagra@uiowa.edu": {
+        "title": "President",
+        "message": (
+            "As President, I set the overall direction for ASME at Iowa, coordinate the executive board, "
+            "and represent our chapter to the College of Engineering, sponsors, and national ASME.\n"
+            "This semester my main focus is building sustainable systems for funding, mentorship, and project "
+            "management so we can support 150-200+ active members and multiple national competition teams.\n"
+            "Members can come to me if they want to get plugged into a project team, start a new initiative, "
+            "or talk about sponsorships, leadership opportunities, or long-term plans for the club.\n"
+            "brayden-nagra@uiowa.edu, 806-577-2216"
+        ),
+    }
+}
+
 ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
 PRINT_REQUEST_STATUSES = ("submitted", "approved", "printing", "completed", "rejected")
 PASSWORD_RESET_HOURS = 2
@@ -386,6 +401,58 @@ def split_name_parts(full_name):
     first = tokens[0]
     last = " ".join(tokens[1:]) if len(tokens) > 1 else tokens[0]
     return first, last
+
+
+def parse_executive_message(raw_message):
+    raw_text = (raw_message or "").replace("\r", "\n")
+    if not raw_text.strip():
+        return {"summary": "", "focus_points": [], "contact": "", "note": ""}
+
+    # Support "1. ... 2. ... 3. ..." formatting even when pasted as one paragraph.
+    raw_text = re.sub(r"\s+(?=\d+[.)]\s+)", "\n", raw_text)
+    lines = []
+    for line in raw_text.splitlines():
+        cleaned = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", "", (line or "").strip())
+        if cleaned:
+            lines.append(cleaned)
+
+    if not lines:
+        return {"summary": "", "focus_points": [], "contact": "", "note": ""}
+
+    summary = ""
+    focus_points = []
+    contact = ""
+    note = ""
+    phone_re = re.compile(r"\d{3}[-.\s]?\d{3}[-.\s]?\d{4}")
+
+    for line in lines:
+        lowered = line.lower()
+        has_contact = ("@" in line and "." in line) or bool(phone_re.search(line))
+        if has_contact and not contact:
+            contact = line
+            continue
+        if "headshot" in lowered and not note:
+            note = line
+            continue
+        if not summary:
+            summary = line
+            continue
+        if len(focus_points) < 3:
+            focus_points.append(line)
+
+    if not summary:
+        summary = lines[0]
+    if not focus_points:
+        for candidate in lines[1:4]:
+            if candidate != contact and "headshot" not in candidate.lower():
+                focus_points.append(candidate)
+
+    return {
+        "summary": summary,
+        "focus_points": focus_points[:3],
+        "contact": contact,
+        "note": note,
+    }
 
 
 def username_base_from_name(first_name, last_name):
@@ -3131,38 +3198,63 @@ def public_site_context(page_title):
     project_filters = sorted({(project.project_type or "General").strip() for project in projects if project})
     if not project_filters:
         project_filters = ["General"]
+    override_exec_emails = sorted(EXEC_PROFILE_OVERRIDES.keys())
+    executive_filters = [
+        User.role.in_(["team_leader", "admin"]),
+        User.exec_title.isnot(None),
+        User.exec_message.isnot(None),
+    ]
+    if override_exec_emails:
+        executive_filters.append(func.lower(func.coalesce(User.email, "")).in_(override_exec_emails))
     executives = (
-        User.query.filter(User.role.in_(["team_leader", "admin"]), User.is_active.is_(True))
+        User.query.filter(User.is_active.is_(True), or_(*executive_filters))
         .order_by(User.role.desc(), User.name.asc())
         .all()
     )
     executive_cards = []
     for exec_user in executives:
+        override = EXEC_PROFILE_OVERRIDES.get((exec_user.email or "").strip().lower(), {})
         title = "Executive Member"
         if normalize_role(exec_user.role) == "admin":
             title = "Administrator"
         elif normalize_role(exec_user.role) == "team_leader":
             title = "Team Leader"
-        exec_title = (exec_user.exec_title or "").strip() or title
-        exec_message = (
+        exec_title = (exec_user.exec_title or "").strip() or (override.get("title") or "").strip() or title
+        exec_message_raw = (
             (exec_user.exec_message or "").strip()
+            or (override.get("message") or "").strip()
             or "Focused on safe builds, strong documentation, and reliable execution."
         )
-        headshot_url = (exec_user.headshot_url or "").strip() or url_for("static", filename="asme_logo.png")
+        parsed_message = parse_executive_message(exec_message_raw)
+        headshot_url = (
+            (exec_user.headshot_url or "").strip()
+            or (override.get("headshot_url") or "").strip()
+            or url_for("static", filename="asme_logo.png")
+        )
         executive_cards.append(
             {
                 "name": exec_user.name,
                 "title": exec_title,
-                "message": exec_message,
+                "message": exec_message_raw,
+                "summary": parsed_message.get("summary") or "",
+                "focus_points": parsed_message.get("focus_points") or [],
+                "contact": parsed_message.get("contact") or "",
+                "note": parsed_message.get("note") or "",
                 "headshot": headshot_url,
             }
         )
     if not executive_cards:
+        fallback_message = "Add executive member accounts to populate this section."
+        parsed_fallback = parse_executive_message(fallback_message)
         executive_cards = [
             {
                 "name": "ASME Executive Team",
                 "title": "Leadership",
-                "message": "Add executive member accounts to populate this section.",
+                "message": fallback_message,
+                "summary": parsed_fallback.get("summary") or fallback_message,
+                "focus_points": parsed_fallback.get("focus_points") or [],
+                "contact": "",
+                "note": "",
                 "headshot": url_for("static", filename="asme_logo.png"),
             }
         ]

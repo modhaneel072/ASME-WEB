@@ -623,6 +623,31 @@ button,
   letter-spacing: 0.08em;
 }
 
+.exec-summary {
+  margin: 8px 0 0;
+  color: #4f587c;
+}
+
+.exec-points {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #5a6387;
+}
+
+.exec-points li {
+  margin-bottom: 6px;
+}
+
+.exec-contact {
+  margin: 8px 0 0;
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.exec-note {
+  margin-top: 6px;
+}
+
 .social-list {
   padding-left: 20px;
 }

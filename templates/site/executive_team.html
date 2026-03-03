@@ -13,7 +13,22 @@
       <div>
         <h4>{{ exec.name }}</h4>
         <p class="exec-title">{{ exec.title }}</p>
-        <p>{{ exec.message }}</p>
+        {% if exec.summary %}
+        <p class="exec-summary">{{ exec.summary }}</p>
+        {% endif %}
+        {% if exec.focus_points %}
+        <ul class="exec-points">
+          {% for point in exec.focus_points %}
+          <li>{{ point }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if exec.contact %}
+        <p class="exec-contact">{{ exec.contact }}</p>
+        {% endif %}
+        {% if exec.note %}
+        <p class="muted exec-note">{{ exec.note }}</p>
+        {% endif %}
       </div>
     </article>
     {% endfor %}
