@@ -305,9 +305,26 @@ def ensure_inventory_schema_columns():
 
     if "items" in table_names:
         item_columns = {col["name"] for col in inspector.get_columns("items")}
+        alters = []
         if "description" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN description VARCHAR(300)")
+        if "category" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN category VARCHAR(80)")
+        if "location" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN location VARCHAR(120)")
+        if "item_condition" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN item_condition VARCHAR(120)")
+        if "notes" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN notes VARCHAR(500)")
+        if "photo_url" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN photo_url VARCHAR(500)")
+        if "nfc_tag" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN nfc_tag VARCHAR(120)")
+
+        if alters:
             with db.engine.begin() as conn:
-                conn.execute(text("ALTER TABLE items ADD COLUMN description VARCHAR(300)"))
+                for statement in alters:
+                    conn.execute(text(statement))
 
     if "transactions" in table_names:
         tx_columns = {col["name"] for col in inspector.get_columns("transactions")}
