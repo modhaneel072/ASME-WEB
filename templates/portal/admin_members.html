@@ -46,6 +46,44 @@
 
 <section class="panel">
   <div class="panel-head">
+    <h3>Bulk Import Roster</h3>
+    {% if latest_roster_credentials_file %}
+    <a href="/portal/admin/members/import-credentials/{{ latest_roster_credentials_file }}">Download Last Credentials CSV</a>
+    {% endif %}
+  </div>
+  <p class="muted">
+    Username format: first letter of first name + last name. Password format: first 2 letters of first name + first letter of last name + 5 numbers.
+  </p>
+  <form method="post" action="/portal/admin/members/import-roster" enctype="multipart/form-data" class="form-stack">
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <div class="split-fields three-up">
+      <div>
+        <label for="roster_file">Roster PDF</label>
+        <input id="roster_file" name="roster_file" type="file" accept=".pdf" required />
+      </div>
+      <div>
+        <label for="import_role">Default Role</label>
+        <select id="import_role" name="role">
+          <option value="member" selected>member</option>
+          <option value="team_leader">team_leader</option>
+        </select>
+      </div>
+      <div>
+        <label for="import_member_class">Member Class</label>
+        <input id="import_member_class" name="member_class" value="Member" />
+      </div>
+    </div>
+    <label for="reset_existing_passwords">Reset passwords for existing users</label>
+    <select id="reset_existing_passwords" name="reset_existing_passwords">
+      <option value="1" selected>Yes</option>
+      <option value="0">No</option>
+    </select>
+    <button type="submit">Import Roster</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
     <h3>Members / Roles</h3>
   </div>
   <p class="muted">Member ID and NFC UID must be unique. Leave Member ID blank to unlink a user from a member profile.</p>
@@ -55,6 +93,7 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
+          <th>Username</th>
           <th>Role</th>
           <th>Member ID</th>
           <th>NFC UID</th>
@@ -67,6 +106,7 @@
         <tr>
           <td><input name="name" value="{{ user.name }}" form="user-edit-{{ user.id }}" /></td>
           <td><input name="email" type="email" value="{{ user.email }}" form="user-edit-{{ user.id }}" /></td>
+          <td><input name="username" value="{{ user.username or '' }}" form="user-edit-{{ user.id }}" /></td>
           <td>
             <select name="role" form="user-edit-{{ user.id }}">
               {% for role in roles %}
@@ -101,7 +141,7 @@
         </tr>
         {% endfor %}
         {% if not users %}
-        <tr><td colspan="7" class="muted">No users yet.</td></tr>
+        <tr><td colspan="8" class="muted">No users yet.</td></tr>
         {% endif %}
       </tbody>
     </table>

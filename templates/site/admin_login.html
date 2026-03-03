@@ -13,8 +13,8 @@
   </p>
   <form method="post" class="form-stack">
     <input type="hidden" name="next" value="{{ next_url or '' }}" />
-    <label for="email">Admin Email</label>
-    <input id="email" name="email" type="email" value="{{ shared_admin_email or '' }}" />
+    <label for="identifier">Admin Email or Username</label>
+    <input id="identifier" name="identifier" type="text" value="{{ shared_admin_email or '' }}" />
     <label for="password">Password</label>
     <input id="password" name="password" type="password" required />
     <button class="btn" type="submit">Login as Admin</button>

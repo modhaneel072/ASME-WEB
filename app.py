@@ -2,12 +2,14 @@ import os
 import csv
 import io
 import json
+import re
 import secrets
 import smtplib
 import subprocess
 import zipfile
 import time as time_module
 import platform
+import unicodedata
 from functools import wraps
 from datetime import date, datetime, time, timedelta
 from email.message import EmailMessage
@@ -53,6 +55,11 @@ except Exception:  # pragma: no cover - optional dependency fallback for local d
     service_account = None
     build = None
 
+try:
+    from pypdf import PdfReader
+except Exception:  # pragma: no cover - optional dependency fallback for local dev
+    PdfReader = None
+
 from models import (
     Announcement,
     AttendanceRecord,
@@ -90,8 +97,10 @@ TAG_PREFIXES = ("item_id:", "item:")
 UPLOAD_DIR = Path(app.instance_path) / "gcode_uploads"
 RETURN_PHOTO_DIR = Path(app.instance_path) / "return_photos"
 PRINT_COMMANDS_ENV_FILE = Path(app.instance_path) / "print_commands.env"
+ROSTER_CREDENTIALS_DIR = Path(app.instance_path) / "roster_credentials"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RETURN_PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+ROSTER_CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
 
 KNOWN_NON_MS_MAIL_DOMAINS = {
     "gmail.com",
@@ -186,6 +195,8 @@ ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
 PRINT_REQUEST_STATUSES = ("submitted", "approved", "printing", "completed", "rejected")
 PASSWORD_RESET_HOURS = 2
 ITEM_TYPES = ("tool", "consumable")
+EMAIL_RE = re.compile(r"^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$", re.IGNORECASE)
+ROSTER_BOOL_WORDS = {"yes", "no"}
 
 LOGIN_RATE_WINDOW_SECONDS = int((os.environ.get("ASME_LOGIN_RATE_WINDOW_SECONDS") or "900").strip())
 LOGIN_RATE_MAX_ATTEMPTS = int((os.environ.get("ASME_LOGIN_RATE_MAX_ATTEMPTS") or "8").strip())
@@ -315,6 +326,282 @@ def clean_tag_value(raw):
     if not value:
         return ""
     return " ".join(value.split())
+
+
+def normalize_text_key(raw):
+    normalized = unicodedata.normalize("NFKD", str(raw or ""))
+    ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "", ascii_only.lower())
+
+
+def split_name_parts(full_name):
+    cleaned = " ".join((full_name or "").strip().split())
+    if not cleaned:
+        return "", ""
+    tokens = cleaned.split(" ")
+    first = tokens[0]
+    last = " ".join(tokens[1:]) if len(tokens) > 1 else tokens[0]
+    return first, last
+
+
+def username_base_from_name(first_name, last_name):
+    first_key = normalize_text_key(first_name)
+    last_key = normalize_text_key(last_name)
+    base = f"{first_key[:1]}{last_key}"
+    if not base:
+        base = first_key or last_key or "member"
+    return base[:50]
+
+
+def password_from_name(first_name, last_name):
+    first_key = normalize_text_key(first_name)
+    last_key = normalize_text_key(last_name)
+    prefix = f"{first_key[:2]}{last_key[:1]}"
+    if len(prefix) < 3:
+        prefix = (prefix + "asx")[:3]
+    return f"{prefix}{secrets.randbelow(100000):05d}"
+
+
+def make_unique_username(base_username, reserved=None, exclude_user_id=None):
+    reserved = reserved if reserved is not None else set()
+    candidate_base = normalize_text_key(base_username) or "member"
+    candidate = candidate_base[:50]
+    suffix = 2
+    while True:
+        duplicate = (
+            User.query.filter(
+                func.lower(func.coalesce(User.username, "")) == candidate.lower(),
+                User.id != (exclude_user_id or 0),
+            )
+            .order_by(User.id.asc())
+            .first()
+        )
+        if not duplicate and candidate.lower() not in reserved:
+            reserved.add(candidate.lower())
+            return candidate
+        tail = str(suffix)
+        candidate = f"{candidate_base[: max(1, 50 - len(tail))]}{tail}"
+        suffix += 1
+
+
+def make_unique_import_email(base_local, reserved_emails=None):
+    reserved_emails = reserved_emails if reserved_emails is not None else set()
+    local = normalize_text_key(base_local) or "member"
+    domain = "asme.local"
+    candidate = f"{local}@{domain}"
+    suffix = 2
+    while True:
+        duplicate_user = User.query.filter(func.lower(User.email) == candidate.lower()).first()
+        duplicate_member = Member.query.filter(func.lower(Member.email) == candidate.lower()).first()
+        if not duplicate_user and not duplicate_member and candidate.lower() not in reserved_emails:
+            reserved_emails.add(candidate.lower())
+            return candidate
+        candidate = f"{local}{suffix}@{domain}"
+        suffix += 1
+
+
+def find_user_by_login_identifier(identifier):
+    cleaned = (identifier or "").strip().lower()
+    if not cleaned:
+        return None
+    by_email = User.query.filter(func.lower(User.email) == cleaned).first()
+    if by_email:
+        return by_email
+    return User.query.filter(func.lower(func.coalesce(User.username, "")) == cleaned).first()
+
+
+def parse_roster_pdf_entries(pdf_bytes):
+    if PdfReader is None:
+        raise RuntimeError("pypdf is not installed. Add pypdf to requirements and redeploy.")
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    rows = []
+    seen = set()
+    for page in reader.pages:
+        text_blob = page.extract_text() or ""
+        for raw_line in text_blob.splitlines():
+            line = " ".join(raw_line.split()).strip()
+            if not line:
+                continue
+            lowered = line.lower()
+            if lowered.startswith("first name last name"):
+                continue
+            if "engage general teams project teams" in lowered:
+                continue
+            tokens = line.split(" ")
+            email = ""
+            for idx in range(len(tokens) - 1, -1, -1):
+                maybe_email = tokens[idx].strip(";,")
+                if EMAIL_RE.match(maybe_email):
+                    email = maybe_email.lower()
+                    tokens.pop(idx)
+                    break
+            while tokens and tokens[-1].lower() in ROSTER_BOOL_WORDS:
+                tokens.pop()
+            if len(tokens) < 2:
+                continue
+            first_name = tokens[0]
+            last_name = " ".join(tokens[1:])
+            full_name = f"{first_name} {last_name}".strip()
+            dedupe_key = (normalize_text_key(full_name), email)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            rows.append(
+                {
+                    "name": full_name,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                }
+            )
+    return rows
+
+
+def import_roster_entries(
+    entries,
+    default_role="member",
+    member_class="Member",
+    reset_existing_passwords=True,
+):
+    ensure_portal_schema()
+    role_value = normalize_role(default_role or "member")
+    if role_value == "admin":
+        role_value = "member"
+    member_class = (member_class or "Member").strip()[:80] or "Member"
+
+    reserved_usernames = set()
+    for row in User.query.order_by(User.id.asc()).all():
+        if row.username:
+            reserved_usernames.add(row.username.strip().lower())
+        elif row.email and "@" in row.email:
+            reserved_usernames.add(normalize_text_key(row.email.split("@", 1)[0]))
+    reserved_emails = set()
+    for row in User.query.order_by(User.id.asc()).all():
+        if row.email:
+            reserved_emails.add(row.email.strip().lower())
+    for row in Member.query.order_by(Member.id.asc()).all():
+        if row.email:
+            reserved_emails.add(row.email.strip().lower())
+
+    created_members = 0
+    created_users = 0
+    updated_users = 0
+    reset_passwords = 0
+    credentials = []
+
+    for entry in entries:
+        first_name = entry.get("first_name") or split_name_parts(entry.get("name") or "")[0]
+        last_name = entry.get("last_name") or split_name_parts(entry.get("name") or "")[1]
+        full_name = " ".join((entry.get("name") or f"{first_name} {last_name}").split()).strip()
+        if not full_name:
+            continue
+        base_username = username_base_from_name(first_name, last_name)
+
+        roster_email = (entry.get("email") or "").strip().lower()
+        email = roster_email
+        if email:
+            reserved_emails.add(email)
+
+        member = None
+        if email:
+            member = Member.query.filter(func.lower(Member.email) == email).first()
+        if not member:
+            member = Member.query.filter(func.lower(Member.name) == full_name.lower()).first()
+        if not member:
+            if not email:
+                email = make_unique_import_email(base_username, reserved_emails=reserved_emails)
+            member = Member(
+                name=full_name[:120],
+                email=email[:160],
+                member_class=member_class,
+            )
+            db.session.add(member)
+            db.session.flush()
+            created_members += 1
+        else:
+            member.name = full_name[:120]
+            member.member_class = member_class
+            if not member.email:
+                if not email:
+                    email = make_unique_import_email(base_username, reserved_emails=reserved_emails)
+                member.email = email[:160]
+            email = (member.email or email or "").strip().lower()
+            if email:
+                reserved_emails.add(email)
+
+        if not email:
+            email = make_unique_import_email(base_username, reserved_emails=reserved_emails)
+
+        user = User.query.filter(func.lower(User.email) == email).first()
+        if not user:
+            user = User.query.filter(User.member_id == member.id).first()
+
+        generated_password = password_from_name(first_name, last_name)
+        if user:
+            username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
+            user.name = full_name[:160]
+            user.email = email[:160]
+            user.member_id = member.id
+            user.username = username
+            user.is_active = True
+            if normalize_role(user.role) not in {"admin", "team_leader"}:
+                user.role = role_value
+            if reset_existing_passwords:
+                user.password_hash = generate_password_hash(generated_password)
+                reset_passwords += 1
+            updated_users += 1
+        else:
+            username = make_unique_username(base_username, reserved=reserved_usernames)
+            user = User(
+                name=full_name[:160],
+                email=email[:160],
+                username=username,
+                password_hash=generate_password_hash(generated_password),
+                role=role_value,
+                is_active=True,
+                member_id=member.id,
+            )
+            db.session.add(user)
+            created_users += 1
+            reset_passwords += 1
+
+        credentials.append(
+            {
+                "name": full_name,
+                "member_id": member.id,
+                "email": email,
+                "username": user.username or "",
+                "password": generated_password,
+            }
+        )
+
+    return {
+        "created_members": created_members,
+        "created_users": created_users,
+        "updated_users": updated_users,
+        "reset_passwords": reset_passwords,
+        "credentials": credentials,
+    }
+
+
+def save_roster_credentials_csv(rows):
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"roster_credentials_{timestamp}.csv"
+    output_path = ROSTER_CREDENTIALS_DIR / filename
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["name", "member_id", "email", "username", "password"])
+        for row in rows:
+            writer.writerow(
+                [
+                    row.get("name") or "",
+                    row.get("member_id") or "",
+                    row.get("email") or "",
+                    row.get("username") or "",
+                    row.get("password") or "",
+                ]
+            )
+    return filename
 
 
 def find_user_by_nfc_uid(tag_uid, exclude_user_id=None):
@@ -1114,6 +1401,8 @@ def ensure_portal_schema():
     if "users" in table_names:
         user_columns = {col["name"] for col in inspector.get_columns("users")}
         alters = []
+        if "username" not in user_columns:
+            alters.append("ALTER TABLE users ADD COLUMN username VARCHAR(80)")
         if "role" not in user_columns:
             alters.append("ALTER TABLE users ADD COLUMN role VARCHAR(30)")
         if "is_active" not in user_columns:
@@ -1138,14 +1427,33 @@ def ensure_portal_schema():
             with db.engine.begin() as conn:
                 for statement in alters:
                     conn.execute(text(statement))
-                try:
-                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nfc_uid_unique ON users(nfc_uid)"))
-                except Exception:
-                    # Keep startup resilient on legacy DBs; uniqueness is also enforced in admin routes.
-                    pass
+        with db.engine.begin() as conn:
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nfc_uid_unique ON users(nfc_uid)"))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username)"))
+            except Exception:
+                # Keep startup resilient on legacy DBs; uniqueness is also enforced in admin routes.
+                pass
         with db.engine.begin() as conn:
             conn.execute(text("UPDATE users SET role = COALESCE(role, 'member')"))
             conn.execute(text("UPDATE users SET is_active = COALESCE(is_active, 1)"))
+
+        users_missing_username = User.query.filter(
+            or_(User.username.is_(None), func.trim(User.username) == "")
+        ).order_by(User.id.asc()).all()
+        reserved_usernames = {
+            (row.username or "").strip().lower()
+            for row in User.query.filter(User.username.isnot(None)).all()
+            if (row.username or "").strip()
+        }
+        for row in users_missing_username:
+            base = ""
+            if row.email and "@" in row.email:
+                base = row.email.split("@", 1)[0]
+            elif row.name:
+                first_name, last_name = split_name_parts(row.name)
+                base = username_base_from_name(first_name, last_name)
+            row.username = make_unique_username(base or f"user{row.id}", reserved=reserved_usernames, exclude_user_id=row.id)
 
     if "items" in table_names:
         item_columns = {col["name"] for col in inspector.get_columns("items")}
@@ -1377,6 +1685,7 @@ def seed_portal_data():
                 User(
                     name=member.name,
                     email=member.email,
+                    username=(member.email.split("@", 1)[0] if member.email and "@" in member.email else None),
                     password_hash=generate_password_hash(default_password),
                     role=role,
                     is_active=True,
@@ -1389,6 +1698,7 @@ def seed_portal_data():
                 User(
                     name="ASME Admin",
                     email=default_admin_email,
+                    username=(default_admin_email.split("@", 1)[0] if "@" in default_admin_email else "admin"),
                     password_hash=generate_password_hash(default_admin_password),
                     role="admin",
                     is_active=True,
@@ -1401,6 +1711,7 @@ def seed_portal_data():
                 User(
                     name="ASME Admin",
                     email=default_admin_email,
+                    username=(default_admin_email.split("@", 1)[0] if "@" in default_admin_email else "admin"),
                     password_hash=generate_password_hash(default_admin_password),
                     role="admin",
                     is_active=True,
@@ -1434,6 +1745,7 @@ def ensure_shared_admin_user(email, password):
         user = User(
             name="ASME Admin",
             email=email,
+            username=(email.split("@", 1)[0] if "@" in email else "admin"),
             password_hash=generate_password_hash(password),
             role="admin",
             is_active=True,
@@ -1444,6 +1756,8 @@ def ensure_shared_admin_user(email, password):
         user.is_active = True
         if not check_password_hash(user.password_hash, password):
             user.password_hash = generate_password_hash(password)
+        if not (user.username or "").strip():
+            user.username = make_unique_username(email.split("@", 1)[0] if "@" in email else f"admin{user.id}")
     db.session.commit()
     return user
 
@@ -1917,6 +2231,7 @@ def serialize_user(user):
         "id": user.id,
         "name": user.name,
         "email": user.email,
+        "username": user.username or "",
         "role": normalize_role(user.role),
         "is_active": bool(user.is_active),
         "member_id": user.member_id,
@@ -2608,9 +2923,11 @@ def signup_page():
             return render_template("site/signup.html", **context)
 
         linked_member = Member.query.filter(func.lower(Member.email) == email).first()
+        username = make_unique_username(email.split("@", 1)[0] if "@" in email else name)
         user = User(
             name=name[:160],
             email=email,
+            username=username,
             password_hash=generate_password_hash(password),
             role=role,
             is_active=True,
@@ -2703,20 +3020,24 @@ def login_page():
     context = public_site_context("Login")
     next_url = (request.args.get("next") or request.form.get("next") or "").strip()
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
+        identifier = (
+            request.form.get("identifier")
+            or request.form.get("email")
+            or ""
+        ).strip().lower()
         password = request.form.get("password") or ""
-        blocked, retry_after = is_login_rate_limited(email)
+        blocked, retry_after = is_login_rate_limited(identifier)
         if blocked:
             flash(f"Too many login attempts. Try again in about {retry_after} seconds.", "error")
             context["next_url"] = next_url
             return render_template("site/login.html", **context)
-        user = User.query.filter(func.lower(User.email) == email).first()
+        user = find_user_by_login_identifier(identifier)
         if not user or not user.is_active or not check_password_hash(user.password_hash, password):
-            record_login_failure(email)
+            record_login_failure(identifier)
             flash("Invalid email or password.", "error")
             context["next_url"] = next_url
             return render_template("site/login.html", **context)
-        clear_login_failures(email)
+        clear_login_failures(identifier)
         sign_in_user(user)
         if next_url.startswith("/"):
             return redirect(next_url)
@@ -2736,11 +3057,15 @@ def admin_login_page():
         return redirect(url_for("portal_admin_dashboard"))
 
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
-        if not email and shared_admin_email:
-            email = shared_admin_email
+        identifier = (
+            request.form.get("identifier")
+            or request.form.get("email")
+            or ""
+        ).strip().lower()
+        if not identifier and shared_admin_email:
+            identifier = shared_admin_email
         password = request.form.get("password") or ""
-        blocked, retry_after = is_login_rate_limited(email)
+        blocked, retry_after = is_login_rate_limited(identifier)
         if blocked:
             flash(f"Too many login attempts. Try again in about {retry_after} seconds.", "error")
             context["next_url"] = next_url
@@ -2750,29 +3075,29 @@ def admin_login_page():
         if (
             shared_admin_email
             and shared_admin_password
-            and email == shared_admin_email
+            and identifier == shared_admin_email
             and password == shared_admin_password
         ):
             user = ensure_shared_admin_user(shared_admin_email, shared_admin_password)
             if user:
-                clear_login_failures(email)
+                clear_login_failures(identifier)
                 sign_in_user(user)
                 if next_url.startswith("/"):
                     return redirect(next_url)
                 return redirect(url_for("portal_admin_dashboard"))
 
-        user = User.query.filter(func.lower(User.email) == email).first()
+        user = find_user_by_login_identifier(identifier)
         if not user or not user.is_active or not check_password_hash(user.password_hash, password):
-            record_login_failure(email)
+            record_login_failure(identifier)
             flash("Invalid admin credentials.", "error")
             context["next_url"] = next_url
             return render_template("site/admin_login.html", **context)
         if not role_allows(user.role, "admin"):
-            record_login_failure(email)
+            record_login_failure(identifier)
             flash("This account is not an admin account.", "error")
             context["next_url"] = next_url
             return render_template("site/admin_login.html", **context)
-        clear_login_failures(email)
+        clear_login_failures(identifier)
         sign_in_user(user)
         if next_url.startswith("/"):
             return redirect(next_url)
@@ -3176,6 +3501,7 @@ def portal_admin_members_page():
     context = admin_dashboard_context()
     context["page_title"] = "Members / Roles"
     context["active_page"] = "admin_members"
+    context["latest_roster_credentials_file"] = (session.get("latest_roster_credentials_file") or "").strip()
     return render_template("portal/admin_members.html", **context)
 
 
@@ -3567,6 +3893,8 @@ def portal_admin_create_member():
     exec_title = (request.form.get("exec_title") or "").strip()[:160] or None
     exec_message = (request.form.get("exec_message") or "").strip()[:500] or None
     headshot_url = (request.form.get("headshot_url") or "").strip()[:500] or None
+    first_name, last_name = split_name_parts(name)
+    username_base = username_base_from_name(first_name, last_name)
     if graduation_year and (graduation_year < 1900 or graduation_year > 2100):
         graduation_year = 0
 
@@ -3606,6 +3934,11 @@ def portal_admin_create_member():
             existing_user.name = name[:160]
             existing_user.is_active = True
             existing_user.role = role
+            if not (existing_user.username or "").strip():
+                existing_user.username = make_unique_username(
+                    username_base or email.split("@", 1)[0],
+                    exclude_user_id=existing_user.id,
+                )
             existing_user.major = major
             existing_user.graduation_year = graduation_year or None
             existing_user.nfc_uid = nfc_uid or None
@@ -3627,6 +3960,7 @@ def portal_admin_create_member():
             linked_user = User(
                 name=name[:160],
                 email=email[:160],
+                username=make_unique_username(username_base or email.split("@", 1)[0]),
                 password_hash=generate_password_hash(password),
                 role=role,
                 is_active=True,
@@ -3667,6 +4001,8 @@ def portal_admin_create_user():
     exec_title = (request.form.get("exec_title") or "").strip()[:160] or None
     exec_message = (request.form.get("exec_message") or "").strip()[:500] or None
     headshot_url = (request.form.get("headshot_url") or "").strip()[:500] or None
+    first_name, last_name = split_name_parts(name)
+    username_base = username_base_from_name(first_name, last_name)
     if graduation_year and (graduation_year < 1900 or graduation_year > 2100):
         graduation_year = 0
 
@@ -3697,6 +4033,7 @@ def portal_admin_create_user():
     new_user = User(
         name=name[:160],
         email=email[:160],
+        username=make_unique_username(username_base or email.split("@", 1)[0]),
         password_hash=generate_password_hash(password),
         role=role,
         is_active=True,
@@ -3730,6 +4067,7 @@ def portal_admin_update_user_role(user_id):
     active_raw = (request.form.get("is_active") or "1").strip()
     name = (request.form.get("name") or user.name).strip()
     email = (request.form.get("email") or user.email).strip().lower()
+    username_raw = (request.form.get("username") or "").strip().lower()
     member_id_raw = (request.form.get("member_id") or "").strip()
     member_id = parse_positive_int(member_id_raw, default=0) if member_id_raw else 0
     member_row = db.session.get(Member, member_id) if member_id else None
@@ -3761,6 +4099,19 @@ def portal_admin_update_user_role(user_id):
     if duplicate:
         flash("Another user already has that email.", "error")
         return redirect_to_next("portal_admin_members_page")
+    requested_username = normalize_text_key(username_raw or "")
+    if requested_username:
+        username_conflict = (
+            User.query.filter(
+                func.lower(func.coalesce(User.username, "")) == requested_username.lower(),
+                User.id != user.id,
+            )
+            .order_by(User.id.asc())
+            .first()
+        )
+        if username_conflict:
+            flash("That username is already in use.", "error")
+            return redirect_to_next("portal_admin_members_page")
     uid_conflict = find_user_by_nfc_uid(nfc_uid, exclude_user_id=user.id) if nfc_uid else None
     if uid_conflict:
         flash("That NFC UID is already assigned to another user.", "error")
@@ -3780,6 +4131,14 @@ def portal_admin_update_user_role(user_id):
 
     user.name = name[:160] or user.name
     user.email = email[:160]
+    if requested_username:
+        user.username = requested_username[:80]
+    elif not (user.username or "").strip():
+        first_name, last_name = split_name_parts(user.name)
+        user.username = make_unique_username(
+            username_base_from_name(first_name, last_name) or user.email.split("@", 1)[0],
+            exclude_user_id=user.id,
+        )
     user.role = role
     user.is_active = active_raw == "1"
     user.member_id = member_row.id if member_row else None
@@ -3840,6 +4199,85 @@ def portal_admin_user_invite_link(user_id):
     reset_link = url_for("reset_password_page", token=token, _external=True)
     flash(f"Invite/reset link for {user.email}: {reset_link}", "info")
     return redirect_to_next("portal_admin_members_page")
+
+
+@app.post("/portal/admin/members/import-roster")
+@require_role("admin")
+def portal_admin_import_roster():
+    roster_file = request.files.get("roster_file")
+    if not roster_file or not roster_file.filename:
+        flash("Upload a roster PDF file.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    file_name = (roster_file.filename or "").strip().lower()
+    if not file_name.endswith(".pdf"):
+        flash("Roster import currently supports PDF files only.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    try:
+        pdf_bytes = roster_file.read()
+        entries = parse_roster_pdf_entries(pdf_bytes)
+    except Exception as exc:
+        flash(f"Failed to parse roster PDF: {str(exc)[:220]}", "error")
+        return redirect_to_next("portal_admin_members_page")
+    if not entries:
+        flash("No roster members were found in the uploaded file.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    role = normalize_role(request.form.get("role") or "member")
+    if role == "admin":
+        role = "member"
+    member_class = (request.form.get("member_class") or "Member").strip() or "Member"
+    reset_existing = (request.form.get("reset_existing_passwords") or "1").strip() in {"1", "true", "yes", "on"}
+
+    result = import_roster_entries(
+        entries,
+        default_role=role,
+        member_class=member_class,
+        reset_existing_passwords=reset_existing,
+    )
+    credentials = result.get("credentials") or []
+    if not credentials:
+        flash("Roster processed, but no account credentials were generated.", "info")
+        return redirect_to_next("portal_admin_members_page")
+
+    csv_file = save_roster_credentials_csv(credentials)
+    session["latest_roster_credentials_file"] = csv_file
+    add_audit_log(
+        "bulk_roster_import",
+        (
+            f"entries={len(entries)} created_members={result['created_members']} "
+            f"created_users={result['created_users']} updated_users={result['updated_users']} "
+            f"reset_passwords={result['reset_passwords']} file={csv_file}"
+        ),
+    )
+    db.session.commit()
+    flash(
+        (
+            f"Roster imported: {len(entries)} rows, {result['created_members']} members created, "
+            f"{result['created_users']} users created, {result['updated_users']} users updated. "
+            f"Credentials CSV is ready for download."
+        ),
+        "success",
+    )
+    return redirect_to_next("portal_admin_members_page")
+
+
+@app.get("/portal/admin/members/import-credentials/<filename>")
+@require_role("admin")
+def portal_admin_download_roster_credentials(filename):
+    safe_name = Path(filename or "").name
+    if not safe_name:
+        flash("Invalid credentials file name.", "error")
+        return redirect(url_for("portal_admin_members_page"))
+    file_path = ROSTER_CREDENTIALS_DIR / safe_name
+    if not file_path.exists() or not file_path.is_file():
+        flash("Credentials file not found.", "error")
+        return redirect(url_for("portal_admin_members_page"))
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=safe_name,
+        mimetype="text/csv",
+    )
 
 
 @app.post("/portal/admin/nfc/assign")

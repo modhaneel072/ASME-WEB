@@ -137,6 +137,7 @@ class User(db.Model):
 
     name = db.Column(db.String(160), nullable=False)
     email = db.Column(db.String(160), nullable=False, unique=True, index=True)
+    username = db.Column(db.String(80), nullable=True, unique=True, index=True)
     password_hash = db.Column(db.String(260), nullable=False)
     role = db.Column(db.String(30), nullable=False, default="member")
     is_active = db.Column(db.Boolean, nullable=False, default=True)
