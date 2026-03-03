@@ -1,48 +1,89 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="tile-grid">
-  <a class="tile" href="/portal/member/inventory">
-    <p>Inventory</p>
-    <strong>{{ tile_counts.inventory }}</strong>
-  </a>
-  <a class="tile" href="/portal/member/prints">
-    <p>3D Printing</p>
-    <strong>{{ tile_counts.prints }}</strong>
-  </a>
-  <a class="tile" href="/portal/member/calendar">
-    <p>Calendar</p>
-    <strong>{{ tile_counts.upcoming_events }}</strong>
-  </a>
-  <a class="tile" href="/portal/member/my-items">
-    <p>My Items</p>
-    <strong>{{ tile_counts.my_items }}</strong>
-  </a>
-  <a class="tile" href="/portal/member/help">
-    <p>Help / Ask Leads</p>
-    <strong>{{ my_help_messages|length }}</strong>
-  </a>
-  <a class="tile" href="/portal/member/profile">
-    <p>Profile</p>
-    <strong>Account</strong>
-  </a>
-</section>
+<section class="member-dashboard-grid">
+  <article class="member-dashboard-main">
+    <div class="member-stat-grid">
+      <a class="metric-card" href="/portal/member/inventory">
+        <p>Inventory</p>
+        <strong>{{ tile_counts.inventory }}</strong>
+        <span>Available Items</span>
+      </a>
+      <a class="metric-card" href="/portal/member/prints">
+        <p>3D Printing</p>
+        <strong>{{ tile_counts.prints }}</strong>
+        <span>Queue Entries</span>
+      </a>
+      <a class="metric-card" href="/portal/member/calendar">
+        <p>Calendar</p>
+        <strong>{{ tile_counts.upcoming_events }}</strong>
+        <span>Upcoming Meetings</span>
+      </a>
+      <a class="metric-card" href="/portal/member/my-items">
+        <p>My Items</p>
+        <strong>{{ tile_counts.my_items }}</strong>
+        <span>Checked Out</span>
+      </a>
+    </div>
 
-<section class="panel">
-  <div class="panel-head">
-    <h3>Announcements</h3>
-  </div>
-  <div class="announcement-list">
-    {% for note in announcements %}
-    <article class="announcement-item">
-      <h4>{{ note.title }}</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-      <span>{{ note.published_at.strftime('%Y-%m-%d') if note.published_at else note.created_at.strftime('%Y-%m-%d') }}</span>
-    </article>
-    {% endfor %}
-    {% if not announcements %}
-    <p class="muted">Placeholder line: final website copy will be added here.</p>
-    {% endif %}
-  </div>
+    <section class="panel member-chart-card">
+      <div class="panel-head">
+        <h3>Member Activity</h3>
+      </div>
+      <div class="member-bars" aria-hidden="true">
+        <span style="height: 34%"></span>
+        <span style="height: 58%"></span>
+        <span style="height: 74%"></span>
+        <span style="height: 48%"></span>
+        <span style="height: 82%"></span>
+        <span style="height: 62%"></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Announcements</h3>
+      </div>
+      <div class="announcement-list">
+        {% for note in announcements %}
+        <article class="announcement-item">
+          <h4>{{ note.title }}</h4>
+          <p>Placeholder line: final website copy will be added here.</p>
+          <span>{{ note.published_at.strftime('%Y-%m-%d') if note.published_at else note.created_at.strftime('%Y-%m-%d') }}</span>
+        </article>
+        {% endfor %}
+        {% if not announcements %}
+        <p class="muted">Placeholder line: final website copy will be added here.</p>
+        {% endif %}
+      </div>
+    </section>
+  </article>
+
+  <aside class="panel member-dashboard-side">
+    <div class="panel-head">
+      <h3>Quick Actions</h3>
+    </div>
+    <div class="quick-links">
+      <a href="/portal/member/profile">Update Profile</a>
+      <a href="/portal/member/help">Ask Team Leads</a>
+      <a href="/portal/member/calendar">Open Calendar</a>
+      <a href="/portal/member/prints">Submit Print Request</a>
+    </div>
+    <div class="member-side-divider"></div>
+    <dl class="member-stats">
+      <div>
+        <dt>Help Threads</dt>
+        <dd>{{ my_help_messages|length }}</dd>
+      </div>
+      <div>
+        <dt>My Checkouts</dt>
+        <dd>{{ tile_counts.my_items }}</dd>
+      </div>
+      <div>
+        <dt>Upcoming Events</dt>
+        <dd>{{ tile_counts.upcoming_events }}</dd>
+      </div>
+    </dl>
+  </aside>
 </section>
 {% endblock %}
