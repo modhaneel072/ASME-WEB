@@ -540,6 +540,7 @@ def import_roster_entries(
             user = User.query.filter(User.member_id == member.id).first()
 
         generated_password = password_from_name(first_name, last_name)
+        exported_password = generated_password
         if user:
             username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
             user.name = full_name[:160]
@@ -552,6 +553,9 @@ def import_roster_entries(
             if reset_existing_passwords:
                 user.password_hash = generate_password_hash(generated_password)
                 reset_passwords += 1
+            else:
+                # Keep CSV truthful: do not output a password that was not applied.
+                exported_password = ""
             updated_users += 1
         else:
             username = make_unique_username(base_username, reserved=reserved_usernames)
@@ -574,7 +578,7 @@ def import_roster_entries(
                 "member_id": member.id,
                 "email": email,
                 "username": user.username or "",
-                "password": generated_password,
+                "password": exported_password,
             }
         )
 
@@ -4575,8 +4579,8 @@ def portal_admin_import_roster():
     flash(
         (
             f"Roster imported: {len(entries)} rows, {result['created_members']} members created, "
-            f"{result['created_users']} users created, {result['updated_users']} users updated. "
-            f"Credentials CSV is ready for download."
+            f"{result['created_users']} users created, {result['updated_users']} users updated, "
+            f"{result['reset_passwords']} passwords reset. Credentials CSV is ready for download."
         ),
         "success",
     )
