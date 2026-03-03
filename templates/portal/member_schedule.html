@@ -68,8 +68,8 @@
           {% for slot in slots %}
           <tr>
             <td><input type="radio" name="slot_token" value="{{ slot.token }}" required {% if loop.first %}checked{% endif %} /></td>
-            <td>{{ slot.start.strftime('%Y-%m-%d') }}</td>
-            <td>{{ slot.start.strftime('%H:%M') }} - {{ slot.end.strftime('%H:%M') }}</td>
+            <td>{{ slot.start.strftime('%a, %b %d, %Y') }}</td>
+            <td>{{ slot.start.strftime('%I:%M %p') }} - {{ slot.end.strftime('%I:%M %p') }}</td>
             <td>{{ slot.room }}</td>
           </tr>
           {% endfor %}
