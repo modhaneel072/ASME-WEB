@@ -12,13 +12,13 @@
   {% set show_admin_nav = is_admin and not in_member_view %}
   <div class="portal-layout">
     <aside class="portal-side">
-      <a href="/" class="brand">
+      <div class="brand">
         <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
         <div>
           <p>ASME @ UIowa</p>
           <h1>{{ 'ASME Admin' if show_admin_nav else 'ASME Portal' }}</h1>
         </div>
-      </a>
+      </div>
 
       {% if show_admin_nav %}
       <nav>
