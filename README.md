@@ -106,6 +106,7 @@ See `.env.example`. Most important:
 - `ASME_SESSION_IDLE_MINUTES=240`
 - `ASME_ADMIN_SESSION_IDLE_MINUTES=30`
 - `ASME_SESSION_COOKIE_SECURE=1` (set `0` for plain-http local testing)
+- `ASME_BULK_PASSWORD_HASH_METHOD=pbkdf2:sha256:120000` (speeds bulk credential reset/download actions)
 
 ## Bulk roster import
 

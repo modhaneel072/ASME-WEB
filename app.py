@@ -48,6 +48,7 @@ if os.name == "nt":
     platform.machine = lambda: _win_arch
 
 from sqlalchemy import and_, func, inspect, or_, text
+from sqlalchemy.orm import joinedload
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -154,6 +155,9 @@ AUTH_SESSION_LAST_SEEN_KEY = "auth_last_seen_ts"
 AUTH_SESSION_LOGIN_TS_KEY = "auth_login_ts"
 MEMBER_SESSION_IDLE_MINUTES = env_non_negative_int("ASME_SESSION_IDLE_MINUTES", 240)
 ADMIN_SESSION_IDLE_MINUTES = env_non_negative_int("ASME_ADMIN_SESSION_IDLE_MINUTES", 30)
+BULK_PASSWORD_HASH_METHOD = (
+    (os.environ.get("ASME_BULK_PASSWORD_HASH_METHOD") or "pbkdf2:sha256:120000").strip()
+)
 
 FRONT_CLUB_MISSION = (
     "ASME at Iowa is a hands-on engineering organization where members design, build, "
@@ -440,9 +444,30 @@ def make_unique_import_email(base_local, reserved_emails=None):
         suffix += 1
 
 
+def make_unique_username_from_reserved(base_username, reserved):
+    candidate_base = normalize_text_key(base_username) or "member"
+    candidate = candidate_base[:50]
+    suffix = 2
+    while candidate.lower() in reserved:
+        tail = str(suffix)
+        candidate = f"{candidate_base[: max(1, 50 - len(tail))]}{tail}"
+        suffix += 1
+    reserved.add(candidate.lower())
+    return candidate
+
+
+def hash_bulk_password(password_plain):
+    method = BULK_PASSWORD_HASH_METHOD or "pbkdf2:sha256:120000"
+    try:
+        return generate_password_hash(password_plain, method=method)
+    except Exception:
+        return generate_password_hash(password_plain)
+
+
 def build_fresh_member_credentials():
     users = (
-        User.query.filter(
+        User.query.options(joinedload(User.member))
+        .filter(
             User.is_active.is_(True),
             User.role.in_(["member", "team_leader"]),
         )
@@ -467,9 +492,9 @@ def build_fresh_member_credentials():
             base_username = username_base_from_name(first_name, last_name) or (
                 user.email.split("@", 1)[0] if user.email and "@" in user.email else f"user{user.id}"
             )
-            user.username = make_unique_username(base_username, reserved=reserved_usernames, exclude_user_id=user.id)
+            user.username = make_unique_username_from_reserved(base_username, reserved_usernames)
         password_plain = password_from_name(first_name, last_name)
-        user.password_hash = generate_password_hash(password_plain)
+        user.password_hash = hash_bulk_password(password_plain)
         member_nfc = clean_tag_value(user.member.nfc_tag) if user.member and user.member.nfc_tag else ""
         rows.append(
             {
