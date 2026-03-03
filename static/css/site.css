@@ -412,6 +412,51 @@ button,
   grid-template-columns: repeat(2, minmax(260px, 1fr));
 }
 
+.exec-showcase {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.96);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(145, 232, 255, 0.34), transparent 38%),
+    radial-gradient(circle at 88% 16%, rgba(191, 178, 255, 0.34), transparent 40%),
+    radial-gradient(circle at 78% 86%, rgba(174, 203, 255, 0.3), transparent 42%),
+    linear-gradient(152deg, rgba(255, 255, 255, 0.76) 0%, rgba(243, 246, 255, 0.6) 100%);
+  box-shadow:
+    0 30px 72px rgba(82, 90, 140, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+}
+
+.exec-showcase::before,
+.exec-showcase::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  z-index: 0;
+}
+
+.exec-showcase::before {
+  width: 300px;
+  height: 300px;
+  top: -126px;
+  right: -96px;
+  background: radial-gradient(circle, rgba(155, 176, 255, 0.4) 0%, transparent 72%);
+}
+
+.exec-showcase::after {
+  width: 260px;
+  height: 260px;
+  bottom: -104px;
+  left: -76px;
+  background: radial-gradient(circle, rgba(162, 228, 255, 0.32) 0%, transparent 72%);
+}
+
+.exec-showcase > * {
+  position: relative;
+  z-index: 1;
+}
+
 .panel-grid-two .announcement-grid {
   grid-template-columns: 1fr;
 }
@@ -606,6 +651,15 @@ button,
   grid-template-columns: 170px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.96);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84) 0%, rgba(244, 247, 255, 0.66) 100%);
+  box-shadow:
+    0 18px 42px rgba(90, 98, 146, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
 }
 
 .exec-photo {
@@ -618,6 +672,29 @@ button,
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.exec-copy {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.98);
+  border-radius: 16px;
+  padding: 15px 16px;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.84) 0%, rgba(246, 249, 255, 0.7) 56%, rgba(238, 245, 255, 0.62) 100%);
+  box-shadow:
+    0 14px 30px rgba(89, 98, 151, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+}
+
+.exec-copy::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 14px;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.45);
 }
 
 .exec-card img {
@@ -665,7 +742,20 @@ button,
 .exec-card-placeholder {
   border-style: dashed;
   border-color: rgba(122, 126, 167, 0.36);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: none;
+}
+
+.exec-card-placeholder .exec-copy {
+  border-style: dashed;
+  border-color: rgba(122, 126, 167, 0.34);
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.exec-card-placeholder .exec-copy::after {
+  display: none;
 }
 
 .exec-template-label {

@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel">
+<section class="panel exec-showcase">
   <div class="section-head">
     <h3>Executive Team</h3>
   </div>
@@ -12,7 +12,7 @@
       <div class="exec-photo">
         <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
       </div>
-      <div>
+      <div class="exec-copy">
         <h4>{{ exec.name }}</h4>
         <p class="exec-title">{{ exec.title }}</p>
         {% if exec.is_placeholder %}
