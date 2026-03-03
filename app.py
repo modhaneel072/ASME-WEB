@@ -233,6 +233,7 @@ FRONT_UIOWA_CURRENT_PROJECTS = [
 EXEC_PROFILE_OVERRIDES = {
     "email:brayden-nagra@uiowa.edu": {
         "title": "President",
+        "headshot_url": "/static/images/executive/brayden_nagra.jpg",
         "message": (
             "As President, I set the overall direction for ASME at Iowa, coordinate the executive board, "
             "and represent our chapter to the College of Engineering, sponsors, and national ASME.\n"
@@ -245,6 +246,7 @@ EXEC_PROFILE_OVERRIDES = {
     },
     "name:braydennagra": {
         "title": "President",
+        "headshot_url": "/static/images/executive/brayden_nagra.jpg",
         "message": (
             "As President, I set the overall direction for ASME at Iowa, coordinate the executive board, "
             "and represent our chapter to the College of Engineering, sponsors, and national ASME.\n"
@@ -3258,8 +3260,8 @@ def public_site_context(page_title):
         )
         parsed_message = parse_executive_message(exec_message_raw)
         headshot_url = (
-            (exec_user.headshot_url or "").strip()
-            or (override.get("headshot_url") or "").strip()
+            (override.get("headshot_url") or "").strip()
+            or (exec_user.headshot_url or "").strip()
             or url_for("static", filename="asme_logo.png")
         )
         executive_cards.append(

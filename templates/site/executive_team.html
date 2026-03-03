@@ -9,7 +9,9 @@
   <div class="exec-grid">
     {% for exec in executive_cards %}
     <article class="exec-card">
-      <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
+      <div class="exec-photo">
+        <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
+      </div>
       <div>
         <h4>{{ exec.name }}</h4>
         <p class="exec-title">{{ exec.title }}</p>
