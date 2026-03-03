@@ -3988,6 +3988,13 @@ def portal_admin_dashboard():
 @require_role("admin")
 def portal_admin_members_page():
     context = admin_dashboard_context()
+    show_inactive = parse_bool_flag(request.args.get("show_inactive"), default=False)
+    users_query = User.query.order_by(User.created_at.desc(), User.id.desc())
+    if not show_inactive:
+        users_query = users_query.filter(User.is_active.is_(True))
+    context["users"] = users_query.all()
+    context["show_inactive"] = show_inactive
+    context["inactive_user_count"] = User.query.filter(User.is_active.is_(False)).count()
     context["page_title"] = "Members / Roles"
     context["active_page"] = "admin_members"
     context["latest_roster_credentials_file"] = (session.get("latest_roster_credentials_file") or "").strip()

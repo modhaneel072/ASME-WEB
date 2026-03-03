@@ -112,6 +112,13 @@
 <section class="panel">
   <div class="panel-head">
     <h3>Members / Roles</h3>
+    <div style="display:flex; gap:10px; align-items:center;">
+      {% if show_inactive %}
+      <a href="/portal/admin/members">Hide Inactive</a>
+      {% elif inactive_user_count %}
+      <a href="/portal/admin/members?show_inactive=1">Show Inactive ({{ inactive_user_count }})</a>
+      {% endif %}
+    </div>
   </div>
   <p class="muted">Member ID and NFC UID must be unique. Leave Member ID blank to unlink a user from a member profile.</p>
   <div class="table-wrap">
