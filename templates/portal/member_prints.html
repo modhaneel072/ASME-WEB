@@ -1,0 +1,83 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Submit Print Request</h3>
+    </div>
+    <form method="post" action="/portal/print/request" enctype="multipart/form-data" class="form-stack">
+      <input type="hidden" name="next" value="/portal/member/prints" />
+      <label for="printer_type">Printer</label>
+      <select id="printer_type" name="printer_type">
+        <option value="H2S">H2S</option>
+        <option value="P1S">P1S</option>
+      </select>
+      <label for="print_file">Upload File</label>
+      <input id="print_file" name="print_file" type="file" />
+      <label for="file_link">Or File Link</label>
+      <input id="file_link" name="file_link" />
+      <div class="split-fields two-up">
+        <div>
+          <label for="material">Material</label>
+          <input id="material" name="material" />
+        </div>
+        <div>
+          <label for="color">Color</label>
+          <input id="color" name="color" />
+        </div>
+      </div>
+      <div class="split-fields two-up">
+        <div>
+          <label for="infill_percent">Infill %</label>
+          <input id="infill_percent" name="infill_percent" type="number" min="1" max="100" value="20" />
+        </div>
+        <div>
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="low">Low</option>
+            <option value="normal" selected>Normal</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <label for="deadline">Deadline</label>
+      <input id="deadline" name="deadline" type="date" />
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes"></textarea>
+      <button type="submit">Submit Request</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>My Queue</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Submitted</th>
+            <th>Printer</th>
+            <th>Status</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in print_requests %}
+          <tr>
+            <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ req.printer_type }}</td>
+            <td><span class="badge">{{ req.status }}</span></td>
+            <td><a href="/portal/member/prints/{{ req.id }}">Open</a></td>
+          </tr>
+          {% endfor %}
+          {% if not print_requests %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

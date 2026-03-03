@@ -1,0 +1,99 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Create Event</h3>
+    </div>
+    <form method="post" action="/portal/admin/events/create" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/attendance" />
+      <label for="title">Title</label>
+      <input id="title" name="title" required />
+      <label for="location">Location</label>
+      <input id="location" name="location" />
+      <div class="split-fields two-up">
+        <div>
+          <label for="start_time">Start</label>
+          <input id="start_time" name="start_time" type="datetime-local" required />
+        </div>
+        <div>
+          <label for="end_time">End</label>
+          <input id="end_time" name="end_time" type="datetime-local" required />
+        </div>
+      </div>
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <option value="scheduled">scheduled</option>
+        <option value="requested">requested</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+      <label for="description">Description</label>
+      <textarea id="description" name="description"></textarea>
+      <button type="submit">Create Event</button>
+    </form>
+
+    <form method="post" action="/portal/admin/attendance/checkin" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/attendance" />
+      <h4>Check-in Tool</h4>
+      <label for="event_id">Event</label>
+      <select id="event_id" name="event_id" required>
+        {% for event in events %}
+        <option value="{{ event.id }}" {% if selected_event and selected_event.id == event.id %}selected{% endif %}>{{ event.title }} - {{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</option>
+        {% endfor %}
+      </select>
+      <label for="tag_uid">Tag UID (preferred)</label>
+      <input id="tag_uid" name="tag_uid" />
+      <label for="user_id">Manual User Fallback</label>
+      <select id="user_id" name="user_id">
+        <option value="">None</option>
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Record Check-in</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Per-Event Attendance</h3>
+      <a href="/portal/admin/attendance/export.csv">Export CSV</a>
+    </div>
+    <form method="get" action="/portal/admin/attendance" class="inline-form">
+      <label for="event_filter">Event</label>
+      <select id="event_filter" name="event_id">
+        {% for event in events %}
+        <option value="{{ event.id }}" {% if selected_event and selected_event.id == event.id %}selected{% endif %}>{{ event.title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">View</button>
+    </form>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Tag UID</th>
+            <th>Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in event_attendance %}
+          <tr>
+            <td>{{ row.checkin_time.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ row.user.name if row.user else (row.member.name if row.member else 'Unknown') }}</td>
+            <td>{{ row.tag_uid or '' }}</td>
+            <td>{{ row.checkin_method }}</td>
+          </tr>
+          {% endfor %}
+          {% if not event_attendance %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

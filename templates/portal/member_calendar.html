@@ -1,0 +1,80 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Upcoming Meetings</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>RSVP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in upcoming_events %}
+          <tr>
+            <td>{{ event.title }}<div class="muted">{{ event.location or '' }}</div></td>
+            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ event.end_time.strftime('%H:%M') }}</td>
+            <td>{{ event.status }}</td>
+            <td>
+              <form method="post" action="/portal/events/{{ event.id }}/rsvp" class="inline-form">
+                <input type="hidden" name="next" value="/portal/member/calendar" />
+                <button type="submit">RSVP</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not upcoming_events %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Live Calendar</h3>
+    </div>
+    {% if calendar_embed_url %}
+    <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
+    {% else %}
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    {% endif %}
+  </article>
+</section>
+
+{% if team_mode %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Request / Propose Meeting</h3>
+  </div>
+  <form method="post" action="/portal/events/request" class="form-stack">
+    <input type="hidden" name="next" value="/portal/member/calendar" />
+    <label for="title">Title</label>
+    <input id="title" name="title" required />
+    <label for="location">Location</label>
+    <input id="location" name="location" />
+    <div class="split-fields two-up">
+      <div>
+        <label for="start_time">Start</label>
+        <input id="start_time" name="start_time" type="datetime-local" required />
+      </div>
+      <div>
+        <label for="end_time">End</label>
+        <input id="end_time" name="end_time" type="datetime-local" required />
+      </div>
+    </div>
+    <label for="description">Description</label>
+    <textarea id="description" name="description"></textarea>
+    <button type="submit">Submit Request</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

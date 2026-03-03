@@ -1,0 +1,45 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Print Request #{{ print_request.id }}</h3>
+    <a href="/portal/member/prints">Back to queue</a>
+  </div>
+  <div class="detail-grid three-up">
+    <div>
+      <dt>Status</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+    <div>
+      <dt>Printer</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+    <div>
+      <dt>Priority</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+    <div>
+      <dt>Material</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+    <div>
+      <dt>Color</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+    <div>
+      <dt>Infill</dt>
+      <dd>Placeholder line: final website copy will be added here.</dd>
+    </div>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <p><strong>Member Notes:</strong> Placeholder line: final website copy will be added here.</p>
+  <p><strong>Lead/Admin Notes:</strong> Placeholder line: final website copy will be added here.</p>
+  {% if print_request.file_link %}
+  <p><a href="{{ print_request.file_link }}" target="_blank" rel="noopener noreferrer">Placeholder line: final website copy will be added here.</a></p>
+  {% elif print_request.file_path %}
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  {% endif %}
+</section>
+{% endblock %}

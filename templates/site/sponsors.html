@@ -1,0 +1,33 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel split">
+  <article>
+    <div class="section-head">
+      <h3>Sponsors / Partners</h3>
+    </div>
+    <p class="lead">Placeholder line: final website copy will be added here.</p>
+    <div class="sponsor-grid">
+      <div class="sponsor-card">Placeholder line</div>
+      <div class="sponsor-card">Placeholder line</div>
+      <div class="sponsor-card">Placeholder line</div>
+    </div>
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+  </article>
+
+  <article>
+    <div class="section-head">
+      <h3>Become a Sponsor</h3>
+    </div>
+    <form method="post" class="form-stack">
+      <label for="name">Contact Name</label>
+      <input id="name" name="name" required />
+      <label for="email">Contact Email</label>
+      <input id="email" name="email" type="email" required />
+      <label for="message">How would you like to partner?</label>
+      <textarea id="message" name="message" required></textarea>
+      <button class="btn" type="submit">Send Sponsor Inquiry</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

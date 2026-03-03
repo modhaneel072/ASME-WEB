@@ -1,0 +1,48 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="tile-grid">
+  <a class="tile" href="/portal/member/inventory">
+    <p>Inventory</p>
+    <strong>{{ tile_counts.inventory }}</strong>
+  </a>
+  <a class="tile" href="/portal/member/prints">
+    <p>3D Printing</p>
+    <strong>{{ tile_counts.prints }}</strong>
+  </a>
+  <a class="tile" href="/portal/member/calendar">
+    <p>Calendar</p>
+    <strong>{{ tile_counts.upcoming_events }}</strong>
+  </a>
+  <a class="tile" href="/portal/member/checkouts">
+    <p>My Items</p>
+    <strong>{{ tile_counts.my_items }}</strong>
+  </a>
+  <a class="tile" href="/portal/member/help">
+    <p>Help / Ask Leads</p>
+    <strong>{{ my_help_messages|length }}</strong>
+  </a>
+  <a class="tile" href="/portal/member/profile">
+    <p>Profile</p>
+    <strong>Account</strong>
+  </a>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Announcements</h3>
+  </div>
+  <div class="announcement-list">
+    {% for note in announcements %}
+    <article class="announcement-item">
+      <h4>{{ note.title }}</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+      <span>{{ note.published_at.strftime('%Y-%m-%d') if note.published_at else note.created_at.strftime('%Y-%m-%d') }}</span>
+    </article>
+    {% endfor %}
+    {% if not announcements %}
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>NFC Tag Assignment</h3>
+    </div>
+    <form method="post" action="/portal/admin/nfc/assign" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/nfc" />
+      <label for="user_id">Member Account</label>
+      <select id="user_id" name="user_id" required>
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user.name }} ({{ user.role }})</option>
+        {% endfor %}
+      </select>
+      <label for="tag_uid">Tag UID</label>
+      <input id="tag_uid" name="tag_uid" required />
+      <label for="notes">Notes</label>
+      <input id="notes" name="notes" />
+      <button type="submit">Assign</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Tag Assignment History</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>UID</th>
+            <th>User</th>
+            <th>Assigned At</th>
+            <th>State</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tag in tags %}
+          <tr>
+            <td>{{ tag.tag_uid }}</td>
+            <td>{{ tag.user.name if tag.user else 'Unknown' }}</td>
+            <td>{{ tag.assigned_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ 'active' if tag.active else 'inactive' }}</td>
+            <td>
+              {% if tag.active %}
+              <form method="post" action="/portal/admin/nfc/unassign/{{ tag.id }}">
+                <input type="hidden" name="next" value="/portal/admin/nfc" />
+                <button type="submit">Unassign</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

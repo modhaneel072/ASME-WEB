@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }} | ASME @ UIowa</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}" />
+</head>
+<body>
+  <div class="site-bg"></div>
+  <header class="site-header">
+    <a href="/" class="site-brand">
+      <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+      <div>
+        <p>University of Iowa</p>
+        <h1>ASME @ UIowa</h1>
+      </div>
+    </a>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/who-we-are">About</a>
+      <a href="/executive-team">Executive Team</a>
+      <a href="/projects">Projects</a>
+      <a href="/join">Join</a>
+      <a href="/sponsors">Sponsors</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <div class="site-actions">
+      {% if current_user %}
+      <a class="btn ghost" href="/portal">Portal</a>
+      {% if current_user.role == "admin" %}
+      <a class="btn ghost" href="/portal/admin">Admin Portal</a>
+      {% endif %}
+      <form action="/logout" method="post">
+        <button type="submit" class="btn light">Logout</button>
+      </form>
+      {% else %}
+      <a class="btn light" href="/admin-login">Admin Login</a>
+      <a class="btn ghost" href="/signup">Sign Up</a>
+      <a class="btn" href="/login">Member Login</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="site-main">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+      <section class="flash-stack">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Placeholder line: final website copy will be added here.</p>
+  </footer>
+</body>
+</html>

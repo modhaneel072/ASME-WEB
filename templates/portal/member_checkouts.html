@@ -1,0 +1,49 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>My Checkouts</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Checkout Time</th>
+          <th>Due Date</th>
+          <th>Return</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in open_checkouts %}
+        <tr>
+          <td>{{ tx.item.name }}</td>
+          <td>{{ tx.qty }}</td>
+          <td>{{ (tx.checkout_time or tx.timestamp).strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ tx.due_date or '' }}</td>
+          <td>
+            <form method="post" action="/portal/inventory/return" class="inline-form">
+              <input type="hidden" name="next" value="/portal/member/checkouts" />
+              <input type="hidden" name="item_id" value="{{ tx.item_id }}" />
+              <input type="hidden" name="qty" value="{{ tx.qty }}" />
+              <select name="condition">
+                <option value="good">Good</option>
+                <option value="used">Used</option>
+                <option value="damaged">Damaged</option>
+              </select>
+              <input name="notes" placeholder="Return notes" />
+              <button type="submit">Return</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not open_checkouts %}
+        <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

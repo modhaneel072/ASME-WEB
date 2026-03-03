@@ -1,0 +1,126 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Add / Edit Item</h3>
+    </div>
+    <form method="post" action="/portal/admin/inventory/item/save" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/inventory" />
+      <label for="item_id">Existing Item (optional)</label>
+      <select id="item_id" name="item_id">
+        <option value="">New Item</option>
+        {% for item in items %}
+        <option value="{{ item.id }}">{{ item.name }}</option>
+        {% endfor %}
+      </select>
+      <label for="name">Name</label>
+      <input id="name" name="name" required />
+      <div class="split-fields three-up">
+        <div>
+          <label for="category">Category</label>
+          <input id="category" name="category" />
+        </div>
+        <div>
+          <label for="location">Location</label>
+          <input id="location" name="location" />
+        </div>
+        <div>
+          <label for="item_condition">Condition</label>
+          <input id="item_condition" name="item_condition" />
+        </div>
+      </div>
+      <div class="split-fields two-up">
+        <div>
+          <label for="total_qty">Total Qty</label>
+          <input id="total_qty" name="total_qty" type="number" min="0" value="1" />
+        </div>
+        <div>
+          <label for="available_qty">Available Qty</label>
+          <input id="available_qty" name="available_qty" type="number" min="0" value="1" />
+        </div>
+      </div>
+      <label for="description">Description</label>
+      <textarea id="description" name="description"></textarea>
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes"></textarea>
+      <label for="photo_url">Photo URL</label>
+      <input id="photo_url" name="photo_url" />
+      <button type="submit">Save Item</button>
+    </form>
+
+    <form method="post" action="/portal/admin/inventory/adjust" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/inventory" />
+      <h4>Quantity Correction</h4>
+      <label for="adjust_item_id">Item</label>
+      <select id="adjust_item_id" name="item_id" required>
+        {% for item in items %}
+        <option value="{{ item.id }}">{{ item.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="split-fields two-up">
+        <div>
+          <label for="adjust_total">Total Qty</label>
+          <input id="adjust_total" name="total_qty" type="number" min="0" required />
+        </div>
+        <div>
+          <label for="adjust_available">Available Qty</label>
+          <input id="adjust_available" name="available_qty" type="number" min="0" required />
+        </div>
+      </div>
+      <label for="adjust_notes">Notes</label>
+      <input id="adjust_notes" name="notes" />
+      <button type="submit">Apply Correction</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Overdue Checkouts</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Member</th><th>Item</th><th>Due</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+          {% for tx in overdue_transactions %}
+          <tr>
+            <td>{{ tx.member.name }}</td>
+            <td>{{ tx.item.name }}</td>
+            <td>{{ tx.due_date }}</td>
+            <td>{{ tx.qty }}</td>
+          </tr>
+          {% endfor %}
+          {% if not overdue_transactions %}
+          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-head">
+      <h3>Transactions Log</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+          {% for tx in transactions %}
+          <tr>
+            <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ tx.member.name }}</td>
+            <td>{{ tx.item.name }}</td>
+            <td>{{ tx.status or tx.action }}</td>
+            <td>{{ tx.qty }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

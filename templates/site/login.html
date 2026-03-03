@@ -1,0 +1,19 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel auth-panel">
+  <div class="section-head">
+    <h3>Member Login</h3>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="next" value="{{ next_url or '' }}" />
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required />
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required />
+    <button class="btn" type="submit">Login</button>
+  </form>
+  <p class="muted auth-links"><a href="/forgot-password">Forgot password?</a> | <a href="/signup">Create account</a> | <a href="/admin-login">Admin login</a></p>
+</section>
+{% endblock %}

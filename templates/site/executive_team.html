@@ -1,0 +1,22 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-head">
+    <h3>Executive Team</h3>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <div class="exec-grid">
+    {% for exec in executive_cards %}
+    <article class="exec-card">
+      <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
+      <div>
+        <h4>{{ exec.name }}</h4>
+        <p class="exec-title">{{ exec.title }}</p>
+        <p>Placeholder line: final website copy will be added here.</p>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

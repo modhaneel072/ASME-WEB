@@ -1,0 +1,51 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>{{ item.name }}</h3>
+    <a href="/portal/member/inventory">Back to inventory</a>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <p>Placeholder line: final website copy will be added here.</p>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  {% if item.notes %}
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  {% endif %}
+  {% if item.photo_url %}
+  <p><a href="{{ item.photo_url }}" target="_blank" rel="noopener noreferrer">Placeholder line: final website copy will be added here.</a></p>
+  {% endif %}
+  <p><strong>{{ item.available_qty }}</strong> / {{ item.total_qty }} | Placeholder line: final website copy will be added here.</p>
+
+  {% if open_tx %}
+  <form method="post" action="/portal/inventory/return" class="form-stack">
+    <input type="hidden" name="next" value="/portal/member/items/{{ item.id }}" />
+    <input type="hidden" name="item_id" value="{{ item.id }}" />
+    <input type="hidden" name="qty" value="{{ open_tx.qty }}" />
+    <label for="condition">Condition</label>
+    <select id="condition" name="condition">
+      <option value="good">Good</option>
+      <option value="used">Used</option>
+      <option value="damaged">Damaged</option>
+    </select>
+    <label for="notes">Return Notes</label>
+    <input id="notes" name="notes" />
+    <button type="submit">Return Item</button>
+  </form>
+  {% elif item.available_qty > 0 %}
+  <form method="post" action="/portal/inventory/checkout" class="form-stack">
+    <input type="hidden" name="next" value="/portal/member/items/{{ item.id }}" />
+    <input type="hidden" name="item_id" value="{{ item.id }}" />
+    <label for="qty">Quantity</label>
+    <input id="qty" name="qty" type="number" min="1" value="1" />
+    <label for="due_date">Due Date (optional)</label>
+    <input id="due_date" name="due_date" type="date" />
+    <label for="checkout_notes">Checkout Notes</label>
+    <input id="checkout_notes" name="notes" />
+    <button type="submit">Check Out</button>
+  </form>
+  {% else %}
+  <span class="badge bad">Placeholder line</span>
+  {% endif %}
+</section>
+{% endblock %}

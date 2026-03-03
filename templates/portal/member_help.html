@@ -1,0 +1,57 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Ask Leads</h3>
+    </div>
+    <form method="post" class="form-stack">
+      <label for="target">Target</label>
+      <select id="target" name="target">
+        <option value="h2s">Ask H2S Lead</option>
+        <option value="p1s">Ask P1S Lead</option>
+        <option value="team_leads">Ask Team Leads</option>
+      </select>
+      <label for="subject">Subject</label>
+      <input id="subject" name="subject" required />
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required></textarea>
+      <button type="submit">Send</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>My Help Inbox History</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Target</th>
+            <th>Subject</th>
+            <th>Status</th>
+            <th>Reply</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in my_help_messages %}
+          <tr>
+            <td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ row.target or 'team_leads' }}</td>
+            <td>Placeholder line: final website copy will be added here.<div class="muted">Placeholder line: final website copy will be added here.</div></td>
+            <td>{{ row.status }}</td>
+            <td>Placeholder line: final website copy will be added here.</td>
+          </tr>
+          {% endfor %}
+          {% if not my_help_messages %}
+          <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>3D Print Queue Management</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>User</th>
+          <th>Printer</th>
+          <th>Status</th>
+          <th>File</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in print_requests %}
+        <tr>
+          <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ req.user.name if req.user else req.user_id }}</td>
+          <td>{{ req.printer_type }}</td>
+          <td>{{ req.status }}</td>
+          <td>{{ req.file_link or req.file_path or '' }}</td>
+          <td>
+            <form method="post" action="/portal/admin/print/{{ req.id }}/status" class="inline-form">
+              <input type="hidden" name="next" value="/portal/admin/prints" />
+              <select name="status">
+                {% for status in print_request_statuses %}
+                <option value="{{ status }}" {% if req.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <select name="printer_type">
+                <option value="H2S" {% if req.printer_type == 'H2S' %}selected{% endif %}>H2S</option>
+                <option value="P1S" {% if req.printer_type == 'P1S' %}selected{% endif %}>P1S</option>
+              </select>
+              <input name="admin_notes" value="{{ req.admin_notes or '' }}" placeholder="Admin notes" />
+              <button type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

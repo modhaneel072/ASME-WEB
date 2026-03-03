@@ -1,0 +1,41 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel split">
+  <article>
+    <div class="section-head">
+      <h3>Join / Get Involved</h3>
+    </div>
+    <p class="lead">Placeholder line: final website copy will be added here.</p>
+    <ul class="bulleted">
+      <li>Placeholder line: final website copy will be added here.</li>
+      <li>Placeholder line: final website copy will be added here.</li>
+      <li>Placeholder line: final website copy will be added here.</li>
+      <li>Placeholder line: final website copy will be added here.</li>
+    </ul>
+  </article>
+
+  <article>
+    <div class="section-head">
+      <h3>Interest Form</h3>
+    </div>
+    <form method="post" class="form-stack">
+      <label for="name">Name</label>
+      <input id="name" name="name" required />
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required />
+      <label for="interest">Interest Area</label>
+      <select id="interest" name="interest" required>
+        <option value="Rover">Rover</option>
+        <option value="Arm">Arm</option>
+        <option value="Outreach">Outreach</option>
+        <option value="Manufacturing">Manufacturing</option>
+        <option value="Operations">Operations</option>
+      </select>
+      <label for="message">Message</label>
+      <textarea id="message" name="message" placeholder="Share your interests or experience"></textarea>
+      <button class="btn" type="submit">Apply / Submit Interest</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

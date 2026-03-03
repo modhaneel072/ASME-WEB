@@ -1,0 +1,87 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Members Management</h3>
+  </div>
+  <form method="post" action="/portal/admin/users/create" class="form-stack">
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <div class="split-fields three-up">
+      <div>
+        <label for="name">Name</label>
+        <input id="name" name="name" required />
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" minlength="8" required />
+      </div>
+    </div>
+    <div class="split-fields three-up">
+      <div>
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          {% for role in roles %}
+          <option value="{{ role }}">{{ role }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="member_id">Link Existing Member</label>
+        <select id="member_id" name="member_id">
+          <option value="">None</option>
+          {% for member in members %}
+          <option value="{{ member.id }}">{{ member.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <button type="submit">Create Account</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Member Link</th>
+          <th>Status</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.name }}<div class="muted">{{ user.email }}</div></td>
+          <td>{{ user.role }}</td>
+          <td>{{ user.member.name if user.member else 'Unlinked' }}</td>
+          <td>{{ 'active' if user.is_active else 'disabled' }}</td>
+          <td>
+            <form method="post" action="/portal/admin/users/{{ user.id }}/role" class="inline-form">
+              <input type="hidden" name="next" value="/portal/admin/members" />
+              <select name="role">
+                {% for role in roles %}
+                <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                {% endfor %}
+              </select>
+              <select name="is_active">
+                <option value="1" {% if user.is_active %}selected{% endif %}>Active</option>
+                <option value="0" {% if not user.is_active %}selected{% endif %}>Disabled</option>
+              </select>
+              <button type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

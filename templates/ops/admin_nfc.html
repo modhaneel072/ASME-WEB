@@ -1,0 +1,212 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="settings-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Register Item Tag</h3>
+    </div>
+    <p class="inline-meta">Scan or paste a tag value, then assign it to an item.</p>
+    <form method="post" action="/admin/nfc/register" class="form-stack" data-tag-register-form>
+      <label for="register_item_id">Item</label>
+      <select id="register_item_id" name="item_id" required>
+        <option value="">-- Select item --</option>
+        {% for it in items %}
+        <option value="{{ it.id }}">{{ it.name }} ({{ it.available_qty }}/{{ it.total_qty }})</option>
+        {% endfor %}
+      </select>
+      <label for="register_tag_value">Tag Value</label>
+      <input id="register_tag_value" name="tag_value" placeholder="Example: 04A2B1C7 or item_id:5" required />
+      <label for="register_source">Source</label>
+      <select id="register_source" name="source">
+        <option value="manual">Manual</option>
+        <option value="web-nfc">Web NFC</option>
+        <option value="payload">NDEF Payload</option>
+      </select>
+      <div class="action-row">
+        <button type="button" class="btn light" data-action="scan-tag">Scan NFC Tag</button>
+        <button type="submit" class="btn">Register Tag</button>
+      </div>
+      <p class="inline-meta" data-scan-admin-status>NFC idle.</p>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Inventory Correction</h3>
+    </div>
+    <p class="inline-meta">Optional admin correction tool for count adjustments.</p>
+    <form method="post" action="/admin/inventory/correct" class="form-stack">
+      <label for="correct_item_id">Item</label>
+      <select id="correct_item_id" name="item_id" required>
+        <option value="">-- Select item --</option>
+        {% for it in items %}
+        <option value="{{ it.id }}">{{ it.name }} ({{ it.available_qty }}/{{ it.total_qty }})</option>
+        {% endfor %}
+      </select>
+      <label for="correct_total_qty">Total Qty</label>
+      <input id="correct_total_qty" name="total_qty" value="1" required />
+      <label for="correct_available_qty">Available Qty</label>
+      <input id="correct_available_qty" name="available_qty" value="1" required />
+      <label for="correct_note">Reason</label>
+      <input id="correct_note" name="note" placeholder="Why this correction was made" />
+      <button type="submit" class="btn light">Apply Correction</button>
+    </form>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Tag Mappings</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Item</th><th>Tag</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        {% for row in tag_rows %}
+        <tr>
+          <td>{{ row.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ row.item.name if row.item else "Unknown" }}</td>
+          <td><code>{{ row.tag_value }}</code></td>
+          <td>{{ row.source }}</td>
+        </tr>
+        {% endfor %}
+        {% if not tag_rows %}
+        <tr><td colspan="4" class="empty">No tags registered yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Transaction Log</h3>
+  </div>
+  <form method="get" action="/admin/nfc" class="form-grid">
+    <div>
+      <label for="filter_item_id">Filter Item</label>
+      <select id="filter_item_id" name="item_id">
+        <option value="">-- All items --</option>
+        {% for it in items %}
+        <option value="{{ it.id }}" {% if filter_item_id == (it.id|string) %}selected{% endif %}>{{ it.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter_member_id">Filter Member</label>
+      <select id="filter_member_id" name="member_id">
+        <option value="">-- All members --</option>
+        {% for m in members %}
+        <option value="{{ m.id }}" {% if filter_member_id == (m.id|string) %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter_date_from">From</label>
+      <input id="filter_date_from" name="date_from" value="{{ filter_date_from }}" placeholder="YYYY-MM-DD" />
+    </div>
+    <div>
+      <label for="filter_date_to">To</label>
+      <input id="filter_date_to" name="date_to" value="{{ filter_date_to }}" placeholder="YYYY-MM-DD" />
+    </div>
+    <div class="action-row">
+      <button type="submit" class="btn light">Apply Filters</button>
+      <a class="btn light" href="/admin/nfc">Reset</a>
+    </div>
+  </form>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Member</th>
+          <th>Item</th>
+          <th>Action</th>
+          <th>Status</th>
+          <th>Qty</th>
+          <th>Checkout</th>
+          <th>Return</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in tx_rows %}
+        <tr>
+          <td>{{ tx.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ tx.member.name }}</td>
+          <td>{{ tx.item.name }}</td>
+          <td>{{ tx.action }}</td>
+          <td>{{ tx.status or "" }}</td>
+          <td>{{ tx.qty }}</td>
+          <td>{{ tx.checkout_time.strftime("%Y-%m-%d %H:%M") if tx.checkout_time else "" }}</td>
+          <td>{{ tx.return_time.strftime("%Y-%m-%d %H:%M") if tx.return_time else "" }}</td>
+          <td>{{ tx.return_notes or tx.checkout_notes or tx.notes or "" }}</td>
+        </tr>
+        {% endfor %}
+        {% if not tx_rows %}
+        <tr><td colspan="9" class="empty">No transactions found for current filters.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const form = document.querySelector("[data-tag-register-form]");
+    if (!form) return;
+    const status = form.querySelector("[data-scan-admin-status]");
+    const scanBtn = form.querySelector("[data-action='scan-tag']");
+    const tagInput = form.querySelector("[name='tag_value']");
+    const sourceInput = form.querySelector("[name='source']");
+
+    function setStatus(message) {
+      if (status) status.textContent = message;
+    }
+
+    async function startScan() {
+      if (!("NDEFReader" in window)) {
+        setStatus("Web NFC not supported. Enter tag value manually.");
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        setStatus("Hold an NFC tag near your phone...");
+        reader.addEventListener("reading", (event) => {
+          const serial = (event.serialNumber || "").trim();
+          let payload = "";
+          if (event.message && event.message.records) {
+            for (const record of event.message.records) {
+              if (record.recordType === "text") {
+                try {
+                  const decoder = new TextDecoder(record.encoding || "utf-8");
+                  payload = decoder.decode(record.data).trim();
+                  if (payload) break;
+                } catch (err) {
+                  // Ignore malformed record and fallback to serial.
+                }
+              }
+            }
+          }
+          const value = payload || serial;
+          if (!value) {
+            setStatus("Tag read but no serial/payload found.");
+            return;
+          }
+          tagInput.value = value;
+          sourceInput.value = payload ? "payload" : "web-nfc";
+          setStatus("Tag captured.");
+        });
+      } catch (err) {
+        setStatus("NFC permission denied or unavailable.");
+      }
+    }
+
+    scanBtn.addEventListener("click", startScan);
+  })();
+</script>
+{% endblock %}

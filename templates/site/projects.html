@@ -1,0 +1,47 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-head">
+    <h3>Projects</h3>
+  </div>
+  <div class="filter-row" data-project-filters>
+    <button type="button" class="btn chip active" data-filter="all">All</button>
+    {% for filter_name in project_filters %}
+    <button type="button" class="btn chip" data-filter="{{ filter_name|lower }}">{{ filter_name }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="project-grid" data-project-grid>
+    {% for project in projects %}
+    <article class="project-card" data-type="{{ (project.project_type or 'general')|lower }}">
+      <p class="project-status">{{ project.status }}</p>
+      <p class="project-type">{{ project.project_type or "General" }}</p>
+      <h4>{{ project.title }}</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+      <p class="muted">Placeholder line: final website copy will be added here.</p>
+      <a href="/projects/{{ project.slug }}">Project detail</a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+  (() => {
+    const container = document.querySelector("[data-project-filters]");
+    const cards = Array.from(document.querySelectorAll("[data-project-grid] [data-type]"));
+    if (!container || !cards.length) return;
+    container.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-filter]");
+      if (!button) return;
+      const filter = button.dataset.filter;
+      container.querySelectorAll("[data-filter]").forEach((el) => el.classList.remove("active"));
+      button.classList.add("active");
+      cards.forEach((card) => {
+        const type = (card.dataset.type || "").toLowerCase();
+        card.style.display = (filter === "all" || type === filter) ? "" : "none";
+      });
+    });
+  })();
+</script>
+{% endblock %}

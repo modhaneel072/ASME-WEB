@@ -1,0 +1,294 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel scan-auth">
+  <div class="panel-head">
+    <h3>Member Session</h3>
+  </div>
+  {% if active_member %}
+  <p class="inline-meta">
+    Signed in as <strong>{{ active_member.name }}</strong> ({{ active_member.email }}).
+  </p>
+  <div class="action-row">
+    <form method="post" action="/session/member/clear">
+      <input type="hidden" name="next" value="/scan" />
+      <button type="submit" class="btn light">Switch Member</button>
+    </form>
+    <a class="btn light" href="/my-items">View My Items</a>
+  </div>
+  {% else %}
+  <p class="inline-meta">Select your member profile before scanning or checking out equipment.</p>
+  <form method="post" action="/session/member" class="form-grid">
+    <input type="hidden" name="next" value="/scan" />
+    <div>
+      <label for="member_id">Member</label>
+      <select id="member_id" name="member_id" required>
+        <option value="">-- Select member --</option>
+        {% for m in members %}
+        <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="member_tag">Or Member UID</label>
+      <input id="member_tag" name="member_tag" placeholder="Scan member UID" />
+    </div>
+    <div class="scan-auth-submit">
+      <button type="submit" class="btn">Sign In</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel scan-shell" data-scan-shell>
+  <div class="panel-head">
+    <h3>Scan Item Tag</h3>
+  </div>
+  <p class="inline-meta">
+    Use Web NFC on supported browsers (Chrome on Android). Fallback: enter tag value or QR/item code manually.
+  </p>
+  <div class="action-row">
+    <button type="button" class="btn" data-action="start-nfc" {% if not active_member %}disabled{% endif %}>Start NFC Scan</button>
+    <span class="inline-meta" data-scan-status>NFC idle.</span>
+  </div>
+  <form class="scan-manual-row" data-manual-form>
+    <label for="manualTag">Manual Tag / Code</label>
+    <input id="manualTag" name="tag" placeholder="Example: A91B2210 or item_id:3" {% if not active_member %}disabled{% endif %} required />
+    <button type="submit" class="btn light" {% if not active_member %}disabled{% endif %}>Find Item</button>
+  </form>
+  <div class="scan-result" data-scan-result>
+    <p class="inline-meta">No item loaded yet.</p>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const shell = document.querySelector("[data-scan-shell]");
+    if (!shell) return;
+
+    const scanStatus = shell.querySelector("[data-scan-status]");
+    const startBtn = shell.querySelector("[data-action='start-nfc']");
+    const manualForm = shell.querySelector("[data-manual-form]");
+    const resultEl = shell.querySelector("[data-scan-result]");
+    let lastTag = "";
+    let reader = null;
+
+    function setStatus(message) {
+      if (scanStatus) scanStatus.textContent = message;
+    }
+
+    function renderResult(html) {
+      if (resultEl) {
+        resultEl.innerHTML = html;
+      }
+    }
+
+    function esc(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function itemCard(payload) {
+      const item = payload.item;
+      const open = payload.user_open_checkout;
+      const canCheckout = !payload.user_has_open_checkout && item.available_qty > 0;
+      const unavailable = !payload.user_has_open_checkout && item.available_qty <= 0;
+
+      const header = `
+        <div class="scan-item-head">
+          <h4>${esc(item.name)}</h4>
+          <p class="inline-meta">${esc(item.category || "Uncategorized")}${item.location ? " • " + esc(item.location) : ""}</p>
+          ${item.description ? `<p class="inline-meta">${esc(item.description)}</p>` : ""}
+          <p class="inline-meta"><strong>${item.available_qty}</strong> available out of ${item.total_qty}.</p>
+        </div>
+      `;
+
+      const checkoutForm = `
+        <form data-action-form="checkout" data-item-id="${item.id}" class="scan-action-form">
+          <label>Quantity</label>
+          <input name="qty" value="1" />
+          <label>Checkout Notes</label>
+          <input name="notes" placeholder="Optional notes" />
+          <button type="submit" class="btn">Check Out</button>
+        </form>
+      `;
+
+      const returnForm = `
+        <form data-action-form="return" data-item-id="${item.id}" class="scan-action-form" enctype="multipart/form-data">
+          <p class="inline-meta">Checked out by you on ${open ? new Date(open.checkout_time).toLocaleString() : "unknown"}.</p>
+          <label>Return Quantity</label>
+          <input name="qty" value="${open ? open.qty : 1}" />
+          <label>Condition</label>
+          <select name="condition" required>
+            <option value="good">Good</option>
+            <option value="used">Used</option>
+            <option value="damaged">Damaged</option>
+          </select>
+          <label>Return Notes</label>
+          <input name="notes" placeholder="Optional notes" />
+          <label>Photo (optional)</label>
+          <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp,image/*" />
+          <button type="submit" class="btn">Return Item</button>
+        </form>
+      `;
+
+      const unavailableMsg = `
+        <div class="scan-unavailable">
+          <p class="inline-meta">Unavailable: no stock is currently available.</p>
+          <p class="inline-meta">Checked out by others: ${payload.checked_out_by_others_count}</p>
+        </div>
+      `;
+
+      return `
+        ${header}
+        ${payload.user_has_open_checkout ? returnForm : ""}
+        ${canCheckout ? checkoutForm : ""}
+        ${unavailable ? unavailableMsg : ""}
+        <div class="action-row">
+          <a class="btn light" href="/my-items">My Checked Out Items</a>
+        </div>
+      `;
+    }
+
+    async function lookupTag(tag) {
+      lastTag = tag;
+      setStatus(`Looking up ${tag}...`);
+      renderResult(`<p class="inline-meta">Searching for tag <code>${esc(tag)}</code>...</p>`);
+      const resp = await fetch(`/api/items/by-tag?tag=${encodeURIComponent(tag)}`);
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        throw new Error(data.error || "Item lookup failed.");
+      }
+      renderResult(itemCard(data.payload));
+      setStatus("Item loaded.");
+    }
+
+    async function submitCheckout(form) {
+      const payload = {
+        item_id: form.dataset.itemId,
+        qty: form.querySelector("[name='qty']").value,
+        notes: form.querySelector("[name='notes']").value,
+      };
+      const resp = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        throw new Error(data.error || "Checkout failed.");
+      }
+      setStatus(data.message || "Checkout saved.");
+      if (lastTag) await lookupTag(lastTag);
+    }
+
+    async function submitReturn(form) {
+      const fd = new FormData();
+      fd.set("item_id", form.dataset.itemId);
+      fd.set("qty", form.querySelector("[name='qty']").value);
+      fd.set("condition", form.querySelector("[name='condition']").value);
+      fd.set("notes", form.querySelector("[name='notes']").value);
+      const photoInput = form.querySelector("[name='photo']");
+      if (photoInput && photoInput.files && photoInput.files.length > 0) {
+        fd.set("photo", photoInput.files[0]);
+      }
+
+      const resp = await fetch("/api/return", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        throw new Error(data.error || "Return failed.");
+      }
+      setStatus(data.message || "Return saved.");
+      if (lastTag) await lookupTag(lastTag);
+    }
+
+    shell.addEventListener("submit", async (event) => {
+      const target = event.target;
+      if (target === manualForm) {
+        event.preventDefault();
+        const tag = manualForm.tag.value.trim();
+        if (!tag) return;
+        try {
+          await lookupTag(tag);
+        } catch (err) {
+          setStatus(err.message);
+          renderResult(`<p class="inline-meta">${err.message}</p>`);
+        }
+        return;
+      }
+
+      const actionForm = target.closest("[data-action-form]");
+      if (!actionForm) return;
+      event.preventDefault();
+      try {
+        if (actionForm.dataset.actionForm === "checkout") {
+          await submitCheckout(actionForm);
+        } else {
+          await submitReturn(actionForm);
+        }
+      } catch (err) {
+        setStatus(err.message);
+      }
+    });
+
+    async function startNfcScan() {
+      if (!("NDEFReader" in window)) {
+        setStatus("Web NFC not supported. Use manual tag input.");
+        return;
+      }
+      try {
+        reader = new NDEFReader();
+        await reader.scan();
+        setStatus("Hold an NFC tag near your phone...");
+        reader.addEventListener("readingerror", () => {
+          setStatus("NFC read failed. Try again.");
+        });
+        reader.addEventListener("reading", async (event) => {
+          const serial = (event.serialNumber || "").trim();
+          let payload = "";
+
+          if (event.message && event.message.records) {
+            for (const record of event.message.records) {
+              try {
+                if (record.recordType === "text") {
+                  const decoder = new TextDecoder(record.encoding || "utf-8");
+                  payload = decoder.decode(record.data).trim();
+                  if (payload) break;
+                }
+              } catch (err) {
+                // Ignore malformed records and keep fallback logic.
+              }
+            }
+          }
+
+          const tag = payload || serial;
+          if (!tag) {
+            setStatus("Tag read but no serial/payload found.");
+            return;
+          }
+
+          try {
+            await lookupTag(tag);
+          } catch (err) {
+            setStatus(err.message);
+            renderResult(`<p class="inline-meta">${err.message}</p>`);
+          }
+        });
+      } catch (err) {
+        setStatus("NFC permission denied or unavailable.");
+      }
+    }
+
+    if (startBtn) {
+      startBtn.addEventListener("click", startNfcScan);
+    }
+  })();
+</script>
+{% endblock %}

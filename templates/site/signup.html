@@ -1,0 +1,25 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel auth-panel">
+  <div class="section-head">
+    <h3>Sign Up</h3>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <form method="post" class="form-stack">
+    <label for="name">Full Name</label>
+    <input id="name" name="name" required />
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required />
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" minlength="8" required />
+    <label for="role">Role</label>
+    <select id="role" name="role">
+      <option value="member">Member</option>
+      <option value="team_leader">Team Leader</option>
+    </select>
+    <button class="btn" type="submit">Create Account</button>
+  </form>
+  <p class="muted auth-links"><a href="/login">Already have an account?</a></p>
+</section>
+{% endblock %}

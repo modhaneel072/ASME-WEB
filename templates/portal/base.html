@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }} | ASME Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}" />
+</head>
+<body>
+  <div class="portal-layout">
+    <aside class="portal-side">
+      <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+        <div>
+          <p>ASME @ UIowa</p>
+          <h1>Member Portal</h1>
+        </div>
+      </a>
+
+      <nav>
+        <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
+        <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
+        <a class="{{ 'active' if active_page == 'member_checkouts' else '' }}" href="/portal/member/checkouts">My Checkouts</a>
+        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">3D Printing</a>
+        <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
+        <a class="{{ 'active' if active_page == 'member_help' else '' }}" href="/portal/member/help">Help / Ask Leads</a>
+        <a class="{{ 'active' if active_page == 'member_profile' else '' }}" href="/portal/member/profile">Profile</a>
+      </nav>
+
+      {% if current_user and current_user.role == 'admin' %}
+      <nav class="admin-nav">
+        <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Admin Dashboard</a>
+        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members</a>
+        <a class="{{ 'active' if active_page == 'admin_nfc' else '' }}" href="/portal/admin/nfc">NFC Tags</a>
+        <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
+        <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory Mgmt</a>
+        <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Print Queue Mgmt</a>
+        <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Announcements</a>
+      </nav>
+      {% endif %}
+
+      <nav class="ops-nav">
+        <a href="/app">NFC Scan Frontend</a>
+        <a href="/dashboard">Ops Backend</a>
+      </nav>
+
+      <form action="/logout" method="post">
+        <button type="submit">Logout</button>
+      </form>
+    </aside>
+
+    <main class="portal-main">
+      <header class="portal-head">
+        <h2>{{ page_title }}</h2>
+        <p>Placeholder line: final website copy will be added here.</p>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+        <section class="flash-stack">
+          {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Inventory</h3>
+    <form method="get" action="/portal/member/inventory" class="inline-form">
+      <input name="q" value="{{ query or '' }}" placeholder="Search items" />
+      <button type="submit">Search</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Category</th>
+          <th>Availability</th>
+          <th>Location</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td><a href="/portal/member/items/{{ item.id }}">{{ item.name }}</a></td>
+          <td>{{ item.category or '' }}</td>
+          <td>{{ item.available_qty }}/{{ item.total_qty }}</td>
+          <td>{{ item.location or '' }}</td>
+          <td>
+            {% if item.available_qty > 0 %}
+            <form method="post" action="/portal/inventory/checkout" class="inline-form">
+              <input type="hidden" name="next" value="/portal/member/inventory" />
+              <input type="hidden" name="item_id" value="{{ item.id }}" />
+              <input type="number" name="qty" value="1" min="1" />
+              <button type="submit">Check Out</button>
+            </form>
+            {% else %}
+            <span class="badge bad">Unavailable</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not items %}
+        <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

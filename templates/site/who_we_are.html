@@ -1,0 +1,82 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-head">
+    <h3>Mission</h3>
+  </div>
+  <p class="lead">Placeholder line: final website copy will be added here.</p>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h3>What ASME Does</h3>
+  </div>
+  <div class="highlight-grid">
+    <article class="highlight-card">
+      <h4>Design + Build</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+    </article>
+    <article class="highlight-card">
+      <h4>Testing + Validation</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+    </article>
+    <article class="highlight-card">
+      <h4>Leadership + Collaboration</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+    </article>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h3>What Members Gain</h3>
+  </div>
+  <ul class="bulleted">
+    <li>Placeholder line: final website copy will be added here.</li>
+    <li>Placeholder line: final website copy will be added here.</li>
+    <li>Placeholder line: final website copy will be added here.</li>
+  </ul>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h3>About ASME</h3>
+  </div>
+  <ul class="bulleted">
+    <li>Placeholder line: final website copy will be added here.</li>
+    <li>Placeholder line: final website copy will be added here.</li>
+    <li>Placeholder line: final website copy will be added here.</li>
+  </ul>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h3>Current UIowa ASME Projects</h3>
+  </div>
+  <div class="highlight-grid">
+    {% for project in uiowa_projects %}
+    <article class="highlight-card">
+      <h4>{{ project.name }}</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h3>Team Structure</h3>
+    <a href="/executive-team">Executive Team</a>
+  </div>
+  <p class="muted">Placeholder line: final website copy will be added here.</p>
+  <div class="highlight-grid">
+    {% for card in highlights %}
+    <article class="highlight-card">
+      <h4>{{ card.label }}</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

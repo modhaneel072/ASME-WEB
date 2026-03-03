@@ -1,0 +1,170 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Post Announcement</h3>
+    </div>
+    <form method="post" action="/portal/admin/announcements" class="form-stack">
+      <label for="title">Title</label>
+      <input id="title" name="title" required />
+      <label for="body">Body</label>
+      <textarea id="body" name="body" required></textarea>
+      <div class="split-fields three-up">
+        <div>
+          <label for="is_published">Published</label>
+          <select id="is_published" name="is_published">
+            <option value="1" selected>Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div>
+          <label for="show_on_public">Show on Public Site</label>
+          <select id="show_on_public" name="show_on_public">
+            <option value="1" selected>Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div>
+          <label for="show_on_member">Show in Member Portal</label>
+          <select id="show_on_member" name="show_on_member">
+            <option value="1" selected>Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit">Publish</button>
+    </form>
+
+    <div class="panel-head">
+      <h3>Project Content</h3>
+    </div>
+    <form method="post" action="/portal/admin/projects/save" class="form-stack">
+      <input type="hidden" name="next" value="/portal/admin/announcements" />
+      <label for="project_id">Existing Project</label>
+      <select id="project_id" name="project_id">
+        <option value="">New Project</option>
+        {% for project in projects %}
+        <option value="{{ project.id }}">{{ project.title }}</option>
+        {% endfor %}
+      </select>
+      <label for="project_title">Title</label>
+      <input id="project_title" name="title" required />
+      <div class="split-fields three-up">
+        <div>
+          <label for="project_slug">Slug</label>
+          <input id="project_slug" name="slug" />
+        </div>
+        <div>
+          <label for="project_type">Project Type</label>
+          <input id="project_type" name="project_type" placeholder="Rover/Arm/Outreach" />
+        </div>
+        <div>
+          <label for="project_status">Status</label>
+          <input id="project_status" name="status" />
+        </div>
+      </div>
+      <label for="project_summary">Summary</label>
+      <input id="project_summary" name="summary" />
+      <label for="project_description">Description</label>
+      <textarea id="project_description" name="description"></textarea>
+      <label for="project_timeline">Timeline (one step per line)</label>
+      <textarea id="project_timeline" name="timeline"></textarea>
+      <label for="project_gallery_json">Gallery URLs (one per line or JSON array)</label>
+      <textarea id="project_gallery_json" name="gallery_json"></textarea>
+      <label for="project_lead_name">Lead</label>
+      <input id="project_lead_name" name="lead_name" />
+      <label for="project_external_link">External Link</label>
+      <input id="project_external_link" name="external_link" />
+      <button type="submit">Save Project</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Announcements</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Title</th><th>Visibility</th><th>Update</th><th>Delete</th></tr>
+        </thead>
+        <tbody>
+          {% for row in announcements %}
+          <tr>
+            <td>{{ row.title }}<div class="muted">Placeholder line: final website copy will be added here.</div></td>
+            <td>
+              public={{ 'yes' if row.show_on_public else 'no' }}<br />
+              member={{ 'yes' if row.show_on_member else 'no' }}<br />
+              published={{ 'yes' if row.is_published else 'no' }}
+            </td>
+            <td>
+              <form method="post" action="/portal/admin/announcements/{{ row.id }}/update" class="form-stack compact">
+                <input type="hidden" name="next" value="/portal/admin/announcements" />
+                <input name="title" value="{{ row.title }}" />
+                <textarea name="body">{{ row.body }}</textarea>
+                <div class="split-fields three-up">
+                  <select name="is_published">
+                    <option value="1" {% if row.is_published %}selected{% endif %}>published</option>
+                    <option value="0" {% if not row.is_published %}selected{% endif %}>draft</option>
+                  </select>
+                  <select name="show_on_public">
+                    <option value="1" {% if row.show_on_public %}selected{% endif %}>public</option>
+                    <option value="0" {% if not row.show_on_public %}selected{% endif %}>hide public</option>
+                  </select>
+                  <select name="show_on_member">
+                    <option value="1" {% if row.show_on_member %}selected{% endif %}>member</option>
+                    <option value="0" {% if not row.show_on_member %}selected{% endif %}>hide member</option>
+                  </select>
+                </div>
+                <button type="submit">Save</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="/portal/admin/announcements/{{ row.id }}/delete" onsubmit="return confirm('Delete this announcement?');">
+                <input type="hidden" name="next" value="/portal/admin/announcements" />
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-head">
+      <h3>Contact Inbox</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>From</th><th>Message</th><th>Status</th><th>Update</th></tr>
+        </thead>
+        <tbody>
+          {% for msg in contact_messages %}
+          <tr>
+            <td>{{ msg.kind }}</td>
+            <td>{{ msg.name }}<div class="muted">{{ msg.email }}</div></td>
+            <td>Placeholder line: final website copy will be added here.<div class="muted">Placeholder line: final website copy will be added here.</div></td>
+            <td>{{ msg.status }}</td>
+            <td>
+              <form method="post" action="/portal/admin/contact/{{ msg.id }}/status" class="form-stack compact">
+                <input type="hidden" name="next" value="/portal/admin/announcements" />
+                <select name="status">
+                  <option value="new" {% if msg.status == 'new' %}selected{% endif %}>new</option>
+                  <option value="in_progress" {% if msg.status == 'in_progress' %}selected{% endif %}>in_progress</option>
+                  <option value="resolved" {% if msg.status == 'resolved' %}selected{% endif %}>resolved</option>
+                </select>
+                <textarea name="admin_reply" placeholder="Optional admin reply">{{ msg.admin_reply or '' }}</textarea>
+                <button type="submit">Save</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

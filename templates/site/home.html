@@ -1,0 +1,103 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="landing-shell">
+  <div class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Placeholder Category Label</p>
+      <h2>We Create</h2>
+      <p>
+        Placeholder line: final website copy will be added here.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="/join">Join The Team</a>
+        <a class="btn ghost" href="/projects">Explore Projects</a>
+        <a class="btn light" href="/portal">Member Portal</a>
+      </div>
+    </div>
+    <aside class="hero-visual" aria-label="ASME dashboard preview">
+      <div class="visual-chip-row">
+        <span>Rover</span>
+        <span>Arm</span>
+        <span>Manufacturing</span>
+      </div>
+      <div class="visual-screen">
+        <div class="visual-bars">
+          <span style="height: 30%"></span>
+          <span style="height: 54%"></span>
+          <span style="height: 78%"></span>
+          <span style="height: 45%"></span>
+        </div>
+      <div class="visual-card">
+          <p>Placeholder Metric</p>
+          <strong>00</strong>
+        </div>
+        <div class="visual-card">
+          <p>Placeholder Metric</p>
+          <strong>00</strong>
+        </div>
+      </div>
+      <p class="muted">Placeholder line: final website copy will be added here.</p>
+    </aside>
+  </div>
+
+  <aside class="hero-links">
+    <h3>Quick Links</h3>
+    <div class="quick-link-grid">
+      <a href="/projects">Projects</a>
+      <a href="/join">Join / Get Involved</a>
+      <a href="/app">Inventory Scan</a>
+      <a href="/portal/member/prints">3D Printing</a>
+      <a href="/portal/member/calendar">Calendar</a>
+      <a href="/contact">Socials + Contact</a>
+    </div>
+  </aside>
+</section>
+
+<section class="panel-grid-two">
+  <section class="panel">
+    <div class="section-head">
+      <h3>Announcements</h3>
+    </div>
+    <div class="announcement-grid">
+      {% for note in announcements %}
+      <article class="announcement-card">
+        <h4>{{ note.title }}</h4>
+        <p>Placeholder line: final website copy will be added here.</p>
+        <span>{{ note.published_at.strftime("%Y-%m-%d") if note.published_at else note.created_at.strftime("%Y-%m-%d") }}</span>
+      </article>
+      {% endfor %}
+      {% if not announcements %}
+      <article class="announcement-card">
+        <h4>Placeholder Heading</h4>
+        <p>Placeholder line: final website copy will be added here.</p>
+        <span>Placeholder Date</span>
+      </article>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <h3>Featured Project</h3>
+      <a href="/projects">All projects</a>
+    </div>
+    {% set featured = projects[0] if projects else None %}
+    {% if featured %}
+    <article class="project-feature">
+      <p class="project-status">{{ featured.status }}</p>
+      <h4>{{ featured.title }}</h4>
+      <p>Placeholder line: final website copy will be added here.</p>
+      <p class="muted">Placeholder line: final website copy will be added here.</p>
+      <a href="/projects/{{ featured.slug }}">Open Project Detail</a>
+    </article>
+    {% else %}
+    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    {% endif %}
+    <div class="hero-actions">
+      <a class="btn" href="/join">Get Involved</a>
+      <a class="btn ghost" href="/contact">Contact Leads</a>
+    </div>
+  </section>
+</section>
+{% endblock %}

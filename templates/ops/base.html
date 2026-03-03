@@ -263,13 +263,25 @@
         <a class="side-link {{ 'active' if active_page == 'dashboard' else '' }}" href="/dashboard">Dashboard</a>
         <a class="side-link {{ 'active' if active_page == 'attendance' else '' }}" href="/attendance">Attendance</a>
         <a class="side-link {{ 'active' if active_page == 'inventory' else '' }}" href="/inventory">Inventory</a>
+        <a class="side-link {{ 'active' if active_page == 'scan' else '' }}" href="/scan">Scan NFC</a>
+        <a class="side-link {{ 'active' if active_page == 'my_items' else '' }}" href="/my-items">My Items</a>
         <a class="side-link {{ 'active' if active_page == 'prints' else '' }}" href="/prints">Printing</a>
         <a class="side-link {{ 'active' if active_page == 'activity' else '' }}" href="/activity">Activity</a>
         <a class="side-link {{ 'active' if active_page == 'calendar' else '' }}" href="/calendar">Calendar</a>
+        {% if active_member_is_admin %}
+        <a class="side-link {{ 'active' if active_page == 'admin_nfc' else '' }}" href="/admin/nfc">NFC Admin</a>
+        {% endif %}
         <a class="side-link {{ 'active' if active_page == 'settings' else '' }}" href="/settings">Settings</a>
       </nav>
 
       <div class="side-tools">
+        <a href="/">Public Site</a>
+        <a href="/app">Scan Frontend</a>
+        {% if active_member %}
+        <a href="/my-items">{{ active_member.name }}</a>
+        {% else %}
+        <a href="/scan">Select Member</a>
+        {% endif %}
         <a href="/pair/member">Pair Member UID</a>
         <a href="/pair/item">Pair Item UID</a>
         <a href="/export">Export Excel</a>
@@ -284,7 +296,7 @@
         </div>
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span>System Online</span>
+          <span>{% if active_member %}{{ active_member.name }}{% else %}No Member Selected{% endif %}</span>
         </div>
       </header>
 
