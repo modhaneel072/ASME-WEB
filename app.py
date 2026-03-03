@@ -17,7 +17,7 @@ from email.message import EmailMessage
 from mimetypes import guess_type
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -1695,9 +1695,36 @@ def is_login_rate_limited(email):
     return True, retry_after
 
 
+def normalize_google_calendar_id(raw_value):
+    value = (raw_value or "").strip()
+    if not value:
+        return ""
+
+    # Handle URL-encoded values pasted from dashboards.
+    decoded = value
+    for _ in range(2):
+        maybe_decoded = unquote(decoded)
+        if maybe_decoded == decoded:
+            break
+        decoded = maybe_decoded
+
+    if decoded.lower().startswith("src="):
+        return unquote(decoded.split("=", 1)[1]).strip()
+
+    if decoded.lower().startswith(("http://", "https://")):
+        try:
+            parsed = urlparse(decoded)
+            src_values = parse_qs(parsed.query).get("src") or []
+            if src_values:
+                return unquote((src_values[0] or "").strip()).strip()
+        except Exception:
+            pass
+    return decoded
+
+
 def google_calendar_ids_by_room():
-    robotics = (os.environ.get("GOOGLE_CALENDAR_ID_ROBOTICS") or "").strip()
-    fluids = (os.environ.get("GOOGLE_CALENDAR_ID_FLUIDS") or "").strip()
+    robotics = normalize_google_calendar_id(os.environ.get("GOOGLE_CALENDAR_ID_ROBOTICS") or "")
+    fluids = normalize_google_calendar_id(os.environ.get("GOOGLE_CALENDAR_ID_FLUIDS") or "")
     return {
         "Robotics Room": robotics,
         "Fluids Lab": fluids,
