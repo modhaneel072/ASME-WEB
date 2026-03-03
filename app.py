@@ -5061,6 +5061,42 @@ def portal_admin_inventory_adjust():
     return redirect_to_next("portal_admin_inventory_page")
 
 
+@app.post("/portal/admin/inventory/bootstrap-counts")
+@require_role("admin")
+def portal_admin_inventory_bootstrap_counts():
+    starter_qty = parse_positive_int(request.form.get("starter_qty"), default=1)
+    starter_qty = max(1, starter_qty)
+    updated = 0
+    touched = []
+
+    rows = Item.query.order_by(Item.id.asc()).all()
+    for item in rows:
+        changed = False
+        if (item.total_qty or 0) <= 0:
+            item.total_qty = starter_qty
+            changed = True
+        if (item.available_qty or 0) <= 0:
+            item.available_qty = min(item.total_qty or starter_qty, starter_qty)
+            changed = True
+        if item.available_qty > item.total_qty:
+            item.available_qty = item.total_qty
+            changed = True
+        if changed:
+            updated += 1
+            touched.append(f"{item.id}:{item.name}")
+
+    add_audit_log(
+        "bootstrap_inventory_counts",
+        f"starter_qty={starter_qty} updated_items={updated} ids={','.join(touched[:40])}",
+    )
+    db.session.commit()
+    if updated == 0:
+        flash("No items needed starter count updates.", "info")
+    else:
+        flash(f"Starter counts applied to {updated} item(s).", "success")
+    return redirect_to_next("portal_admin_inventory_page")
+
+
 @app.post("/portal/admin/inventory/import")
 @require_role("admin")
 def portal_admin_inventory_bulk_import():
@@ -5150,15 +5186,14 @@ def portal_admin_inventory_bulk_import():
             errors.append(f"Row {index}: {tag_error}")
             continue
 
-        total_qty = parse_non_negative_int(
-            bulk_inventory_row_value(row, "total_qty", "total", "quantity_total", "qty_total"),
-            default=max(item.total_qty, 0),
-        )
+        total_raw = bulk_inventory_row_value(row, "total_qty", "total", "quantity_total", "qty_total")
+        total_default = 1 if is_new else max(item.total_qty, 0)
+        total_qty = parse_non_negative_int(total_raw, default=total_default)
         available_raw = bulk_inventory_row_value(row, "available_qty", "available", "quantity_available", "qty_available")
         if available_raw:
             available_qty = parse_non_negative_int(available_raw, default=total_qty)
         else:
-            available_qty = min(max(item.available_qty, 0), total_qty)
+            available_qty = total_qty if is_new else min(max(item.available_qty, 0), total_qty)
 
         item_type_raw = (bulk_inventory_row_value(row, "item_type", "type", "inventory_type") or "").strip().lower()
         if item_type_raw not in ITEM_TYPES:

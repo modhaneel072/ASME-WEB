@@ -49,6 +49,13 @@
       <button type="submit">Import Inventory</button>
     </form>
     <div class="form-stack">
+      <form method="post" action="/portal/admin/inventory/bootstrap-counts" class="form-stack">
+        <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
+        <label for="starter_qty">Starter Count Autofill</label>
+        <input id="starter_qty" name="starter_qty" type="number" min="1" value="1" />
+        <p class="muted">Sets total + available for items still at zero counts so you can start quickly.</p>
+        <button type="submit">Auto-fill Starting Counts</button>
+      </form>
       <label>Exports</label>
       <a href="/portal/admin/inventory/items-tags.pdf">Download PDF: Item + NFC + Tracker</a>
       <a href="/portal/admin/inventory/treasury-report.csv">Download Treasury CSV</a>
