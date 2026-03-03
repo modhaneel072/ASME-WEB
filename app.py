@@ -464,6 +464,25 @@ def hash_bulk_password(password_plain):
         return generate_password_hash(password_plain)
 
 
+def normalize_nfc_uid_value(raw_value):
+    return clean_tag_value(raw_value)
+
+
+def generate_unique_member_nfc_uid(user_id, reserved):
+    try:
+        numeric_id = int(user_id or 0)
+    except Exception:
+        numeric_id = 0
+    base = f"ASME-MEMBER-{max(numeric_id, 0):05d}"
+    candidate = base
+    suffix = 2
+    while candidate.lower() in reserved:
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+    reserved.add(candidate.lower())
+    return candidate
+
+
 def build_fresh_member_credentials():
     users = (
         User.query.options(joinedload(User.member))
@@ -476,6 +495,47 @@ def build_fresh_member_credentials():
     )
     if not users:
         return []
+
+    target_user_ids = {user.id for user in users}
+    target_member_ids = {user.member_id for user in users if user.member_id}
+
+    reserved_nfc = set()
+
+    item_tags = ItemTag.query.with_entities(ItemTag.tag_value).all()
+    for (tag_value,) in item_tags:
+        normalized = normalize_nfc_uid_value(tag_value)
+        if normalized:
+            reserved_nfc.add(normalized.lower())
+
+    legacy_item_tags = Item.query.filter(Item.nfc_tag.isnot(None)).with_entities(Item.nfc_tag).all()
+    for (tag_value,) in legacy_item_tags:
+        normalized = normalize_nfc_uid_value(tag_value)
+        if normalized:
+            reserved_nfc.add(normalized.lower())
+
+    other_users_query = User.query.filter(User.nfc_uid.isnot(None))
+    if target_user_ids:
+        other_users_query = other_users_query.filter(User.id.notin_(target_user_ids))
+    for (tag_value,) in other_users_query.with_entities(User.nfc_uid).all():
+        normalized = normalize_nfc_uid_value(tag_value)
+        if normalized:
+            reserved_nfc.add(normalized.lower())
+
+    other_member_query = Member.query.filter(Member.nfc_tag.isnot(None))
+    if target_member_ids:
+        other_member_query = other_member_query.filter(Member.id.notin_(target_member_ids))
+    for (tag_value,) in other_member_query.with_entities(Member.nfc_tag).all():
+        normalized = normalize_nfc_uid_value(tag_value)
+        if normalized:
+            reserved_nfc.add(normalized.lower())
+
+    other_active_tag_query = NFCTag.query.filter(NFCTag.active.is_(True))
+    if target_user_ids:
+        other_active_tag_query = other_active_tag_query.filter(NFCTag.user_id.notin_(target_user_ids))
+    for (tag_value,) in other_active_tag_query.with_entities(NFCTag.tag_uid).all():
+        normalized = normalize_nfc_uid_value(tag_value)
+        if normalized:
+            reserved_nfc.add(normalized.lower())
 
     active_tag_rows = (
         NFCTag.query.filter(NFCTag.active.is_(True))
@@ -505,15 +565,29 @@ def build_fresh_member_credentials():
             user.username = make_unique_username_from_reserved(base_username, reserved_usernames)
         password_plain = password_from_name(first_name, last_name)
         user.password_hash = hash_bulk_password(password_plain)
-        member_nfc = clean_tag_value(user.member.nfc_tag) if user.member and user.member.nfc_tag else ""
-        tag_table_nfc = clean_tag_value(active_tag_by_user.get(user.id, ""))
+        member_nfc = normalize_nfc_uid_value(user.member.nfc_tag) if user.member and user.member.nfc_tag else ""
+        tag_table_nfc = normalize_nfc_uid_value(active_tag_by_user.get(user.id, ""))
+        user_nfc = normalize_nfc_uid_value(user.nfc_uid)
+        resolved_nfc = ""
+        for candidate in (user_nfc, tag_table_nfc, member_nfc):
+            if candidate and candidate.lower() not in reserved_nfc:
+                resolved_nfc = candidate
+                reserved_nfc.add(candidate.lower())
+                break
+        if not resolved_nfc:
+            resolved_nfc = generate_unique_member_nfc_uid(user.id, reserved_nfc)
+
+        user.nfc_uid = resolved_nfc
+        if user.member:
+            user.member.nfc_tag = resolved_nfc
+
         rows.append(
             {
                 "name": (user.name or "").strip(),
                 "first_name": first_name,
                 "last_name": last_name,
                 "member_id": user.member_id or "",
-                "nfc_uid": clean_tag_value(user.nfc_uid) or tag_table_nfc or member_nfc,
+                "nfc_uid": resolved_nfc,
                 "username": (user.username or "").strip(),
                 "password": password_plain,
             }
