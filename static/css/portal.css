@@ -28,6 +28,157 @@ body {
     var(--bg);
 }
 
+.portal-theme-member {
+  --bg: #eaf8f1;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-soft: rgba(245, 253, 248, 0.94);
+  --line: rgba(16, 185, 129, 0.26);
+  --ink: #0e2d23;
+  --muted: #4f7a68;
+  --accent: #10b981;
+  --accent-strong: #34d399;
+  --good: #0f9f6e;
+  --bad: #cc5f74;
+  --shadow: 0 16px 34px rgba(5, 76, 52, 0.16);
+}
+
+body.portal-theme-member {
+  background:
+    radial-gradient(circle at 0% -10%, rgba(16, 185, 129, 0.3), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(52, 211, 153, 0.24), transparent 32%),
+    radial-gradient(circle at 82% 88%, rgba(6, 148, 118, 0.18), transparent 34%),
+    var(--bg);
+}
+
+body.portal-theme-member .portal-side {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(232, 251, 241, 0.94));
+  backdrop-filter: blur(10px);
+}
+
+body.portal-theme-member .brand {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+body.portal-theme-member .brand img {
+  filter: brightness(0.44) contrast(1.12) saturate(1.06) drop-shadow(0 0 8px rgba(16, 185, 129, 0.24));
+}
+
+body.portal-theme-member .portal-side nav a {
+  border-color: rgba(16, 136, 101, 0.24);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+}
+
+body.portal-theme-member .portal-side nav a:hover {
+  color: #056647;
+}
+
+body.portal-theme-member .portal-side nav a.active {
+  border-color: rgba(16, 185, 129, 0.48);
+  background: linear-gradient(140deg, rgba(16, 185, 129, 0.24), rgba(52, 211, 153, 0.24));
+  color: #064e3b;
+}
+
+body.portal-theme-member .subtle-switch {
+  border-color: rgba(16, 136, 101, 0.24);
+  background: rgba(255, 255, 255, 0.8);
+  color: #305f4d;
+}
+
+body.portal-theme-member .portal-head {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(52, 211, 153, 0.22), transparent 35%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(228, 250, 239, 0.96) 100%);
+}
+
+body.portal-theme-member .panel {
+  background: var(--panel);
+  border-color: rgba(16, 136, 101, 0.22);
+}
+
+body.portal-theme-member .tile {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95) 0%, rgba(226, 251, 238, 0.92) 100%);
+  border-color: rgba(16, 136, 101, 0.24);
+}
+
+body.portal-theme-member .quick-links a {
+  background: rgba(255, 255, 255, 0.84);
+  border-color: rgba(16, 136, 101, 0.22);
+}
+
+body.portal-theme-member .tab-nav a {
+  border-color: rgba(16, 136, 101, 0.24);
+}
+
+body.portal-theme-member .tab-nav a.active {
+  border-color: rgba(16, 185, 129, 0.48);
+  background: linear-gradient(140deg, rgba(16, 185, 129, 0.24), rgba(52, 211, 153, 0.24));
+  color: #064e3b;
+}
+
+body.portal-theme-member table {
+  background: rgba(251, 255, 255, 0.94);
+  border-color: rgba(16, 136, 101, 0.22);
+}
+
+body.portal-theme-member th,
+body.portal-theme-member td {
+  border-bottom: 1px solid rgba(16, 136, 101, 0.18);
+}
+
+body.portal-theme-member th {
+  color: #4c7765;
+}
+
+body.portal-theme-member input,
+body.portal-theme-member select,
+body.portal-theme-member textarea {
+  border-color: rgba(16, 136, 101, 0.28);
+  background: #ffffff;
+  color: var(--ink);
+}
+
+body.portal-theme-member button {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+body.portal-theme-member button:hover {
+  background: linear-gradient(135deg, #0f9f6e 0%, #047857 100%);
+}
+
+body.portal-theme-member .badge {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #065f46;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+body.portal-theme-member .badge.bad {
+  border-color: rgba(217, 91, 106, 0.5);
+  color: #a8394b;
+  background: rgba(217, 91, 106, 0.15);
+}
+
+body.portal-theme-member .flash-success {
+  color: #14503b;
+}
+
+body.portal-theme-member .flash-error {
+  color: #7c2734;
+}
+
+body.portal-theme-member .flash-info {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.14);
+  color: #065f46;
+}
+
+body.portal-theme-member .calendar-embed {
+  border-color: rgba(16, 136, 101, 0.26);
+  background: #ffffff;
+}
+
 a,
 button,
 .tile,

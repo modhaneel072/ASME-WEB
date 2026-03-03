@@ -6,7 +6,7 @@
   <title>{{ page_title }} | ASME Portal</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}" />
 </head>
-<body>
+<body class="{{ 'portal-theme-admin' if (current_user and (current_user.role|lower) == 'admin' and not (active_page and active_page.startswith('member_'))) else 'portal-theme-member' }}">
   {% set is_admin = current_user and (current_user.role|lower) == 'admin' %}
   {% set in_member_view = active_page and active_page.startswith('member_') %}
   {% set show_admin_nav = is_admin and not in_member_view %}
