@@ -4201,6 +4201,58 @@ def portal_admin_user_invite_link(user_id):
     return redirect_to_next("portal_admin_members_page")
 
 
+@app.post("/portal/admin/users/<int:user_id>/delete")
+@require_role("admin")
+def portal_admin_delete_user(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    admin_user = current_auth_user()
+    if admin_user and admin_user.id == user.id:
+        flash("You cannot delete your own account while logged in.", "error")
+        return redirect_to_next("portal_admin_members_page")
+
+    previous_uid = clean_tag_value(user.nfc_uid)
+    related_member = user.member
+
+    # Always deactivate active NFC mappings first to avoid stale tag ownership.
+    for row in NFCTag.query.filter_by(user_id=user.id, active=True).all():
+        row.active = False
+        row.unassigned_at = datetime.utcnow()
+
+    user.nfc_uid = None
+    if related_member and previous_uid and clean_tag_value(related_member.nfc_tag).lower() == previous_uid.lower():
+        related_member.nfc_tag = None
+
+    references = {
+        "transactions": Transaction.query.filter(Transaction.user_id == user.id).count(),
+        "print_requests": PrintRequest.query.filter(PrintRequest.user_id == user.id).count(),
+        "events_created": Event.query.filter(Event.created_by_user_id == user.id).count(),
+        "events_requested": Event.query.filter(Event.requested_by_user_id == user.id).count(),
+        "attendance": AttendanceRecord.query.filter(AttendanceRecord.user_id == user.id).count(),
+        "contact_messages": ContactMessage.query.filter(ContactMessage.user_id == user.id).count(),
+        "audit_logs": AuditLog.query.filter(AuditLog.admin_user_id == user.id).count(),
+        "password_tokens": PasswordResetToken.query.filter(PasswordResetToken.user_id == user.id).count(),
+        "nfc_history": NFCTag.query.filter(NFCTag.user_id == user.id).count(),
+    }
+    total_refs = sum(references.values())
+
+    if total_refs == 0:
+        db.session.delete(user)
+        add_audit_log("delete_user", f"user_id={user_id} hard_delete=1")
+        db.session.commit()
+        flash("User deleted.", "success")
+        return redirect_to_next("portal_admin_members_page")
+
+    user.is_active = False
+    add_audit_log("delete_user", f"user_id={user_id} hard_delete=0 refs={total_refs}")
+    db.session.commit()
+    flash("User has history, so the account was deactivated instead of hard-deleted.", "info")
+    return redirect_to_next("portal_admin_members_page")
+
+
 @app.post("/portal/admin/members/import-roster")
 @require_role("admin")
 def portal_admin_import_roster():

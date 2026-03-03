@@ -129,6 +129,14 @@
               <input type="hidden" name="graduation_year" value="{{ user.graduation_year or '' }}" />
               <button type="submit">Save</button>
             </form>
+            <form method="post" action="/portal/admin/users/{{ user.id }}/reset-password" class="form-stack compact">
+              <input type="hidden" name="next" value="/portal/admin/members" />
+              <button type="submit">Reset Password</button>
+            </form>
+            <form method="post" action="/portal/admin/users/{{ user.id }}/delete" class="form-stack compact" onsubmit="return confirm('Delete this account? If the account has historical records, it will be deactivated instead.');">
+              <input type="hidden" name="next" value="/portal/admin/members" />
+              <button type="submit">Delete</button>
+            </form>
             <details>
               <summary class="muted">More fields</summary>
               <div class="form-stack compact">
