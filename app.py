@@ -282,6 +282,21 @@ EXEC_PROFILE_OVERRIDES = {
         ),
     },
 }
+
+MANUAL_EXECUTIVE_PROFILES = [
+    {
+        "name": "Paul Conover",
+        "title": "Vice President",
+        "headshot_url": "/static/images/executive/paul_conover.jpg",
+        "message": (
+            "As Vice President, I reach out to industry partners, assist with club direction, and oversee project teams.\n"
+            "My goal for ASME is to be a vessel for members to progress in their education and careers. "
+            "I want to expand ASME at Iowa to create more technically ambitious engineers who have the drive required to succeed in industry.\n"
+            "Companies looking to get involved with the ASME club can reach out to me, as well as any students who want to join.\n"
+            "pconover@uiowa.edu, 712-346-8176"
+        ),
+    }
+]
 EXECUTIVE_TEMPLATE_SLOTS = 7
 
 ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
@@ -500,6 +515,20 @@ def executive_profile_override_for_user(user):
     email_key = f"email:{(user.email or '').strip().lower()}"
     name_key = f"name:{normalize_text_key(user.name or '')}"
     return EXEC_PROFILE_OVERRIDES.get(email_key) or EXEC_PROFILE_OVERRIDES.get(name_key) or {}
+
+
+def resolve_exec_headshot_url(headshot_url):
+    candidate = (headshot_url or "").strip()
+    if not candidate:
+        return url_for("static", filename="asme_logo.png")
+    lowered = candidate.lower()
+    if lowered.startswith("http://") or lowered.startswith("https://"):
+        return candidate
+    if candidate.startswith("/static/"):
+        static_path = Path(app.static_folder) / candidate.removeprefix("/static/")
+        if static_path.exists():
+            return candidate
+    return url_for("static", filename="asme_logo.png")
 
 
 def username_base_from_name(first_name, last_name):
@@ -3311,10 +3340,9 @@ def public_site_context(page_title):
             or "Executive profile details will be added soon."
         )
         parsed_message = parse_executive_message(exec_message_raw)
-        headshot_url = (
+        headshot_url = resolve_exec_headshot_url(
             (override.get("headshot_url") or "").strip()
             or (exec_user.headshot_url or "").strip()
-            or url_for("static", filename="asme_logo.png")
         )
         executive_cards.append(
             {
@@ -3328,6 +3356,28 @@ def public_site_context(page_title):
                 "headshot": headshot_url,
             }
         )
+    existing_exec_keys = {normalize_text_key(card.get("name") or "") for card in executive_cards}
+    for profile in MANUAL_EXECUTIVE_PROFILES:
+        name = (profile.get("name") or "").strip()
+        if not name:
+            continue
+        if normalize_text_key(name) in existing_exec_keys:
+            continue
+        profile_message = (profile.get("message") or "").strip()
+        parsed_profile_message = parse_executive_message(profile_message)
+        executive_cards.append(
+            {
+                "name": name,
+                "title": (profile.get("title") or "Executive Member").strip(),
+                "message": profile_message,
+                "summary": parsed_profile_message.get("summary") or "",
+                "focus_points": parsed_profile_message.get("focus_points") or [],
+                "contact": parsed_profile_message.get("contact") or "",
+                "note": parsed_profile_message.get("note") or "",
+                "headshot": resolve_exec_headshot_url((profile.get("headshot_url") or "").strip()),
+            }
+        )
+        existing_exec_keys.add(normalize_text_key(name))
     if not executive_cards:
         fallback_message = "Add executive member accounts to populate this section."
         parsed_fallback = parse_executive_message(fallback_message)
