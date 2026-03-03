@@ -103,6 +103,9 @@ See `.env.example`. Most important:
 - `ASME_CALENDAR_PROVIDER=google`
 - `ASME_GOOGLE_CALENDAR_EMBED_URL` (optional if room IDs are configured; embed can be generated)
 - `ASME_ENABLE_LEGACY_OPS=0`
+- `ASME_SESSION_IDLE_MINUTES=240`
+- `ASME_ADMIN_SESSION_IDLE_MINUTES=30`
+- `ASME_SESSION_COOKIE_SECURE=1` (set `0` for plain-http local testing)
 
 ## Bulk roster import
 

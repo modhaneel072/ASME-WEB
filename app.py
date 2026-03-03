@@ -26,6 +26,8 @@ from flask import (
     Flask,
     Response,
     flash,
+    g,
+    has_request_context,
     jsonify,
     redirect,
     render_template,
@@ -82,10 +84,36 @@ from models import (
     db,
 )
 
+
+def env_bool(var_name, default=False):
+    raw_value = (os.environ.get(var_name) or "").strip().lower()
+    if not raw_value:
+        return bool(default)
+    return raw_value in {"1", "true", "yes", "on", "y"}
+
+
+def env_non_negative_int(var_name, default):
+    raw_value = str(os.environ.get(var_name, "") or "").strip()
+    if not raw_value:
+        return default
+    try:
+        parsed = int(raw_value)
+    except Exception:
+        return default
+    return parsed if parsed >= 0 else default
+
+
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("ASME_DATABASE_URL", "sqlite:///inventory.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.environ.get("ASME_SECRET_KEY", "asme-dev-secret")
+_cookie_samesite_raw = (os.environ.get("ASME_SESSION_COOKIE_SAMESITE") or "Lax").strip().lower()
+if _cookie_samesite_raw not in {"lax", "strict", "none"}:
+    _cookie_samesite_raw = "lax"
+app.config["SESSION_COOKIE_SAMESITE"] = "None" if _cookie_samesite_raw == "none" else _cookie_samesite_raw.capitalize()
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = env_bool("ASME_SESSION_COOKIE_SECURE", default=bool(os.environ.get("RENDER")))
+app.config["SESSION_PERMANENT"] = False
 db.init_app(app)
 
 PRINTER_TYPES = ("H2S", "P1S")
@@ -120,6 +148,12 @@ OUTLOOK_TOKEN_CACHE = {
     "tenant_id": "",
     "client_id": "",
 }
+APP_BOOT_TOKEN = os.environ.get("ASME_APP_BOOT_TOKEN", "").strip() or uuid4().hex
+AUTH_SESSION_BOOT_KEY = "auth_boot_token"
+AUTH_SESSION_LAST_SEEN_KEY = "auth_last_seen_ts"
+AUTH_SESSION_LOGIN_TS_KEY = "auth_login_ts"
+MEMBER_SESSION_IDLE_MINUTES = env_non_negative_int("ASME_SESSION_IDLE_MINUTES", 240)
+ADMIN_SESSION_IDLE_MINUTES = env_non_negative_int("ASME_ADMIN_SESSION_IDLE_MINUTES", 30)
 
 FRONT_CLUB_MISSION = (
     "ASME at Iowa is a hands-on engineering organization where members design, build, "
@@ -951,16 +985,53 @@ def role_allows(user_role, required_role):
     return ROLE_ORDER.get(normalize_role(user_role), 0) >= ROLE_ORDER.get(normalize_role(required_role), 0)
 
 
+def cache_request_auth_user(user):
+    if not has_request_context():
+        return
+    g._current_auth_user_cached = user
+    g._current_auth_user_resolved = True
+
+
 def current_auth_user():
+    if has_request_context() and getattr(g, "_current_auth_user_resolved", False):
+        return getattr(g, "_current_auth_user_cached", None)
+
     user_id = session.get("auth_user_id")
     if not user_id:
+        cache_request_auth_user(None)
+        return None
+    if (session.get(AUTH_SESSION_BOOT_KEY) or "").strip() != APP_BOOT_TOKEN:
+        sign_out_user()
+        cache_request_auth_user(None)
         return None
     try:
         user = db.session.get(User, int(user_id))
     except Exception:
+        sign_out_user()
+        cache_request_auth_user(None)
         return None
     if not user or not user.is_active:
+        sign_out_user()
+        cache_request_auth_user(None)
         return None
+
+    now_ts = int(time_module.time())
+    last_seen_raw = session.get(AUTH_SESSION_LAST_SEEN_KEY)
+    try:
+        last_seen_ts = int(last_seen_raw or 0)
+    except Exception:
+        last_seen_ts = 0
+    if last_seen_ts < 0:
+        last_seen_ts = 0
+    idle_minutes = ADMIN_SESSION_IDLE_MINUTES if role_allows(user.role, "admin") else MEMBER_SESSION_IDLE_MINUTES
+    if idle_minutes > 0 and last_seen_ts and (now_ts - last_seen_ts) > (idle_minutes * 60):
+        sign_out_user()
+        cache_request_auth_user(None)
+        return None
+
+    session[AUTH_SESSION_BOOT_KEY] = APP_BOOT_TOKEN
+    session[AUTH_SESSION_LAST_SEEN_KEY] = now_ts
+    cache_request_auth_user(user)
     return user
 
 
@@ -980,21 +1051,27 @@ def current_user_member(user=None):
 
 
 def sign_in_user(user):
+    session.clear()
+    session.permanent = False
+    now_ts = int(time_module.time())
     session["auth_user_id"] = user.id
     session["auth_user_role"] = normalize_role(user.role)
+    session[AUTH_SESSION_BOOT_KEY] = APP_BOOT_TOKEN
+    session[AUTH_SESSION_LOGIN_TS_KEY] = now_ts
+    session[AUTH_SESSION_LAST_SEEN_KEY] = now_ts
     member = current_user_member(user)
     if member:
         session["active_member_id"] = member.id
     else:
         session.pop("active_member_id", None)
+    cache_request_auth_user(user)
     user.last_login_at = datetime.utcnow()
     db.session.commit()
 
 
 def sign_out_user():
-    session.pop("auth_user_id", None)
-    session.pop("auth_user_role", None)
-    session.pop("active_member_id", None)
+    session.clear()
+    cache_request_auth_user(None)
 
 
 def require_login(view_func):
@@ -2834,6 +2911,25 @@ def ensure_runtime_schema():
     ensure_runtime_schema_once()
 
 
+@app.before_request
+def enforce_auth_session_guardrails():
+    if request.path.startswith("/static/") or request.path == "/healthz":
+        return
+    current_auth_user()
+
+
+@app.after_request
+def apply_authenticated_no_cache_headers(response):
+    if session.get("auth_user_id"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        existing_vary = response.headers.get("Vary", "")
+        if "Cookie" not in existing_vary:
+            response.headers["Vary"] = f"{existing_vary}, Cookie".strip(", ")
+    return response
+
+
 def ensure_runtime_schema_once():
     global RUNTIME_SCHEMA_READY
     if RUNTIME_SCHEMA_READY:
@@ -3419,7 +3515,11 @@ def admin_login_page():
 def logout_page():
     sign_out_user()
     flash("You have been logged out.", "info")
-    return redirect(url_for("public_home"))
+    response = redirect(url_for("public_home"))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
