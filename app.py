@@ -5097,6 +5097,32 @@ def portal_admin_inventory_bootstrap_counts():
     return redirect_to_next("portal_admin_inventory_page")
 
 
+@app.post("/portal/admin/inventory/reset")
+@require_role("admin")
+def portal_admin_inventory_reset():
+    confirmation = (request.form.get("confirmation") or "").strip().upper()
+    if confirmation != "RESET INVENTORY":
+        flash("Type RESET INVENTORY to confirm the reset.", "error")
+        return redirect_to_next("portal_admin_inventory_page")
+
+    tx_deleted = Transaction.query.delete(synchronize_session=False)
+    tags_deleted = ItemTag.query.delete(synchronize_session=False)
+    items_deleted = Item.query.delete(synchronize_session=False)
+    add_audit_log(
+        "reset_inventory",
+        f"deleted_items={items_deleted} deleted_tags={tags_deleted} deleted_transactions={tx_deleted}",
+    )
+    db.session.commit()
+    flash(
+        (
+            f"Inventory reset complete: deleted {items_deleted} items, "
+            f"{tags_deleted} item tags, and {tx_deleted} inventory transactions."
+        ),
+        "success",
+    )
+    return redirect_to_next("portal_admin_inventory_page")
+
+
 @app.post("/portal/admin/inventory/import")
 @require_role("admin")
 def portal_admin_inventory_bulk_import():

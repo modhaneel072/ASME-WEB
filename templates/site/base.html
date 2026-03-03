@@ -27,10 +27,6 @@
     </nav>
     <div class="site-actions">
       {% if current_user %}
-      <a class="btn ghost" href="/portal">Portal</a>
-      {% if current_user.role == "admin" %}
-      <a class="btn ghost" href="/portal/admin">Admin Portal</a>
-      {% endif %}
       <form action="/logout" method="post">
         <button type="submit" class="btn light">Logout</button>
       </form>
