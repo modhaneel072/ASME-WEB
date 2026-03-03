@@ -4573,7 +4573,8 @@ def portal_admin_import_roster():
     if role == "admin":
         role = "member"
     member_class = (request.form.get("member_class") or "Member").strip() or "Member"
-    reset_existing = (request.form.get("reset_existing_passwords") or "1").strip() in {"1", "true", "yes", "on"}
+    # Force reset on import so exported credentials are always current and usable.
+    reset_existing = True
 
     result = import_roster_entries(
         entries,
@@ -4586,26 +4587,33 @@ def portal_admin_import_roster():
         flash("Roster processed, but no account credentials were generated.", "info")
         return redirect_to_next("portal_admin_members_page")
 
-    csv_file = save_roster_credentials_csv(credentials)
-    session["latest_roster_credentials_file"] = csv_file
+    csv_rows = []
+    for row in credentials:
+        csv_rows.append(
+            [
+                row.get("name") or "",
+                row.get("member_id") or "",
+                row.get("username") or "",
+                row.get("password") or "",
+            ]
+        )
+    csv_content = csv_stream_from_rows(["name", "member_id", "username", "password"], csv_rows)
+    download_name = f"member_credentials_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
     add_audit_log(
         "bulk_roster_import",
         (
             f"entries={len(entries)} created_members={result['created_members']} "
             f"created_users={result['created_users']} updated_users={result['updated_users']} "
-            f"reset_passwords={result['reset_passwords']} file={csv_file}"
+            f"reset_passwords={result['reset_passwords']} file=inline_csv_download"
         ),
     )
     db.session.commit()
-    flash(
-        (
-            f"Roster imported: {len(entries)} rows, {result['created_members']} members created, "
-            f"{result['created_users']} users created, {result['updated_users']} users updated, "
-            f"{result['reset_passwords']} passwords reset. Credentials CSV is ready for download."
-        ),
-        "success",
+    return Response(
+        csv_content,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={download_name}"},
     )
-    return redirect_to_next("portal_admin_members_page")
 
 
 @app.get("/portal/admin/members/import-credentials/<filename>")

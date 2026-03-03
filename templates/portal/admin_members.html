@@ -47,15 +47,13 @@
 <section class="panel">
   <div class="panel-head">
     <h3>Bulk Import Roster</h3>
-    {% if latest_roster_credentials_file %}
-    <a href="/portal/admin/members/import-credentials/{{ latest_roster_credentials_file }}">Download Last Credentials CSV</a>
-    {% endif %}
   </div>
   <p class="muted">
-    Username format: first letter of first name + last name. Password format: first 2 letters of first name + first letter of last name + 5 numbers.
+    Upload roster PDF and the system will import members/users, reset passwords, then immediately download a credentials CSV.
   </p>
   <form method="post" action="/portal/admin/members/import-roster" enctype="multipart/form-data" class="form-stack">
     <input type="hidden" name="next" value="/portal/admin/members" />
+    <input type="hidden" name="reset_existing_passwords" value="1" />
     <div class="split-fields three-up">
       <div>
         <label for="roster_file">Roster PDF</label>
@@ -73,12 +71,7 @@
         <input id="import_member_class" name="member_class" value="Member" />
       </div>
     </div>
-    <label for="reset_existing_passwords">Reset passwords for existing users</label>
-    <select id="reset_existing_passwords" name="reset_existing_passwords">
-      <option value="1" selected>Yes</option>
-      <option value="0">No</option>
-    </select>
-    <button type="submit">Import Roster</button>
+    <button type="submit">Import Roster + Download Credentials CSV</button>
   </form>
   <form
     method="post"
