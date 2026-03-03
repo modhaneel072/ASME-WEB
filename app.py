@@ -692,8 +692,8 @@ def ensure_inventory_schema_columns():
                 conn.execute(
                     text(
                         "UPDATE items SET item_type = COALESCE(NULLIF(item_type, ''), 'tool'), "
-                        "is_consumable = COALESCE(is_consumable, CASE WHEN lower(COALESCE(item_type, 'tool')) = 'consumable' THEN 1 ELSE 0 END), "
-                        "active = COALESCE(active, 1), "
+                        "is_consumable = COALESCE(is_consumable, CASE WHEN lower(COALESCE(item_type, 'tool')) = 'consumable' THEN TRUE ELSE FALSE END), "
+                        "active = COALESCE(active, TRUE), "
                         "min_stock_threshold = COALESCE(min_stock_threshold, 0)"
                         )
                     )
@@ -1704,7 +1704,7 @@ def ensure_portal_schema():
                 pass
         with db.engine.begin() as conn:
             conn.execute(text("UPDATE users SET role = COALESCE(role, 'member')"))
-            conn.execute(text("UPDATE users SET is_active = COALESCE(is_active, 1)"))
+            conn.execute(text("UPDATE users SET is_active = COALESCE(is_active, TRUE)"))
 
         users_missing_username = User.query.filter(
             or_(User.username.is_(None), func.trim(User.username) == "")
@@ -1747,8 +1747,8 @@ def ensure_portal_schema():
                 conn.execute(
                     text(
                         "UPDATE items SET item_type = COALESCE(NULLIF(item_type, ''), 'tool'), "
-                        "is_consumable = COALESCE(is_consumable, CASE WHEN lower(COALESCE(item_type, 'tool')) = 'consumable' THEN 1 ELSE 0 END), "
-                        "active = COALESCE(active, 1), "
+                        "is_consumable = COALESCE(is_consumable, CASE WHEN lower(COALESCE(item_type, 'tool')) = 'consumable' THEN TRUE ELSE FALSE END), "
+                        "active = COALESCE(active, TRUE), "
                         "min_stock_threshold = COALESCE(min_stock_threshold, 0)"
                     )
                 )
@@ -1847,8 +1847,8 @@ def ensure_portal_schema():
             with db.engine.begin() as conn:
                 for statement in alters:
                     conn.execute(text(statement))
-                conn.execute(text("UPDATE announcements SET show_on_public = COALESCE(show_on_public, 1)"))
-                conn.execute(text("UPDATE announcements SET show_on_member = COALESCE(show_on_member, 1)"))
+                conn.execute(text("UPDATE announcements SET show_on_public = COALESCE(show_on_public, TRUE)"))
+                conn.execute(text("UPDATE announcements SET show_on_member = COALESCE(show_on_member, TRUE)"))
 
     # Ensure all portal tables exist even for upgraded existing DBs.
     for model in (
