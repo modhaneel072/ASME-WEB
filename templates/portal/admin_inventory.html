@@ -1,13 +1,48 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
+{% set current_tab = request.args.get('tab', 'items') %}
+<div class="tab-nav">
+  <a class="{{ 'active' if current_tab == 'items' else '' }}" href="/portal/admin/inventory?tab=items">Items</a>
+  <a class="{{ 'active' if current_tab == 'transactions' else '' }}" href="/portal/admin/inventory?tab=transactions">Transactions</a>
+</div>
+
+{% if current_tab == 'transactions' %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Transactions</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ tx.member.name if tx.member else '' }}</td>
+          <td>{{ tx.item.name if tx.item else '' }}</td>
+          <td>{{ tx.status or tx.action }}</td>
+          <td>{{ tx.qty }}</td>
+          <td>{{ tx.notes or tx.return_notes or tx.checkout_notes or '' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not transactions %}
+        <tr><td colspan="6" class="muted">No transactions yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
 <section class="panel-grid two">
   <article class="panel">
     <div class="panel-head">
       <h3>Add / Edit Item</h3>
     </div>
     <form method="post" action="/portal/admin/inventory/item/save" class="form-stack">
-      <input type="hidden" name="next" value="/portal/admin/inventory" />
+      <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
       <label for="item_id">Existing Item (optional)</label>
       <select id="item_id" name="item_id">
         <option value="">New Item</option>
@@ -77,7 +112,7 @@
     </form>
 
     <form method="post" action="/portal/admin/inventory/adjust" class="form-stack">
-      <input type="hidden" name="next" value="/portal/admin/inventory" />
+      <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
       <h4>Inventory Correction</h4>
       <label for="adjust_item_id">Item</label>
       <select id="adjust_item_id" name="item_id" required>
@@ -103,101 +138,31 @@
 
   <article class="panel">
     <div class="panel-head">
-      <h3>Low Stock</h3>
+      <h3>Items</h3>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Item</th><th>Type</th><th>Available</th><th>Threshold</th></tr>
+          <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Active</th><th>Stock</th></tr>
         </thead>
         <tbody>
-          {% for item in low_stock_items %}
+          {% for item in items %}
           <tr>
             <td>{{ item.name }}</td>
+            <td>{{ item.category or '' }}</td>
+            <td>{{ item.location or '' }}</td>
             <td>{{ item.item_type }}</td>
-            <td>{{ item.available_qty }}</td>
-            <td>{{ item.min_stock_threshold }}</td>
+            <td>{{ 'yes' if item.active else 'no' }}</td>
+            <td>{{ item.available_qty }} / {{ item.total_qty }}</td>
           </tr>
           {% endfor %}
-          {% if not low_stock_items %}
-          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="panel-head">
-      <h3>Overdue Checkouts</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Member</th><th>Item</th><th>Due</th><th>Qty</th></tr>
-        </thead>
-        <tbody>
-          {% for tx in overdue_transactions %}
-          <tr>
-            <td>{{ tx.member.name }}</td>
-            <td>{{ tx.item.name }}</td>
-            <td>{{ tx.due_date }}</td>
-            <td>{{ tx.qty }}</td>
-          </tr>
-          {% endfor %}
-          {% if not overdue_transactions %}
-          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% if not items %}
+          <tr><td colspan="6" class="muted">No inventory items yet.</td></tr>
           {% endif %}
         </tbody>
       </table>
     </div>
   </article>
 </section>
-
-<section class="panel">
-  <div class="panel-head">
-    <h3>Inventory Snapshot</h3>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Active</th><th>Stock</th></tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-        <tr>
-          <td>{{ item.name }}</td>
-          <td>{{ item.category or '' }}</td>
-          <td>{{ item.location or '' }}</td>
-          <td>{{ item.item_type }}</td>
-          <td>{{ 'yes' if item.active else 'no' }}</td>
-          <td>{{ item.available_qty }} / {{ item.total_qty }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section class="panel">
-  <div class="panel-head">
-    <h3>Transactions Log</h3>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th></tr>
-      </thead>
-      <tbody>
-        {% for tx in transactions %}
-        <tr>
-          <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-          <td>{{ tx.member.name }}</td>
-          <td>{{ tx.item.name }}</td>
-          <td>{{ tx.status or tx.action }}</td>
-          <td>{{ tx.qty }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+{% endif %}
 {% endblock %}

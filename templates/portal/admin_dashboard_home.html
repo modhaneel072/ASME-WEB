@@ -3,72 +3,20 @@
 {% block content %}
 <section class="tile-grid admin-tiles">
   <a class="tile" href="/portal/admin/members">
-    <p>Active Members</p>
+    <p>Total Members</p>
     <strong>{{ active_members_count }}</strong>
   </a>
   <a class="tile" href="/portal/admin/inventory">
-    <p>Overdue Items</p>
-    <strong>{{ overdue_items_count }}</strong>
-  </a>
-  <a class="tile" href="/portal/admin/attendance">
-    <p>Upcoming Meetings</p>
-    <strong>{{ upcoming_meetings_count }}</strong>
+    <p>Items Checked Out</p>
+    <strong>{{ checked_out_now_count }}</strong>
   </a>
   <a class="tile" href="/portal/admin/prints">
     <p>Pending Print Requests</p>
     <strong>{{ pending_print_count }}</strong>
   </a>
-  <a class="tile" href="/portal/admin/inventory">
-    <p>Low Stock Items</p>
-    <strong>{{ low_stock_items_count }}</strong>
+  <a class="tile" href="/portal/admin/attendance">
+    <p>Attendance Check-ins Today</p>
+    <strong>{{ attendance_today_count }}</strong>
   </a>
-  <a class="tile" href="/portal/admin/calendar">
-    <p>Calendar Provider</p>
-    <strong>{{ calendar_provider|upper }}</strong>
-  </a>
-</section>
-
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Quick Admin Links</h3>
-    </div>
-    <div class="quick-links">
-      <a href="/portal/admin/members">Members Management</a>
-      <a href="/portal/admin/nfc">NFC Tag Assignment</a>
-      <a href="/portal/admin/attendance">Attendance</a>
-      <a href="/portal/admin/inventory">Inventory Management</a>
-      <a href="/portal/admin/prints">3D Print Queue</a>
-      <a href="/portal/admin/calendar">Calendar Administration</a>
-      <a href="/portal/admin/announcements">Announcements / Content</a>
-      <a href="/portal/admin/exports">Exports</a>
-      <a href="/portal/admin/settings">Settings / Audit Logs</a>
-    </div>
-  </article>
-
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Recent Audit Events</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Time</th><th>Action</th><th>Details</th></tr>
-        </thead>
-        <tbody>
-          {% for log in audit_logs[:15] %}
-          <tr>
-            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ log.action }}</td>
-            <td>Placeholder line: final website copy will be added here.</td>
-          </tr>
-          {% endfor %}
-          {% if not audit_logs %}
-          <tr><td colspan="3" class="muted">Placeholder line: final website copy will be added here.</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </article>
 </section>
 {% endblock %}

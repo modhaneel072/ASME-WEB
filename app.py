@@ -2388,6 +2388,20 @@ def admin_dashboard_context():
     audit_logs = AuditLog.query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(150).all()
     now = datetime.now()
     active_members_count = User.query.filter(User.is_active.is_(True), User.role.in_(["member", "team_leader", "admin"])).count()
+    checked_out_now_count = (
+        db.session.query(func.coalesce(func.sum(Transaction.qty), 0))
+        .filter(Transaction.status == "OUT")
+        .scalar()
+        or 0
+    )
+    today_start = datetime.combine(date.today(), time.min)
+    today_end = today_start + timedelta(days=1)
+    attendance_today_count = (
+        AttendanceRecord.query.filter(
+            AttendanceRecord.checkin_time >= today_start,
+            AttendanceRecord.checkin_time < today_end,
+        ).count()
+    )
     overdue_items_count = Transaction.query.filter(
         Transaction.status == "OUT",
         Transaction.due_date.isnot(None),
@@ -2421,6 +2435,8 @@ def admin_dashboard_context():
         "portal_print_printers": PRINT_REQUEST_PRINTERS,
         "item_types": ITEM_TYPES,
         "active_members_count": active_members_count,
+        "checked_out_now_count": int(checked_out_now_count),
+        "attendance_today_count": attendance_today_count,
         "overdue_items_count": overdue_items_count,
         "low_stock_items_count": low_stock_items_count,
         "upcoming_meetings_count": upcoming_meetings_count,
@@ -3149,7 +3165,7 @@ def portal_team_dashboard():
 @require_role("admin")
 def portal_admin_dashboard():
     context = admin_dashboard_context()
-    context["page_title"] = "Admin Dashboard"
+    context["page_title"] = "Admin Home"
     context["active_page"] = "admin_dashboard"
     return render_template("portal/admin_dashboard_home.html", **context)
 
@@ -3166,10 +3182,7 @@ def portal_admin_members_page():
 @app.get("/portal/admin/nfc")
 @require_role("admin")
 def portal_admin_nfc_page():
-    context = admin_dashboard_context()
-    context["page_title"] = "NFC Tag Assignment"
-    context["active_page"] = "admin_nfc"
-    return render_template("portal/admin_nfc.html", **context)
+    return redirect(url_for("portal_admin_dashboard"))
 
 
 @app.get("/portal/admin/attendance")
@@ -3178,57 +3191,49 @@ def portal_admin_attendance_page():
     context = admin_dashboard_context()
     context["page_title"] = "Attendance"
     context["active_page"] = "admin_attendance"
-    context["meeting_rooms"] = MEETING_ROOMS
-    event_id = parse_positive_int(request.args.get("event_id"), default=0)
-    selected_event = db.session.get(Event, event_id) if event_id else None
-    if not selected_event:
-        selected_event = (
-            Event.query.filter(Event.end_time >= datetime.now())
+    active_tab = (request.args.get("tab") or "live").strip().lower()
+    if active_tab not in {"live", "history"}:
+        active_tab = "live"
+    checkin_event_id = parse_positive_int(
+        request.args.get("checkin_event_id") or request.args.get("event_id"),
+        default=0,
+    )
+    checkin_event = db.session.get(Event, checkin_event_id) if checkin_event_id else None
+    if not checkin_event:
+        checkin_event = (
+            Event.query.filter(Event.end_time >= datetime.now(), Event.status != "cancelled")
             .order_by(Event.start_time.asc(), Event.id.asc())
             .first()
         )
-    if not selected_event and context["events"]:
-        selected_event = context["events"][0]
-    context["selected_event"] = selected_event
-    if selected_event:
-        context["event_attendance"] = (
-            AttendanceRecord.query.filter_by(event_id=selected_event.id)
-            .order_by(AttendanceRecord.checkin_time.desc(), AttendanceRecord.id.desc())
-            .all()
+    if not checkin_event and context["events"]:
+        checkin_event = context["events"][0]
+    history_event_id = parse_positive_int(request.args.get("history_event_id"), default=0)
+    history_date_raw = (request.args.get("history_date") or "").strip()
+    history_date = None
+    if history_date_raw:
+        try:
+            history_date = datetime.strptime(history_date_raw, "%Y-%m-%d").date()
+        except Exception:
+            history_date = None
+    history_query = AttendanceRecord.query
+    if history_event_id:
+        history_query = history_query.filter(AttendanceRecord.event_id == history_event_id)
+    if history_date:
+        history_start = datetime.combine(history_date, time.min)
+        history_end = history_start + timedelta(days=1)
+        history_query = history_query.filter(
+            AttendanceRecord.checkin_time >= history_start,
+            AttendanceRecord.checkin_time < history_end,
         )
-    else:
-        context["event_attendance"] = []
-    tracked_events = [event for event in context["events"] if event.status != "cancelled"]
-    tracked_event_ids = {event.id for event in tracked_events}
-    totals = {}
-    attendance_rows = (
-        AttendanceRecord.query.filter(AttendanceRecord.user_id.isnot(None))
-        .order_by(AttendanceRecord.id.asc())
+    context["active_tab"] = active_tab
+    context["checkin_event"] = checkin_event
+    context["history_records"] = (
+        history_query.order_by(AttendanceRecord.checkin_time.desc(), AttendanceRecord.id.desc())
+        .limit(350)
         .all()
     )
-    for row in attendance_rows:
-        if tracked_event_ids and row.event_id not in tracked_event_ids:
-            continue
-        user_row = row.user
-        if not user_row:
-            continue
-        bucket = totals.setdefault(user_row.id, {"user": user_row, "events": set()})
-        bucket["events"].add(row.event_id)
-    total_event_count = len(tracked_event_ids)
-    summary = []
-    for bucket in totals.values():
-        attended_count = len(bucket["events"])
-        rate = (attended_count / total_event_count * 100.0) if total_event_count else 0.0
-        summary.append(
-            {
-                "user": bucket["user"],
-                "attended_count": attended_count,
-                "attendance_rate": rate,
-            }
-        )
-    summary.sort(key=lambda row: (-row["attended_count"], row["user"].name.lower()))
-    context["attendance_summary"] = summary
-    context["tracked_event_count"] = total_event_count
+    context["history_event_id"] = history_event_id
+    context["history_date"] = history_date_raw
     return render_template("portal/admin_attendance.html", **context)
 
 
@@ -3236,7 +3241,7 @@ def portal_admin_attendance_page():
 @require_role("admin")
 def portal_admin_inventory_page():
     context = admin_dashboard_context()
-    context["page_title"] = "Inventory Management"
+    context["page_title"] = "Inventory Admin"
     context["active_page"] = "admin_inventory"
     context["low_stock_items"] = (
         Item.query.filter(Item.active.is_(True), Item.available_qty <= Item.min_stock_threshold)
@@ -3259,7 +3264,7 @@ def portal_admin_inventory_page():
 @require_role("admin")
 def portal_admin_prints_page():
     context = admin_dashboard_context()
-    context["page_title"] = "3D Print Queue Management"
+    context["page_title"] = "Prints Admin"
     context["active_page"] = "admin_prints"
     grouped = {printer: [] for printer in PRINT_REQUEST_PRINTERS}
     for row in context.get("print_requests", []):
@@ -3271,397 +3276,50 @@ def portal_admin_prints_page():
 @app.route("/portal/admin/announcements", methods=["GET", "POST"])
 @require_role("admin")
 def portal_admin_announcements_page():
-    if request.method == "POST":
-        title = (request.form.get("title") or "").strip()
-        body = (request.form.get("body") or "").strip()
-        is_published = (request.form.get("is_published") or "1").strip() == "1"
-        show_on_public = (request.form.get("show_on_public") or "1").strip() == "1"
-        show_on_member = (request.form.get("show_on_member") or "1").strip() == "1"
-        if not title or not body:
-            flash("Title and body are required.", "error")
-            return redirect(url_for("portal_admin_announcements_page"))
-        db.session.add(
-            Announcement(
-                title=title[:220],
-                body=body[:10000],
-                is_published=is_published,
-                show_on_public=show_on_public,
-                show_on_member=show_on_member,
-                published_at=datetime.utcnow() if is_published else None,
-            )
-        )
-        add_audit_log("create_announcement", title[:220])
-        db.session.commit()
-        flash("Announcement saved.", "success")
-        return redirect(url_for("portal_admin_announcements_page"))
+    return redirect(url_for("portal_admin_dashboard"))
 
-    context = admin_dashboard_context()
-    context["page_title"] = "Announcements / Content"
-    context["active_page"] = "admin_announcements"
-    context["announcements"] = (
-        Announcement.query.order_by(Announcement.created_at.desc(), Announcement.id.desc()).limit(120).all()
-    )
-    return render_template("portal/admin_announcements.html", **context)
+
+@app.route("/portal/admin/content", methods=["GET", "POST"])
+@require_role("admin")
+def portal_admin_content_page():
+    return redirect(url_for("portal_admin_dashboard"))
 
 
 @app.get("/portal/admin/calendar")
 @require_role("admin")
 def portal_admin_calendar_page():
-    context = admin_dashboard_context()
-    context["page_title"] = "Calendar Administration"
-    context["active_page"] = "admin_calendar"
-    provider = calendar_provider_name()
-    google_config = google_calendar_config()
-    google_embed = (os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()
-    outlook_embed = (os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip()
-    generated_google_embed = build_google_embed_url_from_room_ids()
-    warnings = []
-    if provider == "google" and not google_embed and not generated_google_embed:
-        warnings.append("ASME_GOOGLE_CALENDAR_EMBED_URL is not configured (embed view can also be generated from room IDs).")
-    if provider == "google" and not google_config["enabled"]:
-        warnings.extend(google_config["errors"])
-    if provider == "outlook" and not outlook_embed:
-        warnings.append("ASME_OUTLOOK_CALENDAR_EMBED_URL is not configured.")
-    if not context["events"]:
-        warnings.append("No events are currently configured.")
-    room_events = {}
-    for room in MEETING_ROOMS:
-        room_events[room] = (
-            Event.query.filter(
-                func.lower(func.coalesce(Event.location, "")) == room.lower(),
-                Event.status != "cancelled",
-                Event.end_time >= datetime.now() - timedelta(hours=2),
-            )
-            .order_by(Event.start_time.asc(), Event.id.asc())
-            .all()
-        )
-    context["calendar_provider"] = provider
-    context["calendar_embed_url"] = portal_calendar_embed_url()
-    context["calendar_warnings"] = warnings
-    context["google_schedule_enabled"] = google_config["enabled"]
-    context["google_schedule_errors"] = google_config["errors"]
-    context["calendar_work_start"] = CALENDAR_WORK_HOURS_START
-    context["calendar_work_end"] = CALENDAR_WORK_HOURS_END
-    context["calendar_days_default"] = CALENDAR_SCHEDULING_DAYS_DEFAULT
-    context["meeting_rooms"] = MEETING_ROOMS
-    context["room_events"] = room_events
-    context["requested_events"] = (
-        Event.query.filter(Event.status == "requested")
-        .order_by(Event.start_time.asc(), Event.id.asc())
-        .all()
-    )
-    return render_template("portal/admin_calendar.html", **context)
+    return redirect(url_for("portal_admin_dashboard"))
 
 
 @app.get("/portal/admin/exports")
 @require_role("admin")
 def portal_admin_exports_page():
-    context = admin_dashboard_context()
-    context["page_title"] = "Exports"
-    context["active_page"] = "admin_exports"
-    context["dataset_counts"] = {
-        "users": User.query.count(),
-        "members": Member.query.count(),
-        "items": Item.query.count(),
-        "transactions": Transaction.query.count(),
-        "print_requests": PrintRequest.query.count(),
-        "events": Event.query.count(),
-        "attendance_records": AttendanceRecord.query.count(),
-        "audit_logs": AuditLog.query.count(),
-    }
-    return render_template("portal/admin_exports.html", **context)
+    return redirect(url_for("portal_admin_dashboard"))
 
 
 @app.get("/portal/admin/exports/download.zip")
 @require_role("admin")
 def portal_admin_exports_zip():
-    datasets = {}
-
-    users = User.query.order_by(User.id.asc()).all()
-    datasets["users.csv"] = [
-        [
-            "id",
-            "name",
-            "email",
-            "role",
-            "is_active",
-            "nfc_uid",
-            "major",
-            "graduation_year",
-            "exec_title",
-            "exec_message",
-            "headshot_url",
-            "member_id",
-            "created_at",
-            "last_login_at",
-        ]
-    ] + [
-        [
-            row.id,
-            row.name,
-            row.email,
-            row.role,
-            int(bool(row.is_active)),
-            row.nfc_uid or "",
-            row.major or "",
-            row.graduation_year or "",
-            row.exec_title or "",
-            row.exec_message or "",
-            row.headshot_url or "",
-            row.member_id or "",
-            row.created_at.isoformat() if row.created_at else "",
-            row.last_login_at.isoformat() if row.last_login_at else "",
-        ]
-        for row in users
-    ]
-
-    members = Member.query.order_by(Member.id.asc()).all()
-    datasets["members.csv"] = [["id", "name", "email", "member_class", "nfc_tag", "created_at"]] + [
-        [
-            row.id,
-            row.name,
-            row.email,
-            row.member_class,
-            row.nfc_tag or "",
-            row.created_at.isoformat() if row.created_at else "",
-        ]
-        for row in members
-    ]
-
-    items = Item.query.order_by(Item.id.asc()).all()
-    datasets["items.csv"] = [
-        [
-            "id",
-            "name",
-            "item_type",
-            "is_consumable",
-            "active",
-            "category",
-            "location",
-            "item_condition",
-            "total_qty",
-            "available_qty",
-            "min_stock_threshold",
-            "nfc_tag",
-            "created_at",
-        ]
-    ] + [
-        [
-            row.id,
-            row.name,
-            row.item_type,
-            int(bool(row.is_consumable)),
-            int(bool(row.active)),
-            row.category or "",
-            row.location or "",
-            row.item_condition or "",
-            row.total_qty,
-            row.available_qty,
-            row.min_stock_threshold,
-            row.nfc_tag or "",
-            row.created_at.isoformat() if row.created_at else "",
-        ]
-        for row in items
-    ]
-
-    transactions = Transaction.query.order_by(Transaction.id.asc()).all()
-    datasets["transactions.csv"] = [
-        [
-            "id",
-            "member_id",
-            "user_id",
-            "item_id",
-            "action",
-            "status",
-            "qty",
-            "checkout_time",
-            "return_time",
-            "due_date",
-            "checkout_notes",
-            "return_condition",
-            "return_notes",
-            "timestamp",
-        ]
-    ] + [
-        [
-            row.id,
-            row.member_id,
-            row.user_id or "",
-            row.item_id,
-            row.action,
-            row.status or "",
-            row.qty,
-            row.checkout_time.isoformat() if row.checkout_time else "",
-            row.return_time.isoformat() if row.return_time else "",
-            row.due_date.isoformat() if row.due_date else "",
-            row.checkout_notes or "",
-            row.return_condition or "",
-            row.return_notes or "",
-            row.timestamp.isoformat() if row.timestamp else "",
-        ]
-        for row in transactions
-    ]
-
-    print_rows = PrintRequest.query.order_by(PrintRequest.id.asc()).all()
-    datasets["print_requests.csv"] = [
-        [
-            "id",
-            "user_id",
-            "member_id",
-            "printer_type",
-            "status",
-            "priority",
-            "filament",
-            "file_path",
-            "file_link",
-            "deadline",
-            "notes",
-            "admin_notes",
-            "created_at",
-            "updated_at",
-        ]
-    ] + [
-        [
-            row.id,
-            row.user_id,
-            row.member_id or "",
-            row.printer_type,
-            row.status,
-            row.priority,
-            row.filament or "",
-            row.file_path or "",
-            row.file_link or "",
-            row.deadline.isoformat() if row.deadline else "",
-            row.notes or "",
-            row.admin_notes or "",
-            row.created_at.isoformat() if row.created_at else "",
-            row.updated_at.isoformat() if row.updated_at else "",
-        ]
-        for row in print_rows
-    ]
-
-    events = Event.query.order_by(Event.id.asc()).all()
-    datasets["events.csv"] = [
-        [
-            "id",
-            "title",
-            "location",
-            "status",
-            "start_time",
-            "end_time",
-            "requested_by_user_id",
-            "created_by_user_id",
-            "google_event_id",
-            "google_calendar_id",
-            "calendar_event_link",
-            "created_at",
-        ]
-    ] + [
-        [
-            row.id,
-            row.title,
-            row.location or "",
-            row.status,
-            row.start_time.isoformat() if row.start_time else "",
-            row.end_time.isoformat() if row.end_time else "",
-            row.requested_by_user_id or "",
-            row.created_by_user_id or "",
-            row.google_event_id or "",
-            row.google_calendar_id or "",
-            row.calendar_event_link or "",
-            row.created_at.isoformat() if row.created_at else "",
-        ]
-        for row in events
-    ]
-
-    attendance = AttendanceRecord.query.order_by(AttendanceRecord.id.asc()).all()
-    datasets["attendance_records.csv"] = [
-        ["id", "event_id", "user_id", "member_id", "tag_uid", "checkin_method", "checkin_time"]
-    ] + [
-        [
-            row.id,
-            row.event_id,
-            row.user_id or "",
-            row.member_id or "",
-            row.tag_uid or "",
-            row.checkin_method,
-            row.checkin_time.isoformat() if row.checkin_time else "",
-        ]
-        for row in attendance
-    ]
-
-    audit_logs = AuditLog.query.order_by(AuditLog.id.asc()).all()
-    datasets["audit_logs.csv"] = [["id", "admin_user_id", "action", "details", "ip_address", "created_at"]] + [
-        [
-            row.id,
-            row.admin_user_id or "",
-            row.action,
-            row.details or "",
-            row.ip_address or "",
-            row.created_at.isoformat() if row.created_at else "",
-        ]
-        for row in audit_logs
-    ]
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for filename, rows in datasets.items():
-            csv_buffer = io.StringIO()
-            writer = csv.writer(csv_buffer)
-            writer.writerows(rows)
-            archive.writestr(filename, csv_buffer.getvalue())
-    zip_buffer.seek(0)
-    add_audit_log("export_admin_zip", "portal admin csv export")
-    db.session.commit()
-    return Response(
-        zip_buffer.getvalue(),
-        mimetype="application/zip",
-        headers={"Content-Disposition": "attachment; filename=asme_admin_exports.zip"},
-    )
+    return redirect(url_for("portal_admin_dashboard"))
 
 
 @app.get("/portal/admin/settings")
 @require_role("admin")
 def portal_admin_settings_page():
     context = admin_dashboard_context()
-    context["page_title"] = "Settings / Audit Logs"
+    context["page_title"] = "System Status"
     context["active_page"] = "admin_settings"
-    shared_admin_email, _shared_admin_password = get_shared_admin_credentials()
     google_config = google_calendar_config()
-    context["env_status"] = {
-        "calendar_provider": calendar_provider_name(),
-        "google_embed_set": bool((os.environ.get("ASME_GOOGLE_CALENDAR_EMBED_URL") or "").strip()),
-        "outlook_embed_set": bool((os.environ.get("ASME_OUTLOOK_CALENDAR_EMBED_URL") or "").strip()),
-        "google_service_account_set": bool((os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or "").strip()),
-        "google_calendar_robotics_set": bool((os.environ.get("GOOGLE_CALENDAR_ID_ROBOTICS") or "").strip()),
-        "google_calendar_fluids_set": bool((os.environ.get("GOOGLE_CALENDAR_ID_FLUIDS") or "").strip()),
+    calendar_provider = calendar_provider_name()
+    embed_configured = bool((portal_calendar_embed_url() or "").strip())
+    context["system_status"] = {
+        "google_calendar_configured": calendar_provider == "google" and (google_config["enabled"] or embed_configured),
+        "printer_automation_configured": bool((os.environ.get("ASME_H2S_PRINT_CMD") or "").strip())
+        and bool((os.environ.get("ASME_P1S_PRINT_CMD") or "").strip()),
         "legacy_ops_enabled": legacy_ops_enabled(),
-        "shared_admin_email": shared_admin_email or "",
-        "h2s_print_command_set": bool((os.environ.get("ASME_H2S_PRINT_CMD") or "").strip()),
-        "p1s_print_command_set": bool((os.environ.get("ASME_P1S_PRINT_CMD") or "").strip()),
-        "login_rate_window_seconds": LOGIN_RATE_WINDOW_SECONDS,
-        "login_rate_max_attempts": LOGIN_RATE_MAX_ATTEMPTS,
     }
-    context["config_warnings"] = []
-    if (
-        context["env_status"]["calendar_provider"] == "google"
-        and not context["env_status"]["google_embed_set"]
-        and not (context["env_status"]["google_calendar_robotics_set"] and context["env_status"]["google_calendar_fluids_set"])
-    ):
-        context["config_warnings"].append("Google embed URL is missing and room calendar IDs are not both configured.")
-    if context["env_status"]["calendar_provider"] == "google" and not google_config["enabled"]:
-        context["config_warnings"].extend(google_config["errors"])
-    if context["env_status"]["calendar_provider"] == "outlook" and not context["env_status"]["outlook_embed_set"]:
-        context["config_warnings"].append("Outlook calendar provider selected but embed URL is missing.")
-    if not shared_admin_email:
-        context["config_warnings"].append("Shared admin email is not configured.")
-    if not context["env_status"]["h2s_print_command_set"] or not context["env_status"]["p1s_print_command_set"]:
-        context["config_warnings"].append("One or more printer automation commands are not configured.")
-    context["audit_logs"] = (
-        AuditLog.query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
-        .limit(300)
-        .all()
-    )
+    context["calendar_provider"] = calendar_provider
+    context["calendar_errors"] = google_config["errors"] if calendar_provider == "google" else []
     return render_template("portal/admin_settings.html", **context)
 
 
@@ -4066,10 +3724,23 @@ def portal_admin_update_user_role(user_id):
     if not user:
         flash("User not found.", "error")
         return redirect_to_next("portal_admin_members_page")
+    previous_member = user.member
+    previous_nfc_uid = clean_tag_value(user.nfc_uid)
     role = normalize_role(request.form.get("role") or "member")
     active_raw = (request.form.get("is_active") or "1").strip()
     name = (request.form.get("name") or user.name).strip()
     email = (request.form.get("email") or user.email).strip().lower()
+    member_id_raw = (request.form.get("member_id") or "").strip()
+    member_id = parse_positive_int(member_id_raw, default=0) if member_id_raw else 0
+    member_row = db.session.get(Member, member_id) if member_id else None
+    if member_id and not member_row:
+        flash("Member ID not found.", "error")
+        return redirect_to_next("portal_admin_members_page")
+    if member_row:
+        member_conflict = User.query.filter(User.member_id == member_row.id, User.id != user.id).first()
+        if member_conflict:
+            flash("That member ID is already linked to another user.", "error")
+            return redirect_to_next("portal_admin_members_page")
     major = (request.form.get("major") or "").strip()[:120] or None
     grad_year_raw = (request.form.get("graduation_year") or "").strip()
     graduation_year = parse_non_negative_int(grad_year_raw, default=0) if grad_year_raw else 0
@@ -4098,7 +3769,7 @@ def portal_admin_update_user_role(user_id):
         member_uid_conflict = (
             Member.query.filter(
                 func.lower(Member.nfc_tag) == nfc_uid.lower(),
-                Member.id != (user.member.id if user.member else 0),
+                Member.id != (member_row.id if member_row else 0),
             )
             .order_by(Member.id.asc())
             .first()
@@ -4111,17 +3782,24 @@ def portal_admin_update_user_role(user_id):
     user.email = email[:160]
     user.role = role
     user.is_active = active_raw == "1"
+    user.member_id = member_row.id if member_row else None
     user.nfc_uid = nfc_uid or None
     user.major = major
     user.graduation_year = graduation_year or None
     user.exec_title = exec_title
     user.exec_message = exec_message
     user.headshot_url = headshot_url
-    if user.member:
-        user.member.nfc_tag = nfc_uid or None
+    if previous_member and (not member_row or previous_member.id != member_row.id):
+        if clean_tag_value(previous_member.nfc_tag).lower() == previous_nfc_uid.lower():
+            previous_member.nfc_tag = None
+    if member_row:
+        member_row.nfc_tag = nfc_uid or None
     add_audit_log(
         "update_user_role",
-        f"user_id={user.id} role={role} active={user.is_active} email={user.email} nfc_uid={user.nfc_uid or ''}",
+        (
+            f"user_id={user.id} role={role} active={user.is_active} "
+            f"email={user.email} member_id={user.member_id or ''} nfc_uid={user.nfc_uid or ''}"
+        ),
     )
     db.session.commit()
     flash("User updated.", "success")
@@ -4172,29 +3850,29 @@ def portal_admin_assign_nfc():
     notes = (request.form.get("notes") or "").strip() or None
     if not user_id or not tag_uid:
         flash("User and tag UID are required.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
     user = db.session.get(User, user_id)
     if not user:
         flash("User not found.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
     uid_conflict = find_user_by_nfc_uid(tag_uid, exclude_user_id=user.id)
     if uid_conflict:
         flash("That tag UID is already assigned to another user account.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
 
     item_tag_conflict = ItemTag.query.filter(func.lower(ItemTag.tag_value) == tag_uid.lower()).first()
     if item_tag_conflict:
         flash("That UID is already assigned to an inventory item tag.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
     legacy_item_conflict = Item.query.filter(func.lower(Item.nfc_tag) == tag_uid.lower()).first()
     if legacy_item_conflict:
         flash("That UID is already assigned to an inventory item.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
 
     existing_active = NFCTag.query.filter(func.lower(NFCTag.tag_uid) == tag_uid.lower(), NFCTag.active.is_(True)).first()
     if existing_active and existing_active.user_id != user.id:
         flash("That tag UID is already assigned.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
 
     current_active_for_user = NFCTag.query.filter_by(user_id=user.id, active=True).all()
     for row in current_active_for_user:
@@ -4220,7 +3898,7 @@ def portal_admin_assign_nfc():
     add_audit_log("assign_nfc", f"user_id={user.id} tag_uid={tag_uid}")
     db.session.commit()
     flash("NFC tag assignment updated.", "success")
-    return redirect_to_next("portal_admin_nfc_page")
+    return redirect_to_next("portal_admin_members_page")
 
 
 @app.post("/portal/admin/nfc/unassign/<int:tag_id>")
@@ -4229,7 +3907,7 @@ def portal_admin_unassign_nfc(tag_id):
     row = db.session.get(NFCTag, tag_id)
     if not row:
         flash("NFC tag assignment not found.", "error")
-        return redirect_to_next("portal_admin_nfc_page")
+        return redirect_to_next("portal_admin_members_page")
     row.active = False
     row.unassigned_at = datetime.utcnow()
     if row.user and clean_tag_value(row.user.nfc_uid).lower() == clean_tag_value(row.tag_uid).lower():
@@ -4237,7 +3915,7 @@ def portal_admin_unassign_nfc(tag_id):
     add_audit_log("unassign_nfc", f"tag_id={row.id} uid={row.tag_uid}")
     db.session.commit()
     flash("Tag unassigned.", "success")
-    return redirect_to_next("portal_admin_nfc_page")
+    return redirect_to_next("portal_admin_members_page")
 
 
 @app.post("/portal/admin/events/create")
@@ -4379,7 +4057,7 @@ def portal_admin_attendance_checkin():
     )
     add_audit_log("attendance_checkin", f"event_id={event.id} method={checkin_method}")
     db.session.commit()
-    flash("Attendance check-in recorded.", "success")
+    flash(f"You have been marked present for {event.title}.", "success")
     return redirect_to_next("portal_admin_attendance_page")
 
 

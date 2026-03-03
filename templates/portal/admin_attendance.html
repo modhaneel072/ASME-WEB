@@ -1,180 +1,94 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Create Event</h3>
-    </div>
-    <form method="post" action="/portal/admin/events/create" class="form-stack">
-      <input type="hidden" name="next" value="/portal/admin/attendance" />
-      <label for="title">Title</label>
-      <input id="title" name="title" required />
-      <label for="location">Room</label>
-      <select id="location" name="location" required>
-        {% for room in meeting_rooms %}
-        <option value="{{ room }}">{{ room }}</option>
-        {% endfor %}
-      </select>
-      <div class="split-fields two-up">
-        <div>
-          <label for="start_time">Start</label>
-          <input id="start_time" name="start_time" type="datetime-local" required />
-        </div>
-        <div>
-          <label for="end_time">End</label>
-          <input id="end_time" name="end_time" type="datetime-local" required />
-        </div>
-      </div>
-      <label for="status">Status</label>
-      <select id="status" name="status">
-        <option value="scheduled">scheduled</option>
-        <option value="requested">requested</option>
-        <option value="cancelled">cancelled</option>
-      </select>
-      <label for="description">Description</label>
-      <textarea id="description" name="description"></textarea>
-      <button type="submit">Create Event</button>
-    </form>
+<div class="tab-nav">
+  <a class="{{ 'active' if active_tab == 'live' else '' }}" href="/portal/admin/attendance?tab=live">Live Check-in</a>
+  <a class="{{ 'active' if active_tab == 'history' else '' }}" href="/portal/admin/attendance?tab=history">History</a>
+</div>
 
-    <form method="post" action="/portal/admin/attendance/checkin" class="form-stack" id="admin-checkin-form">
-      <input type="hidden" name="next" value="/portal/admin/attendance" />
-      <input type="hidden" name="checkin_method" value="manual" id="checkin_method" />
-      <h4>Check-in Tool</h4>
-      <label for="event_id">Event</label>
-      <select id="event_id" name="event_id" required>
-        {% for event in events %}
-        <option value="{{ event.id }}" {% if selected_event and selected_event.id == event.id %}selected{% endif %}>{{ event.title }} - {{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</option>
-        {% endfor %}
-      </select>
-      <label for="tag_uid">Tag UID (preferred)</label>
-      <input id="tag_uid" name="tag_uid" />
-      <button type="button" id="startNfcCheckin">Scan NFC Card (Android Chrome)</button>
-      <label for="user_id">Manual User Fallback</label>
-      <select id="user_id" name="user_id">
-        <option value="">None</option>
-        {% for user in users %}
-        <option value="{{ user.id }}">{{ user.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit">Record Check-in</button>
-    </form>
-  </article>
-
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Per-Event Attendance</h3>
-      <a href="/portal/admin/attendance/export.csv">Export CSV</a>
-    </div>
-    <form method="get" action="/portal/admin/attendance" class="inline-form">
-      <label for="event_filter">Event</label>
-      <select id="event_filter" name="event_id">
-        {% for event in events %}
-        <option value="{{ event.id }}" {% if selected_event and selected_event.id == event.id %}selected{% endif %}>{{ event.title }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit">View</button>
-    </form>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>User</th>
-            <th>Tag UID</th>
-            <th>Method</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in event_attendance %}
-          <tr>
-            <td>{{ row.checkin_time.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ row.user.name if row.user else (row.member.name if row.member else 'Unknown') }}</td>
-            <td>{{ row.tag_uid or '' }}</td>
-            <td>{{ row.checkin_method }}</td>
-          </tr>
-          {% endfor %}
-          {% if not event_attendance %}
-          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </article>
-</section>
-
+{% if active_tab == 'history' %}
 <section class="panel">
   <div class="panel-head">
-    <h3>Event Management</h3>
+    <h3>History</h3>
+    <a href="/portal/admin/attendance/export.csv">Export CSV</a>
   </div>
+  <form method="get" action="/portal/admin/attendance" class="inline-form">
+    <input type="hidden" name="tab" value="history" />
+    <label for="history_event_id">Session</label>
+    <select id="history_event_id" name="history_event_id">
+      <option value="">All</option>
+      {% for event in events %}
+      <option value="{{ event.id }}" {% if history_event_id == event.id %}selected{% endif %}>
+        {{ event.title }} ({{ event.start_time.strftime('%Y-%m-%d %H:%M') }})
+      </option>
+      {% endfor %}
+    </select>
+    <label for="history_date">Date</label>
+    <input id="history_date" name="history_date" type="date" value="{{ history_date or '' }}" />
+    <button type="submit">Filter</button>
+  </form>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Event</th><th>Schedule</th><th>Status</th><th>Update</th></tr>
+        <tr>
+          <th>Time</th>
+          <th>Session</th>
+          <th>User</th>
+          <th>Tag UID</th>
+          <th>Method</th>
+        </tr>
       </thead>
       <tbody>
-        {% for event in events %}
+        {% for row in history_records %}
         <tr>
-          <td>
-            <form id="event-{{ event.id }}" method="post" action="/portal/admin/events/{{ event.id }}/status" class="form-stack">
-              <input type="hidden" name="next" value="/portal/admin/attendance" />
-              <input name="title" value="{{ event.title }}" />
-            </form>
-            <select name="location" form="event-{{ event.id }}">
-              {% for room in meeting_rooms %}
-              <option value="{{ room }}" {% if (event.location or '') == room %}selected{% endif %}>{{ room }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td>
-            <input name="start_time" type="datetime-local" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" form="event-{{ event.id }}" />
-            <input name="end_time" type="datetime-local" value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') }}" form="event-{{ event.id }}" />
-          </td>
-          <td>
-            <select name="status" form="event-{{ event.id }}">
-              <option value="requested" {% if event.status == 'requested' %}selected{% endif %}>requested</option>
-              <option value="scheduled" {% if event.status == 'scheduled' %}selected{% endif %}>scheduled</option>
-              <option value="cancelled" {% if event.status == 'cancelled' %}selected{% endif %}>cancelled</option>
-            </select>
-          </td>
-          <td>
-            <button type="submit" form="event-{{ event.id }}">Save Event</button>
-          </td>
+          <td>{{ row.checkin_time.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ row.event.title if row.event else row.event_id }}</td>
+          <td>{{ row.user.name if row.user else (row.member.name if row.member else 'Unknown') }}</td>
+          <td>{{ row.tag_uid or '' }}</td>
+          <td>{{ row.checkin_method }}</td>
         </tr>
         {% endfor %}
-        {% if not events %}
-        <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        {% if not history_records %}
+        <tr><td colspan="5" class="muted">No attendance records found for the selected filters.</td></tr>
         {% endif %}
       </tbody>
     </table>
   </div>
 </section>
-
+{% else %}
 <section class="panel">
   <div class="panel-head">
-    <h3>Member Attendance Summary</h3>
+    <h3>Live Check-in</h3>
   </div>
-  <p class="muted">Tracked events count: {{ tracked_event_count }}</p>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Member</th><th>Attended</th><th>Attendance %</th></tr>
-      </thead>
-      <tbody>
-        {% for row in attendance_summary %}
-        <tr>
-          <td>{{ row.user.name }}</td>
-          <td>{{ row.attended_count }}</td>
-          <td>{{ '%.1f'|format(row.attendance_rate) }}%</td>
-        </tr>
-        {% endfor %}
-        {% if not attendance_summary %}
-        <tr><td colspan="3" class="muted">Placeholder line: final website copy will be added here.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
+  {% if events %}
+  <form method="post" action="/portal/admin/attendance/checkin" class="form-stack" id="admin-checkin-form">
+    <input type="hidden" name="next" value="/portal/admin/attendance?tab=live" />
+    <input type="hidden" name="checkin_method" value="manual" id="checkin_method" />
+    <label for="event_id">Session</label>
+    <select id="event_id" name="event_id" required>
+      {% for event in events %}
+      <option value="{{ event.id }}" {% if checkin_event and checkin_event.id == event.id %}selected{% endif %}>
+        {{ event.title }} ({{ event.start_time.strftime('%Y-%m-%d %H:%M') }})
+      </option>
+      {% endfor %}
+    </select>
+    <label for="tag_uid">NFC UID</label>
+    <input id="tag_uid" name="tag_uid" />
+    <button type="button" id="startNfcCheckin">Scan NFC Card (Android Chrome)</button>
+    <label for="user_id">Manual Member/User</label>
+    <select id="user_id" name="user_id">
+      <option value="">None</option>
+      {% for user in users %}
+      <option value="{{ user.id }}">{{ user.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Record Check-in</button>
+  </form>
+  {% else %}
+  <p class="muted">No meeting sessions exist yet. Create sessions from team leader scheduling.</p>
+  {% endif %}
 </section>
+{% endif %}
 
 <script>
   (() => {

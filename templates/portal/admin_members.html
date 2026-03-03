@@ -1,213 +1,72 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Create Member (ID Auto-Generated)</h3>
-    </div>
-    <form method="post" action="/portal/admin/members/create" class="form-stack">
-      <input type="hidden" name="next" value="/portal/admin/members" />
-      <div class="split-fields two-up">
-        <div>
-          <label for="member_name">Name</label>
-          <input id="member_name" name="name" required />
-        </div>
-        <div>
-          <label for="member_email">Email</label>
-          <input id="member_email" name="email" type="email" required />
-        </div>
-      </div>
-      <div class="split-fields three-up">
-        <div>
-          <label for="member_class">Member Class</label>
-          <input id="member_class" name="member_class" value="Member" />
-        </div>
-        <div>
-          <label for="member_major">Major (optional)</label>
-          <input id="member_major" name="major" />
-        </div>
-        <div>
-          <label for="member_grad_year">Graduation Year (optional)</label>
-          <input id="member_grad_year" name="graduation_year" type="number" min="1900" max="2100" />
-        </div>
-      </div>
-      <div class="split-fields three-up">
-        <div>
-          <label for="member_nfc_uid">Member NFC UID (optional)</label>
-          <input id="member_nfc_uid" name="nfc_uid" />
-        </div>
-        <div>
-          <label for="member_exec_title">Executive Title (optional)</label>
-          <input id="member_exec_title" name="exec_title" />
-        </div>
-        <div>
-          <label for="member_headshot_url">Headshot URL (optional)</label>
-          <input id="member_headshot_url" name="headshot_url" />
-        </div>
-      </div>
-      <label for="member_exec_message">Executive Message (optional)</label>
-      <textarea id="member_exec_message" name="exec_message"></textarea>
-      <label for="create_user">Create login account now</label>
-      <select id="create_user" name="create_user">
-        <option value="1">Yes</option>
-        <option value="0">No</option>
-      </select>
-      <div class="split-fields two-up">
-        <div>
-          <label for="member_role">Role (if creating login)</label>
-          <select id="member_role" name="role">
-            {% for role in roles %}
-            <option value="{{ role }}">{{ role }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label for="member_password">Password (if creating login)</label>
-          <input id="member_password" name="password" type="password" minlength="8" />
-        </div>
-      </div>
-      <button type="submit">Create Member</button>
-    </form>
-  </article>
-
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Create User Account</h3>
-    </div>
-    <form method="post" action="/portal/admin/users/create" class="form-stack">
-      <input type="hidden" name="next" value="/portal/admin/members" />
-      <div class="split-fields three-up">
-        <div>
-          <label for="name">Name</label>
-          <input id="name" name="name" required />
-        </div>
-        <div>
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" required />
-        </div>
-        <div>
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" minlength="8" required />
-        </div>
-      </div>
-      <div class="split-fields three-up">
-        <div>
-          <label for="major">Major (optional)</label>
-          <input id="major" name="major" />
-        </div>
-        <div>
-          <label for="graduation_year">Graduation Year (optional)</label>
-          <input id="graduation_year" name="graduation_year" type="number" min="1900" max="2100" />
-        </div>
-        <div>
-          <label for="role">Role</label>
-          <select id="role" name="role">
-            {% for role in roles %}
-            <option value="{{ role }}">{{ role }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="split-fields three-up">
-        <div>
-          <label for="nfc_uid">NFC UID (optional)</label>
-          <input id="nfc_uid" name="nfc_uid" />
-        </div>
-        <div>
-          <label for="exec_title">Executive Title (optional)</label>
-          <input id="exec_title" name="exec_title" />
-        </div>
-        <div>
-          <label for="headshot_url">Headshot URL (optional)</label>
-          <input id="headshot_url" name="headshot_url" />
-        </div>
-      </div>
-      <label for="exec_message">Executive Message (optional)</label>
-      <textarea id="exec_message" name="exec_message"></textarea>
+<section class="panel">
+  <div class="panel-head">
+    <h3>Add Member</h3>
+  </div>
+  <form method="post" action="/portal/admin/members/create" class="form-stack">
+    <input type="hidden" name="next" value="/portal/admin/members" />
+    <input type="hidden" name="create_user" value="1" />
+    <div class="split-fields three-up">
       <div>
-        <label for="member_id">Link Existing Member (optional)</label>
-        <select id="member_id" name="member_id">
-          <option value="">Auto-link by email if found</option>
-          {% for member in members %}
-          <option value="{{ member.id }}">#{{ member.id }} - {{ member.name }}</option>
+        <label for="member_name">Name</label>
+        <input id="member_name" name="name" required />
+      </div>
+      <div>
+        <label for="member_email">Email</label>
+        <input id="member_email" name="email" type="email" required />
+      </div>
+      <div>
+        <label for="member_class">Member Class</label>
+        <input id="member_class" name="member_class" value="Member" />
+      </div>
+    </div>
+    <div class="split-fields three-up">
+      <div>
+        <label for="member_role">Role</label>
+        <select id="member_role" name="role">
+          {% for role in roles %}
+          <option value="{{ role }}">{{ role }}</option>
           {% endfor %}
         </select>
       </div>
-      <button type="submit">Create Account</button>
-    </form>
-  </article>
+      <div>
+        <label for="member_password">Password</label>
+        <input id="member_password" name="password" type="password" minlength="8" required />
+      </div>
+      <div>
+        <label for="member_nfc_uid">NFC UID (optional)</label>
+        <input id="member_nfc_uid" name="nfc_uid" />
+      </div>
+    </div>
+    <button type="submit">Create Member + Login</button>
+  </form>
 </section>
 
 <section class="panel">
   <div class="panel-head">
-    <h3>Members Directory (IDs)</h3>
+    <h3>Members / Roles</h3>
   </div>
+  <p class="muted">Member ID and NFC UID must be unique. Leave Member ID blank to unlink a user from a member profile.</p>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>ID</th>
           <th>Name</th>
           <th>Email</th>
-          <th>Class</th>
-          <th>NFC Tag</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for member in members %}
-        <tr>
-          <td>#{{ member.id }}</td>
-          <td>{{ member.name }}</td>
-          <td>{{ member.email }}</td>
-          <td>{{ member.member_class }}</td>
-          <td>{{ member.nfc_tag or '' }}</td>
-        </tr>
-        {% endfor %}
-        {% if not members %}
-        <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section class="panel">
-  <div class="panel-head">
-    <h3>Users Directory</h3>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Profile</th>
-          <th>Executive</th>
           <th>Role</th>
-          <th>Status</th>
-          <th>Member Link</th>
-          <th>Save</th>
-          <th>Password</th>
-          <th>Invite</th>
+          <th>Member ID</th>
+          <th>NFC UID</th>
+          <th>Active</th>
+          <th>Edit</th>
         </tr>
       </thead>
       <tbody>
         {% for user in users %}
         <tr>
-          <td>
-            <input name="name" value="{{ user.name }}" form="user-edit-{{ user.id }}" />
-            <input name="email" type="email" value="{{ user.email }}" form="user-edit-{{ user.id }}" />
-          </td>
-          <td>
-            <input name="major" placeholder="Major" value="{{ user.major or '' }}" form="user-edit-{{ user.id }}" />
-            <input name="graduation_year" type="number" min="1900" max="2100" placeholder="Grad Year" value="{{ user.graduation_year or '' }}" form="user-edit-{{ user.id }}" />
-            <input name="nfc_uid" placeholder="NFC UID" value="{{ user.nfc_uid or '' }}" form="user-edit-{{ user.id }}" />
-          </td>
-          <td>
-            <input name="exec_title" placeholder="Exec Title" value="{{ user.exec_title or '' }}" form="user-edit-{{ user.id }}" />
-            <input name="headshot_url" placeholder="Headshot URL" value="{{ user.headshot_url or '' }}" form="user-edit-{{ user.id }}" />
-            <textarea name="exec_message" placeholder="Exec message" form="user-edit-{{ user.id }}">{{ user.exec_message or '' }}</textarea>
-          </td>
+          <td><input name="name" value="{{ user.name }}" form="user-edit-{{ user.id }}" /></td>
+          <td><input name="email" type="email" value="{{ user.email }}" form="user-edit-{{ user.id }}" /></td>
           <td>
             <select name="role" form="user-edit-{{ user.id }}">
               {% for role in roles %}
@@ -215,42 +74,34 @@
               {% endfor %}
             </select>
           </td>
+          <td><input name="member_id" type="number" min="1" value="{{ user.member_id or '' }}" form="user-edit-{{ user.id }}" /></td>
+          <td><input name="nfc_uid" value="{{ user.nfc_uid or '' }}" form="user-edit-{{ user.id }}" /></td>
           <td>
             <select name="is_active" form="user-edit-{{ user.id }}">
-              <option value="1" {% if user.is_active %}selected{% endif %}>Active</option>
-              <option value="0" {% if not user.is_active %}selected{% endif %}>Disabled</option>
+              <option value="1" {% if user.is_active %}selected{% endif %}>Yes</option>
+              <option value="0" {% if not user.is_active %}selected{% endif %}>No</option>
             </select>
           </td>
           <td>
-            {% if user.member %}
-            #{{ user.member.id }} - {{ user.member.name }}
-            {% else %}
-            Unlinked
-            {% endif %}
-          </td>
-          <td>
-            <form id="user-edit-{{ user.id }}" method="post" action="/portal/admin/users/{{ user.id }}/role">
+            <form id="user-edit-{{ user.id }}" method="post" action="/portal/admin/users/{{ user.id }}/role" class="form-stack compact">
               <input type="hidden" name="next" value="/portal/admin/members" />
+              <input type="hidden" name="major" value="{{ user.major or '' }}" />
+              <input type="hidden" name="graduation_year" value="{{ user.graduation_year or '' }}" />
               <button type="submit">Save</button>
             </form>
-          </td>
-          <td>
-            <form method="post" action="/portal/admin/users/{{ user.id }}/reset-password" class="form-stack">
-              <input type="hidden" name="next" value="/portal/admin/members" />
-              <input name="new_password" type="password" minlength="8" placeholder="Optional temp password" />
-              <button type="submit">Reset Password</button>
-            </form>
-          </td>
-          <td>
-            <form method="post" action="/portal/admin/users/{{ user.id }}/invite-link">
-              <input type="hidden" name="next" value="/portal/admin/members" />
-              <button type="submit">Generate Link</button>
-            </form>
+            <details>
+              <summary class="muted">More fields</summary>
+              <div class="form-stack compact">
+                <input name="exec_title" placeholder="Exec title" value="{{ user.exec_title or '' }}" form="user-edit-{{ user.id }}" />
+                <input name="headshot_url" placeholder="Headshot URL" value="{{ user.headshot_url or '' }}" form="user-edit-{{ user.id }}" />
+                <textarea name="exec_message" placeholder="Executive message" form="user-edit-{{ user.id }}">{{ user.exec_message or '' }}</textarea>
+              </div>
+            </details>
           </td>
         </tr>
         {% endfor %}
         {% if not users %}
-        <tr><td colspan="9" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        <tr><td colspan="7" class="muted">No users yet.</td></tr>
         {% endif %}
       </tbody>
     </table>

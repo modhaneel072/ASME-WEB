@@ -7,41 +7,43 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}" />
 </head>
 <body>
+  {% set is_admin = current_user and (current_user.role|lower) == 'admin' %}
+  {% set in_member_view = active_page and active_page.startswith('member_') %}
+  {% set show_admin_nav = is_admin and not in_member_view %}
   <div class="portal-layout">
     <aside class="portal-side">
       <a href="/" class="brand">
         <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
         <div>
           <p>ASME @ UIowa</p>
-          <h1>Member Portal</h1>
+          <h1>{{ 'ASME Admin' if show_admin_nav else 'ASME Portal' }}</h1>
         </div>
       </a>
 
+      {% if show_admin_nav %}
+      <nav>
+        <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Admin Home</a>
+        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members / Roles</a>
+        <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
+        <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory</a>
+        <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Prints</a>
+      </nav>
+      <a class="subtle-switch" href="/portal/member">Switch to Member View</a>
+      {% else %}
       <nav>
         <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
         <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
         <a class="{{ 'active' if active_page == 'member_my_items' else '' }}" href="/portal/member/my-items">My Items</a>
         <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Prints</a>
         <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
-        {% if current_user and (current_user.role == 'team_leader' or current_user.role == 'admin') %}
+        {% if current_user and ((current_user.role|lower) == 'team_leader' or (current_user.role|lower) == 'admin') %}
         <a class="{{ 'active' if active_page == 'member_schedule' else '' }}" href="/portal/member/schedule">Schedule Meeting</a>
         {% endif %}
         <a class="{{ 'active' if active_page == 'member_profile' else '' }}" href="/portal/member/profile">Profile</a>
       </nav>
-
-      {% if current_user and current_user.role == 'admin' %}
-      <nav class="admin-nav">
-        <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Admin Dashboard</a>
-        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members / Roles</a>
-        <a class="{{ 'active' if active_page == 'admin_nfc' else '' }}" href="/portal/admin/nfc">NFC Tags</a>
-        <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
-        <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory Admin</a>
-        <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Prints Admin</a>
-        <a class="{{ 'active' if active_page == 'admin_calendar' else '' }}" href="/portal/admin/calendar">Calendar</a>
-        <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Content</a>
-        <a class="{{ 'active' if active_page == 'admin_exports' else '' }}" href="/portal/admin/exports">Exports</a>
-        <a class="{{ 'active' if active_page == 'admin_settings' else '' }}" href="/portal/admin/settings">Settings / Audit</a>
-      </nav>
+      {% if is_admin %}
+      <a class="subtle-switch" href="/portal/admin">Back to Admin</a>
+      {% endif %}
       {% endif %}
 
       <form action="/logout" method="post">
@@ -52,7 +54,9 @@
     <main class="portal-main">
       <header class="portal-head">
         <h2>{{ page_title }}</h2>
-        <p>Placeholder line: final website copy will be added here.</p>
+        {% if page_subtitle %}
+        <p>{{ page_subtitle }}</p>
+        {% endif %}
       </header>
 
       {% with messages = get_flashed_messages(with_categories=True) %}
