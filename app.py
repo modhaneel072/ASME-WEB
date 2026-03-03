@@ -1057,19 +1057,31 @@ def parse_datetime_local(raw_value):
 
 
 def parse_positive_int(raw_value, default=1):
-    try:
-        parsed = int(str(raw_value).strip())
-        return parsed if parsed > 0 else default
-    except Exception:
+    text_value = str(raw_value or "").strip().replace(",", "")
+    if not text_value:
         return default
+    try:
+        parsed = int(text_value)
+    except Exception:
+        try:
+            parsed = int(float(text_value))
+        except Exception:
+            return default
+    return parsed if parsed > 0 else default
 
 
 def parse_non_negative_int(raw_value, default=0):
-    try:
-        parsed = int(str(raw_value).strip())
-        return parsed if parsed >= 0 else default
-    except Exception:
+    text_value = str(raw_value or "").strip().replace(",", "")
+    if not text_value:
         return default
+    try:
+        parsed = int(text_value)
+    except Exception:
+        try:
+            parsed = int(float(text_value))
+        except Exception:
+            return default
+    return parsed if parsed >= 0 else default
 
 
 def parse_bool_flag(raw_value, default=False):
@@ -5212,10 +5224,35 @@ def portal_admin_inventory_bulk_import():
             errors.append(f"Row {index}: {tag_error}")
             continue
 
-        total_raw = bulk_inventory_row_value(row, "total_qty", "total", "quantity_total", "qty_total")
+        total_raw = bulk_inventory_row_value(
+            row,
+            "total_qty",
+            "total",
+            "quantity_total",
+            "qty_total",
+            "qty",
+            "quantity",
+            "count",
+            "amount",
+            "item_amount",
+            "item amount",
+            "item amount?",
+            "item_count",
+            "amount_on_hand",
+            "on_hand",
+        )
         total_default = 1 if is_new else max(item.total_qty, 0)
         total_qty = parse_non_negative_int(total_raw, default=total_default)
-        available_raw = bulk_inventory_row_value(row, "available_qty", "available", "quantity_available", "qty_available")
+        available_raw = bulk_inventory_row_value(
+            row,
+            "available_qty",
+            "available",
+            "quantity_available",
+            "qty_available",
+            "available_count",
+            "in_stock",
+            "stock",
+        )
         if available_raw:
             available_qty = parse_non_negative_int(available_raw, default=total_qty)
         else:
