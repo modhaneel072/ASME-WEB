@@ -37,6 +37,8 @@ class Item(db.Model):
 
     # NFC tag on a bin/tool group
     nfc_tag = db.Column(db.String(120), nullable=True, unique=True)
+    item_code = db.Column(db.String(40), nullable=True, unique=True, index=True)
+    treasury_tracker_id = db.Column(db.String(80), nullable=True, unique=True, index=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

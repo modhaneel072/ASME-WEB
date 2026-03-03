@@ -195,6 +195,9 @@ ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
 PRINT_REQUEST_STATUSES = ("submitted", "approved", "printing", "completed", "rejected")
 PASSWORD_RESET_HOURS = 2
 ITEM_TYPES = ("tool", "consumable")
+INVENTORY_ITEM_CODE_PREFIX = "ASME-INV-"
+TREASURY_TRACKER_PREFIX = "ASME-TRK-"
+BULK_INVENTORY_ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls"}
 EMAIL_RE = re.compile(r"^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$", re.IGNORECASE)
 ROSTER_BOOL_WORDS = {"yes", "no"}
 
@@ -677,6 +680,10 @@ def ensure_inventory_schema_columns():
             alters.append("ALTER TABLE items ADD COLUMN min_stock_threshold INTEGER")
         if "nfc_tag" not in item_columns:
             alters.append("ALTER TABLE items ADD COLUMN nfc_tag VARCHAR(120)")
+        if "item_code" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN item_code VARCHAR(40)")
+        if "treasury_tracker_id" not in item_columns:
+            alters.append("ALTER TABLE items ADD COLUMN treasury_tracker_id VARCHAR(80)")
 
         if alters:
             with db.engine.begin() as conn:
@@ -688,8 +695,52 @@ def ensure_inventory_schema_columns():
                         "is_consumable = COALESCE(is_consumable, CASE WHEN lower(COALESCE(item_type, 'tool')) = 'consumable' THEN 1 ELSE 0 END), "
                         "active = COALESCE(active, 1), "
                         "min_stock_threshold = COALESCE(min_stock_threshold, 0)"
+                        )
                     )
-                )
+
+        items_for_tracking = Item.query.order_by(Item.id.asc()).all()
+        used_item_codes = set()
+        used_tracker_ids = set()
+        tracking_changed = False
+
+        for row in items_for_tracking:
+            item_code = normalize_inventory_item_code(row.item_code) or generate_inventory_item_code(row.id)
+            base_code = item_code
+            code_suffix = 2
+            while item_code.lower() in used_item_codes:
+                item_code = normalize_inventory_item_code(f"{base_code}-{code_suffix}")
+                code_suffix += 1
+            if row.item_code != item_code:
+                row.item_code = item_code
+                tracking_changed = True
+            used_item_codes.add(item_code.lower())
+
+        for row in items_for_tracking:
+            tracker_id = normalize_treasury_tracker_id(row.treasury_tracker_id) or generate_treasury_tracker_id(
+                row.item_code,
+                row.id,
+            )
+            base_tracker = tracker_id
+            tracker_suffix = 2
+            while tracker_id.lower() in used_tracker_ids:
+                tracker_id = normalize_treasury_tracker_id(f"{base_tracker}-{tracker_suffix}")
+                tracker_suffix += 1
+            if row.treasury_tracker_id != tracker_id:
+                row.treasury_tracker_id = tracker_id
+                tracking_changed = True
+            used_tracker_ids.add(tracker_id.lower())
+
+        if tracking_changed:
+            db.session.flush()
+
+        db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_items_item_code_unique ON items (item_code)"))
+        db.session.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_items_treasury_tracker_id_unique "
+                "ON items (treasury_tracker_id)"
+            )
+        )
+        db.session.commit()
 
     if "transactions" in table_names:
         tx_columns = {col["name"] for col in inspector.get_columns("transactions")}
@@ -1012,6 +1063,223 @@ def parse_non_negative_int(raw_value, default=0):
         return parsed if parsed >= 0 else default
     except Exception:
         return default
+
+
+def parse_bool_flag(raw_value, default=False):
+    cleaned = (str(raw_value or "")).strip().lower()
+    if not cleaned:
+        return default
+    if cleaned in {"1", "true", "yes", "on", "y"}:
+        return True
+    if cleaned in {"0", "false", "no", "off", "n"}:
+        return False
+    return default
+
+
+def normalize_inventory_item_code(raw_value):
+    cleaned = clean_tag_value(raw_value).upper()
+    if not cleaned:
+        return ""
+    cleaned = re.sub(r"[^A-Z0-9\-]+", "-", cleaned)
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
+    return cleaned[:40]
+
+
+def normalize_treasury_tracker_id(raw_value):
+    cleaned = clean_tag_value(raw_value).upper()
+    if not cleaned:
+        return ""
+    cleaned = re.sub(r"[^A-Z0-9\-]+", "-", cleaned)
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
+    return cleaned[:80]
+
+
+def generate_inventory_item_code(item_id):
+    try:
+        numeric_id = int(item_id)
+    except Exception:
+        numeric_id = 0
+    numeric_id = max(numeric_id, 0)
+    return f"{INVENTORY_ITEM_CODE_PREFIX}{numeric_id:05d}"
+
+
+def generate_treasury_tracker_id(item_code, item_id=None):
+    normalized_code = normalize_inventory_item_code(item_code) or generate_inventory_item_code(item_id or 0)
+    suffix = normalized_code
+    if suffix.startswith(INVENTORY_ITEM_CODE_PREFIX):
+        suffix = suffix[len(INVENTORY_ITEM_CODE_PREFIX) :]
+    return normalize_treasury_tracker_id(f"{TREASURY_TRACKER_PREFIX}{suffix}")
+
+
+def ensure_item_tracking_ids(item):
+    if not item:
+        return
+    if not item.id:
+        db.session.flush()
+
+    item_code = normalize_inventory_item_code(item.item_code) or generate_inventory_item_code(item.id)
+    base_code = item_code
+    suffix = 2
+    while (
+        Item.query.filter(
+            func.lower(func.coalesce(Item.item_code, "")) == item_code.lower(),
+            Item.id != item.id,
+        )
+        .order_by(Item.id.asc())
+        .first()
+    ):
+        item_code = normalize_inventory_item_code(f"{base_code}-{suffix}")
+        suffix += 1
+    item.item_code = item_code
+
+    tracker_id = normalize_treasury_tracker_id(item.treasury_tracker_id) or generate_treasury_tracker_id(
+        item.item_code, item.id
+    )
+    base_tracker = tracker_id
+    suffix = 2
+    while (
+        Item.query.filter(
+            func.lower(func.coalesce(Item.treasury_tracker_id, "")) == tracker_id.lower(),
+            Item.id != item.id,
+        )
+        .order_by(Item.id.asc())
+        .first()
+    ):
+        tracker_id = normalize_treasury_tracker_id(f"{base_tracker}-{suffix}")
+        suffix += 1
+    item.treasury_tracker_id = tracker_id
+
+
+def get_item_primary_tag_map():
+    mapping = {}
+    rows = ItemTag.query.order_by(ItemTag.id.asc()).all()
+    for row in rows:
+        cleaned = clean_tag_value(row.tag_value)
+        if not cleaned or row.item_id in mapping:
+            continue
+        mapping[row.item_id] = cleaned
+    return mapping
+
+
+def get_item_primary_nfc(item, tag_map=None):
+    if not item:
+        return ""
+    direct_tag = clean_tag_value(item.nfc_tag)
+    if direct_tag:
+        return direct_tag
+    tag_map = tag_map or {}
+    return clean_tag_value(tag_map.get(item.id))
+
+
+def validate_item_tag_uid(tag_uid, current_item_id=None):
+    cleaned = clean_tag_value(tag_uid)
+    if not cleaned:
+        return ""
+
+    member_conflict = Member.query.filter(func.lower(Member.nfc_tag) == cleaned.lower()).first()
+    if member_conflict:
+        return "That NFC UID is already assigned to a member profile."
+
+    user_conflict = User.query.filter(func.lower(User.nfc_uid) == cleaned.lower()).first()
+    if user_conflict:
+        return "That NFC UID is already assigned to a user account."
+
+    nfc_mapping_conflict = NFCTag.query.filter(
+        func.lower(NFCTag.tag_uid) == cleaned.lower(),
+        NFCTag.active.is_(True),
+    ).first()
+    if nfc_mapping_conflict:
+        return "That NFC UID is already assigned to a member login tag."
+
+    item_conflict = Item.query.filter(
+        func.lower(func.coalesce(Item.nfc_tag, "")) == cleaned.lower(),
+        Item.id != (current_item_id or 0),
+    ).first()
+    if item_conflict:
+        return "That NFC UID is already assigned to another inventory item."
+
+    item_tag_conflict = ItemTag.query.filter(
+        func.lower(ItemTag.tag_value) == cleaned.lower(),
+        ItemTag.item_id != (current_item_id or 0),
+    ).first()
+    if item_tag_conflict:
+        return "That NFC UID is already assigned in the item tag map."
+
+    return ""
+
+
+def set_item_primary_nfc(item, tag_uid, source="inventory_admin"):
+    cleaned = clean_tag_value(tag_uid)
+    item.nfc_tag = cleaned or None
+    if not cleaned:
+        return
+
+    existing = ItemTag.query.filter(func.lower(ItemTag.tag_value) == cleaned.lower()).first()
+    if existing:
+        existing.item_id = item.id
+        if not existing.source:
+            existing.source = source[:40]
+        return
+    db.session.add(ItemTag(item_id=item.id, tag_value=cleaned, source=source[:40]))
+
+
+def csv_stream_from_rows(headers, rows):
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    return buffer.getvalue()
+
+
+def bulk_inventory_row_value(row, *aliases):
+    normalized = {}
+    for key, value in (row or {}).items():
+        normalized[normalize_text_key(key)] = value
+    for alias in aliases:
+        candidate = normalized.get(normalize_text_key(alias))
+        if candidate is None:
+            continue
+        text_value = str(candidate).strip()
+        if text_value:
+            return text_value
+    return ""
+
+
+def parse_bulk_inventory_rows(upload_file):
+    if not upload_file or not upload_file.filename:
+        raise ValueError("Upload a CSV or Excel file first.")
+    filename = secure_filename(upload_file.filename)
+    if "." not in filename:
+        raise ValueError("Unsupported file type. Use CSV or Excel.")
+    extension = filename.rsplit(".", 1)[1].lower()
+    if extension not in BULK_INVENTORY_ALLOWED_EXTENSIONS:
+        raise ValueError("Unsupported file type. Use CSV, XLSX, or XLS.")
+
+    if extension == "csv":
+        raw_bytes = upload_file.read()
+        if not raw_bytes:
+            raise ValueError("The uploaded file is empty.")
+        try:
+            text_blob = raw_bytes.decode("utf-8-sig")
+        except Exception:
+            text_blob = raw_bytes.decode("latin-1", errors="ignore")
+        reader = csv.DictReader(io.StringIO(text_blob))
+        if not reader.fieldnames:
+            raise ValueError("CSV file must include a header row.")
+        return [dict(row) for row in reader]
+
+    try:
+        import pandas as pd
+    except Exception as exc:
+        raise ValueError("Excel import requires pandas and openpyxl in requirements.") from exc
+
+    upload_file.stream.seek(0)
+    frame = pd.read_excel(upload_file)
+    if frame.empty:
+        raise ValueError("The uploaded file is empty.")
+    frame = frame.fillna("")
+    return frame.to_dict(orient="records")
 
 
 def normalize_portal_printer_type(raw_value):
@@ -2682,6 +2950,7 @@ def admin_dashboard_context():
     users = User.query.order_by(User.created_at.desc(), User.id.desc()).all()
     tags = NFCTag.query.order_by(NFCTag.assigned_at.desc(), NFCTag.id.desc()).all()
     items = Item.query.order_by(Item.name.asc()).all()
+    item_primary_tags = get_item_primary_tag_map()
     transactions = (
         Transaction.query.order_by(Transaction.timestamp.desc(), Transaction.id.desc())
         .limit(120)
@@ -2738,6 +3007,7 @@ def admin_dashboard_context():
         "users": users,
         "tags": tags,
         "items": items,
+        "item_primary_tags": item_primary_tags,
         "transactions": transactions,
         "print_requests": print_requests,
         "events": events,
@@ -4592,6 +4862,32 @@ def portal_admin_inventory_item_save():
         item = Item(name=name[:160], total_qty=0, available_qty=0)
         db.session.add(item)
 
+    nfc_tag = clean_tag_value(request.form.get("nfc_tag"))
+    tag_error = validate_item_tag_uid(nfc_tag, current_item_id=item.id if item and item.id else None)
+    if tag_error:
+        flash(tag_error, "error")
+        return redirect_to_next("portal_admin_inventory_page")
+
+    submitted_item_code = normalize_inventory_item_code(request.form.get("item_code"))
+    if submitted_item_code:
+        existing_item_code = Item.query.filter(
+            func.lower(func.coalesce(Item.item_code, "")) == submitted_item_code.lower(),
+            Item.id != (item.id or 0),
+        ).first()
+        if existing_item_code:
+            flash("Item ID is already in use. Choose a different Item ID.", "error")
+            return redirect_to_next("portal_admin_inventory_page")
+
+    submitted_tracker_id = normalize_treasury_tracker_id(request.form.get("treasury_tracker_id"))
+    if submitted_tracker_id:
+        existing_tracker_id = Item.query.filter(
+            func.lower(func.coalesce(Item.treasury_tracker_id, "")) == submitted_tracker_id.lower(),
+            Item.id != (item.id or 0),
+        ).first()
+        if existing_tracker_id:
+            flash("Tracker ID is already in use. Choose a different tracker ID.", "error")
+            return redirect_to_next("portal_admin_inventory_page")
+
     total_qty = parse_non_negative_int(request.form.get("total_qty"), default=max(item.total_qty, 0))
     available_qty = parse_non_negative_int(request.form.get("available_qty"), default=min(item.available_qty, total_qty))
     item_type = (request.form.get("item_type") or "").strip().lower() or "tool"
@@ -4613,8 +4909,20 @@ def portal_admin_inventory_item_save():
     item.min_stock_threshold = min_stock_threshold
     item.total_qty = max(total_qty, 0)
     item.available_qty = max(0, min(available_qty, item.total_qty))
+    if submitted_item_code:
+        item.item_code = submitted_item_code
+    if submitted_tracker_id:
+        item.treasury_tracker_id = submitted_tracker_id
+    ensure_item_tracking_ids(item)
+    set_item_primary_nfc(item, nfc_tag, source="inventory_admin")
 
-    add_audit_log("save_inventory_item", f"item_id={item.id or 'new'} name={item.name}")
+    add_audit_log(
+        "save_inventory_item",
+        (
+            f"item_id={item.id or 'new'} name={item.name} "
+            f"item_code={item.item_code} tracker_id={item.treasury_tracker_id}"
+        ),
+    )
     db.session.commit()
     flash("Inventory item saved.", "success")
     return redirect_to_next("portal_admin_inventory_page")
@@ -4657,6 +4965,272 @@ def portal_admin_inventory_adjust():
     db.session.commit()
     flash("Inventory counts updated.", "success")
     return redirect_to_next("portal_admin_inventory_page")
+
+
+@app.post("/portal/admin/inventory/import")
+@require_role("admin")
+def portal_admin_inventory_bulk_import():
+    upload_file = request.files.get("inventory_file")
+    try:
+        rows = parse_bulk_inventory_rows(upload_file)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect_to_next("portal_admin_inventory_page")
+
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    errors = []
+
+    for index, row in enumerate(rows, start=2):
+        if not any(str(value).strip() for value in (row or {}).values()):
+            continue
+
+        name = bulk_inventory_row_value(row, "name", "item", "item_name")
+        if not name:
+            skipped_count += 1
+            errors.append(f"Row {index}: missing item name.")
+            continue
+
+        item_code_input = normalize_inventory_item_code(
+            bulk_inventory_row_value(row, "item_code", "item id", "inventory_id", "asset_id")
+        )
+        tracker_input = normalize_treasury_tracker_id(
+            bulk_inventory_row_value(
+                row,
+                "treasury_tracker_id",
+                "tracker_id",
+                "tracker",
+                "treasury_id",
+            )
+        )
+        nfc_tag_input = clean_tag_value(
+            bulk_inventory_row_value(row, "nfc_tag", "nfc", "nfc_uid", "tag_uid", "tag")
+        )
+
+        item = None
+        if item_code_input:
+            item = Item.query.filter(
+                func.lower(func.coalesce(Item.item_code, "")) == item_code_input.lower()
+            ).first()
+        if not item and nfc_tag_input:
+            item = Item.query.filter(func.lower(func.coalesce(Item.nfc_tag, "")) == nfc_tag_input.lower()).first()
+            if not item:
+                mapped_tag = ItemTag.query.filter(func.lower(ItemTag.tag_value) == nfc_tag_input.lower()).first()
+                if mapped_tag:
+                    item = mapped_tag.item
+        if not item:
+            item = (
+                Item.query.filter(func.lower(Item.name) == name.lower())
+                .order_by(Item.id.asc())
+                .first()
+            )
+
+        is_new = item is None
+        if is_new:
+            item = Item(name=name[:160], total_qty=0, available_qty=0)
+
+        if item_code_input:
+            item_code_conflict = Item.query.filter(
+                func.lower(func.coalesce(Item.item_code, "")) == item_code_input.lower(),
+                Item.id != (item.id or 0),
+            ).first()
+            if item_code_conflict:
+                skipped_count += 1
+                errors.append(f"Row {index}: item code '{item_code_input}' is already used.")
+                continue
+
+        if tracker_input:
+            tracker_conflict = Item.query.filter(
+                func.lower(func.coalesce(Item.treasury_tracker_id, "")) == tracker_input.lower(),
+                Item.id != (item.id or 0),
+            ).first()
+            if tracker_conflict:
+                skipped_count += 1
+                errors.append(f"Row {index}: tracker ID '{tracker_input}' is already used.")
+                continue
+
+        tag_error = validate_item_tag_uid(nfc_tag_input, current_item_id=item.id if item and item.id else None)
+        if tag_error:
+            skipped_count += 1
+            errors.append(f"Row {index}: {tag_error}")
+            continue
+
+        total_qty = parse_non_negative_int(
+            bulk_inventory_row_value(row, "total_qty", "total", "quantity_total", "qty_total"),
+            default=max(item.total_qty, 0),
+        )
+        available_raw = bulk_inventory_row_value(row, "available_qty", "available", "quantity_available", "qty_available")
+        if available_raw:
+            available_qty = parse_non_negative_int(available_raw, default=total_qty)
+        else:
+            available_qty = min(max(item.available_qty, 0), total_qty)
+
+        item_type_raw = (bulk_inventory_row_value(row, "item_type", "type", "inventory_type") or "").strip().lower()
+        if item_type_raw not in ITEM_TYPES:
+            item_type_raw = item.item_type if item.item_type in ITEM_TYPES else "tool"
+        active_raw = bulk_inventory_row_value(row, "active", "is_active", "enabled")
+        min_threshold = parse_non_negative_int(
+            bulk_inventory_row_value(row, "min_stock_threshold", "min_stock", "reorder_threshold"),
+            default=max(item.min_stock_threshold or 0, 0),
+        )
+
+        item.name = name[:160]
+        item.category = bulk_inventory_row_value(row, "category")[:80] or None
+        item.location = bulk_inventory_row_value(row, "location", "bin", "shelf")[:120] or None
+        item.description = bulk_inventory_row_value(row, "description")[:300] or None
+        item.item_condition = bulk_inventory_row_value(row, "item_condition", "condition")[:120] or None
+        item.notes = bulk_inventory_row_value(row, "notes")[:500] or None
+        item.photo_url = bulk_inventory_row_value(row, "photo_url", "photo", "image_url")[:500] or None
+        item.item_type = item_type_raw
+        item.is_consumable = item_type_raw == "consumable"
+        item.active = parse_bool_flag(active_raw, default=True if is_new else bool(item.active))
+        item.min_stock_threshold = min_threshold
+        item.total_qty = max(total_qty, 0)
+        item.available_qty = max(0, min(available_qty, item.total_qty))
+        if item_code_input:
+            item.item_code = item_code_input
+        if tracker_input:
+            item.treasury_tracker_id = tracker_input
+
+        if is_new:
+            db.session.add(item)
+        ensure_item_tracking_ids(item)
+        set_item_primary_nfc(item, nfc_tag_input, source="bulk_inventory_import")
+
+        if is_new:
+            created_count += 1
+        else:
+            updated_count += 1
+
+    if not created_count and not updated_count:
+        db.session.rollback()
+        flash("Bulk import made no changes. Fix file issues and try again.", "error")
+    else:
+        add_audit_log(
+            "bulk_inventory_import",
+            f"rows={len(rows)} created={created_count} updated={updated_count} skipped={skipped_count}",
+        )
+        db.session.commit()
+        flash(
+            (
+                f"Bulk import complete: {created_count} created, {updated_count} updated, "
+                f"{skipped_count} skipped."
+            ),
+            "success",
+        )
+
+    if errors:
+        preview = "; ".join(errors[:4])
+        if len(errors) > 4:
+            preview += f"; +{len(errors) - 4} more"
+        flash(preview, "info")
+
+    return redirect_to_next("portal_admin_inventory_page")
+
+
+@app.get("/portal/admin/inventory/items-tags.pdf")
+@require_role("admin")
+def portal_admin_inventory_item_nfc_pdf():
+    items = Item.query.order_by(Item.name.asc(), Item.id.asc()).all()
+    tag_map = get_item_primary_tag_map()
+    now = datetime.now()
+
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except Exception:
+        flash("PDF export requires reportlab. Add reportlab to requirements and redeploy.", "error")
+        return redirect(url_for("portal_admin_inventory_page", tab="items"))
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    page_width, page_height = letter
+    margin_left = 36
+    y = page_height - 44
+
+    def draw_header():
+        nonlocal y
+        pdf.setFont("Helvetica-Bold", 13)
+        pdf.drawString(margin_left, y, "ASME Inventory NFC / Tracker List")
+        pdf.setFont("Helvetica", 9)
+        pdf.drawString(margin_left, y - 13, f"Generated: {now.strftime('%Y-%m-%d %H:%M')}")
+        y -= 30
+        pdf.setFont("Helvetica-Bold", 8.5)
+        pdf.drawString(margin_left, y, "Item Code")
+        pdf.drawString(margin_left + 76, y, "Item Name")
+        pdf.drawString(margin_left + 292, y, "NFC ID")
+        pdf.drawString(margin_left + 430, y, "Tracker ID")
+        y -= 8
+        pdf.line(margin_left, y, page_width - margin_left, y)
+        y -= 12
+
+    draw_header()
+    pdf.setFont("Helvetica", 8.5)
+    for item in items:
+        if y < 36:
+            pdf.showPage()
+            y = page_height - 44
+            draw_header()
+            pdf.setFont("Helvetica", 8.5)
+        pdf.drawString(margin_left, y, (item.item_code or "")[:18])
+        pdf.drawString(margin_left + 76, y, (item.name or "")[:42])
+        pdf.drawString(margin_left + 292, y, (get_item_primary_nfc(item, tag_map) or "-")[:25])
+        pdf.drawString(margin_left + 430, y, (item.treasury_tracker_id or "")[:26])
+        y -= 13
+
+    pdf.save()
+    buffer.seek(0)
+    download_name = f"inventory_item_nfc_{date.today().isoformat()}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.get("/portal/admin/inventory/treasury-report.csv")
+@require_role("admin")
+def portal_admin_inventory_treasury_report():
+    items = Item.query.order_by(Item.name.asc(), Item.id.asc()).all()
+    tag_map = get_item_primary_tag_map()
+    rows = []
+    for item in items:
+        checked_out_qty = max((item.total_qty or 0) - (item.available_qty or 0), 0)
+        rows.append(
+            [
+                item.item_code or "",
+                item.treasury_tracker_id or "",
+                item.id,
+                item.name or "",
+                get_item_primary_nfc(item, tag_map) or "",
+                item.category or "",
+                item.location or "",
+                item.total_qty or 0,
+                item.available_qty or 0,
+                checked_out_qty,
+                item.min_stock_threshold or 0,
+                "yes" if item.active else "no",
+            ]
+        )
+    content = csv_stream_from_rows(
+        [
+            "item_code",
+            "treasury_tracker_id",
+            "db_item_id",
+            "item_name",
+            "nfc_id",
+            "category",
+            "location",
+            "total_qty",
+            "available_qty",
+            "checked_out_qty",
+            "min_stock_threshold",
+            "active",
+        ],
+        rows,
+    )
+    return Response(
+        content,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=inventory_treasury_report.csv"},
+    )
 
 
 @app.post("/portal/admin/print/<int:request_id>/status")

@@ -36,6 +36,27 @@
   </div>
 </section>
 {% else %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Bulk Import + Reports</h3>
+  </div>
+  <div class="split-fields two-up">
+    <form method="post" action="/portal/admin/inventory/import" class="form-stack" enctype="multipart/form-data">
+      <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
+      <label for="inventory_file">Bulk Inventory File</label>
+      <input id="inventory_file" name="inventory_file" type="file" accept=".csv,.xlsx,.xls" required />
+      <p class="muted">Use CSV/XLSX with at least a <code>name</code> column. Optional: <code>nfc_tag</code>, <code>total_qty</code>, <code>available_qty</code>, <code>item_code</code>, <code>treasury_tracker_id</code>.</p>
+      <button type="submit">Import Inventory</button>
+    </form>
+    <div class="form-stack">
+      <label>Exports</label>
+      <a href="/portal/admin/inventory/items-tags.pdf">Download PDF: Item + NFC + Tracker</a>
+      <a href="/portal/admin/inventory/treasury-report.csv">Download Treasury CSV</a>
+      <p class="muted">Treasury CSV includes item/tracker IDs, quantities, location, and active status.</p>
+    </div>
+  </div>
+</section>
+
 <section class="panel-grid two">
   <article class="panel">
     <div class="panel-head">
@@ -53,6 +74,21 @@
 
       <label for="name">Name</label>
       <input id="name" name="name" required />
+
+      <div class="split-fields three-up">
+        <div>
+          <label for="item_code">Item ID</label>
+          <input id="item_code" name="item_code" placeholder="Auto if blank" />
+        </div>
+        <div>
+          <label for="treasury_tracker_id">Treasury Tracker ID</label>
+          <input id="treasury_tracker_id" name="treasury_tracker_id" placeholder="Auto if blank" />
+        </div>
+        <div>
+          <label for="nfc_tag">NFC ID</label>
+          <input id="nfc_tag" name="nfc_tag" placeholder="UID / payload" />
+        </div>
+      </div>
 
       <div class="split-fields three-up">
         <div>
@@ -143,12 +179,25 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Active</th><th>Stock</th></tr>
+          <tr>
+            <th>Item ID</th>
+            <th>Item</th>
+            <th>NFC ID</th>
+            <th>Tracker ID</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Type</th>
+            <th>Active</th>
+            <th>Stock</th>
+          </tr>
         </thead>
         <tbody>
           {% for item in items %}
           <tr>
+            <td><code>{{ item.item_code or ('ASME-INV-' ~ item.id|string) }}</code></td>
             <td>{{ item.name }}</td>
+            <td><code>{{ item.nfc_tag or item_primary_tags.get(item.id, '') or '-' }}</code></td>
+            <td><code>{{ item.treasury_tracker_id or '' }}</code></td>
             <td>{{ item.category or '' }}</td>
             <td>{{ item.location or '' }}</td>
             <td>{{ item.item_type }}</td>
@@ -157,7 +206,7 @@
           </tr>
           {% endfor %}
           {% if not items %}
-          <tr><td colspan="6" class="muted">No inventory items yet.</td></tr>
+          <tr><td colspan="9" class="muted">No inventory items yet.</td></tr>
           {% endif %}
         </tbody>
       </table>
