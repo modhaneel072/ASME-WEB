@@ -10,6 +10,7 @@ import zipfile
 import time as time_module
 import platform
 import unicodedata
+from threading import Lock
 from functools import wraps
 from datetime import date, datetime, time, timedelta
 from email.message import EmailMessage
@@ -322,6 +323,8 @@ def outlook_calendar_embed_context():
 INVENTORY_SCHEMA_READY = False
 MEETING_SCHEMA_READY = False
 PORTAL_SCHEMA_READY = False
+RUNTIME_SCHEMA_READY = False
+RUNTIME_SCHEMA_LOCK = Lock()
 
 
 def clean_tag_value(raw):
@@ -2811,12 +2814,25 @@ def frontend_portal_context():
 
 @app.before_request
 def ensure_runtime_schema():
-    # Keeps local SQLite upgrades seamless without introducing migration tooling for this project.
-    if request.path.startswith("/static/"):
+    # Keeps schema upgrades seamless without introducing migration tooling for this project.
+    # Use a lightweight health endpoint and one-time guarded initialization to avoid
+    # concurrent startup races on limited instances.
+    if request.path.startswith("/static/") or request.path == "/healthz":
         return
-    ensure_inventory_schema_columns()
-    ensure_meeting_schema_columns()
-    ensure_portal_schema()
+    ensure_runtime_schema_once()
+
+
+def ensure_runtime_schema_once():
+    global RUNTIME_SCHEMA_READY
+    if RUNTIME_SCHEMA_READY:
+        return
+    with RUNTIME_SCHEMA_LOCK:
+        if RUNTIME_SCHEMA_READY:
+            return
+        ensure_inventory_schema_columns()
+        ensure_meeting_schema_columns()
+        ensure_portal_schema()
+        RUNTIME_SCHEMA_READY = True
 
 
 def redirect_home(page):
@@ -3039,6 +3055,11 @@ def admin_dashboard_context():
 @app.get("/")
 def public_home():
     return render_template("site/home.html", **public_site_context("Home"))
+
+
+@app.get("/healthz")
+def health_check():
+    return jsonify({"ok": True, "service": "asme-web"})
 
 
 @app.get("/who-we-are")
