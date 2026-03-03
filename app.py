@@ -256,7 +256,31 @@ EXEC_PROFILE_OVERRIDES = {
             "or talk about sponsorships, leadership opportunities, or long-term plans for the club.\n"
             "brayden-nagra@uiowa.edu, 806-577-2216"
         ),
-    }
+    },
+    "email:jaetnyre@uiowa.edu": {
+        "title": "Executive Coordinator",
+        "headshot_url": "/static/images/executive/jet_etnyre.jpg",
+        "message": (
+            "As Executive Coordinator, I handle a lot of scheduling work across ASME operations.\n"
+            "I use ASTRA Schedule Viewer, submit room request forms, and post events on Engage once reservations are confirmed.\n"
+            "I also support external events outside GBMs. I created the Dallas trip itinerary, worked with Eddy on hotel planning, helped set up volleyball events last semester, and I am helping run Makeathon this semester.\n"
+            "My personal goal this semester is to win an intramural championship, and for ASME I am focused on making the Dallas trip run smoothly.\n"
+            "Members can get involved by attending GBMs and events. I would love ideas for next-year events outside GBMs (socials, games, sports, etc).\n"
+            "jaetnyre@uiowa.edu"
+        ),
+    },
+    "name:jetetnyre": {
+        "title": "Executive Coordinator",
+        "headshot_url": "/static/images/executive/jet_etnyre.jpg",
+        "message": (
+            "As Executive Coordinator, I handle a lot of scheduling work across ASME operations.\n"
+            "I use ASTRA Schedule Viewer, submit room request forms, and post events on Engage once reservations are confirmed.\n"
+            "I also support external events outside GBMs. I created the Dallas trip itinerary, worked with Eddy on hotel planning, helped set up volleyball events last semester, and I am helping run Makeathon this semester.\n"
+            "My personal goal this semester is to win an intramural championship, and for ASME I am focused on making the Dallas trip run smoothly.\n"
+            "Members can get involved by attending GBMs and events. I would love ideas for next-year events outside GBMs (socials, games, sports, etc).\n"
+            "jaetnyre@uiowa.edu"
+        ),
+    },
 }
 
 ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
