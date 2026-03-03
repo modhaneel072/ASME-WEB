@@ -13,11 +13,11 @@
       </div>
       <div>
         <dt>Embed Configured</dt>
-        <dd>{{ 'Yes' if calendar_embed_url else 'No' }}</dd>
+        <dd>{{ "Yes" if calendar_embed_url else "No" }}</dd>
       </div>
       <div>
         <dt>Scheduling API Ready</dt>
-        <dd>{{ 'Yes' if google_schedule_enabled else 'No' }}</dd>
+        <dd>{{ "Yes" if google_schedule_enabled else "No" }}</dd>
       </div>
       <div>
         <dt>Work Hours</dt>
@@ -38,46 +38,71 @@
     {% if calendar_embed_url %}
     <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
     {% else %}
-    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    <p class="muted">No calendar embed configured yet.</p>
     {% endif %}
-    <p class="muted">Team leaders and admins schedule meetings from the slot-based page: <a href="/portal/member/schedule">Schedule Meeting</a>.</p>
+    <p class="muted">Team leaders and admins can schedule meetings from <a href="/portal/member/schedule">Schedule Meeting</a>.</p>
   </article>
 
   <article class="panel">
     <div class="panel-head">
-      <h3>Requested Meetings</h3>
+      <h3>Google Setup Status</h3>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Title</th><th>Room</th><th>Time</th><th>Actions</th></tr>
+          <tr><th>Variable</th><th>Status</th></tr>
         </thead>
         <tbody>
-          {% for event in requested_events %}
+          {% for row in google_env_status %}
           <tr>
-            <td>{{ event.title }}</td>
-            <td>{{ event.location or '' }}</td>
-            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ event.end_time.strftime('%H:%M') }}</td>
-            <td>
-              <form method="post" action="/portal/admin/events/{{ event.id }}/status" class="inline-form">
-                <input type="hidden" name="next" value="/portal/admin/calendar" />
-                <input type="hidden" name="title" value="{{ event.title }}" />
-                <input type="hidden" name="location" value="{{ event.location or meeting_rooms[0] }}" />
-                <input type="hidden" name="start_time" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" />
-                <input type="hidden" name="end_time" value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') }}" />
-                <button type="submit" name="status" value="scheduled">Approve</button>
-                <button type="submit" name="status" value="cancelled">Reject</button>
-              </form>
-            </td>
+            <td><code>{{ row.name }}</code></td>
+            <td>{{ "Configured" if row.configured else "Missing" }}</td>
           </tr>
           {% endfor %}
-          {% if not requested_events %}
-          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          {% if not google_env_status %}
+          <tr><td colspan="2" class="muted">No calendar variables detected.</td></tr>
           {% endif %}
         </tbody>
       </table>
     </div>
+    <p class="muted">Render setup path: Web Service -> Environment. Save variables, then redeploy.</p>
   </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Requested Meetings</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Room</th><th>Time</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for event in requested_events %}
+        <tr>
+          <td>{{ event.title }}</td>
+          <td>{{ event.location or "" }}</td>
+          <td>{{ event.start_time.strftime("%Y-%m-%d %H:%M") }} - {{ event.end_time.strftime("%H:%M") }}</td>
+          <td>
+            <form method="post" action="/portal/admin/events/{{ event.id }}/status" class="inline-form">
+              <input type="hidden" name="next" value="/portal/admin/calendar" />
+              <input type="hidden" name="title" value="{{ event.title }}" />
+              <input type="hidden" name="location" value="{{ event.location or meeting_rooms[0] }}" />
+              <input type="hidden" name="start_time" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" />
+              <input type="hidden" name="end_time" value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') }}" />
+              <button type="submit" name="status" value="scheduled">Approve</button>
+              <button type="submit" name="status" value="cancelled">Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not requested_events %}
+        <tr><td colspan="4" class="muted">No pending meeting requests.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <section class="panel">
@@ -96,12 +121,12 @@
         <tr>
           <td>{{ event.title }}</td>
           <td>{{ event.status }}</td>
-          <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
-          <td>{{ event.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ event.start_time.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ event.end_time.strftime("%Y-%m-%d %H:%M") }}</td>
         </tr>
         {% endfor %}
         {% if not room_events[room] %}
-        <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        <tr><td colspan="4" class="muted">No meetings currently in this room.</td></tr>
         {% endif %}
       </tbody>
     </table>

@@ -4309,7 +4309,71 @@ def portal_admin_content_page():
 @app.get("/portal/admin/calendar")
 @require_role("admin")
 def portal_admin_calendar_page():
-    return redirect(url_for("portal_admin_dashboard"))
+    context = admin_dashboard_context()
+    context["page_title"] = "Calendar"
+    context["active_page"] = "admin_calendar"
+    context["meeting_rooms"] = MEETING_ROOMS
+
+    provider = calendar_provider_name()
+    config = google_calendar_config()
+    work_start, work_end = parse_work_hours()
+    requested_events = (
+        Event.query.filter(Event.status == "requested")
+        .order_by(Event.start_time.asc(), Event.id.asc())
+        .limit(120)
+        .all()
+    )
+    room_events = {}
+    for room in MEETING_ROOMS:
+        room_events[room] = (
+            Event.query.filter(
+                func.lower(func.coalesce(Event.location, "")) == room.lower(),
+                Event.status.in_(["requested", "scheduled"]),
+            )
+            .order_by(Event.start_time.asc(), Event.id.asc())
+            .limit(180)
+            .all()
+        )
+
+    calendar_embed = portal_calendar_embed_url()
+    env_status = [
+        {"name": "ASME_CALENDAR_PROVIDER", "value": provider, "configured": bool(provider)},
+        {
+            "name": "GOOGLE_CALENDAR_ID_ROBOTICS",
+            "value": "set" if (config["room_ids"].get("Robotics Room") or "") else "missing",
+            "configured": bool(config["room_ids"].get("Robotics Room")),
+        },
+        {
+            "name": "GOOGLE_CALENDAR_ID_FLUIDS",
+            "value": "set" if (config["room_ids"].get("Fluids Lab") or "") else "missing",
+            "configured": bool(config["room_ids"].get("Fluids Lab")),
+        },
+        {
+            "name": "GOOGLE_SERVICE_ACCOUNT_JSON",
+            "value": "set" if (config["service_raw"] or "") else "missing",
+            "configured": bool(config["service_raw"]),
+        },
+    ]
+    if provider != "google":
+        env_status.append(
+            {
+                "name": "ASME_GOOGLE_CALENDAR_EMBED_URL",
+                "value": "set" if calendar_embed else "missing",
+                "configured": bool(calendar_embed),
+            }
+        )
+
+    context["calendar_provider"] = provider
+    context["calendar_embed_url"] = calendar_embed
+    context["google_schedule_enabled"] = config["enabled"]
+    context["calendar_work_start"] = work_start.strftime("%H:%M")
+    context["calendar_work_end"] = work_end.strftime("%H:%M")
+    context["calendar_days_default"] = min(max(CALENDAR_SCHEDULING_DAYS_DEFAULT, 1), 30)
+    context["calendar_warnings"] = list(config["errors"]) if provider == "google" else []
+    context["google_env_status"] = env_status
+    context["requested_events"] = requested_events
+    context["room_events"] = room_events
+    return render_template("portal/admin_calendar.html", **context)
 
 
 @app.get("/portal/admin/exports")
