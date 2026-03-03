@@ -1,60 +1,102 @@
 # ASME @ UIowa Web Platform
 
-Modern Flask full-stack app with:
+Single coherent Flask app with:
 - Public marketing site
-- Role-based member/team leader/admin portal
-- Inventory checkout/return
-- NFC tag mapping + attendance
-- 3D print request queue
-- Calendar and meeting workflows
-
-## Tech stack
-- Python + Flask
-- Flask-SQLAlchemy (SQLite by default, Postgres-compatible URI)
-- Jinja templates + custom CSS
+- Member/team-leader/admin portal
+- Inventory checkout + returns
+- Print request queue
+- Google Calendar viewing + slot-based scheduling
+- NFC attendance + kiosk login entry flows
 
 ## Roles
-- `guest` (not logged in)
 - `member`
 - `team_leader`
 - `admin`
 
-## Pages
-- Public: `/`, `/who-we-are`, `/executive-team`, `/projects`, `/projects/<slug>`, `/join`, `/sponsors`, `/contact`, `/login`, `/admin-login`, `/signup`, `/forgot-password`
-- Portal router: `/portal`
-- Member:
-  - `/portal/member` (dashboard tiles)
-  - `/portal/member/inventory`
-  - `/portal/member/items/<id>`
-  - `/portal/member/checkouts`
-  - `/portal/member/prints`
-  - `/portal/member/prints/<id>`
-  - `/portal/member/calendar`
-  - `/portal/member/help`
-  - `/portal/member/profile`
-- Team leader: `/portal/team`
-- Admin:
-  - `/portal/admin` (KPI dashboard)
-  - `/portal/admin/members`
-  - `/portal/admin/nfc`
-  - `/portal/admin/attendance`
-  - `/portal/admin/inventory`
-  - `/portal/admin/prints`
-  - `/portal/admin/announcements`
-- Existing ops backend remains available at `/dashboard`, `/inventory`, `/attendance`, `/prints`, `/calendar`
+Server-side RBAC is enforced on portal routes.
 
-## Database models
-- `users`
-- `nfc_tags`
-- `items` (inventory items)
-- `transactions` (inventory checkout/return records)
-- `print_requests`
-- `events`
-- `attendance_records`
-- `projects`
-- `contact_messages`
-- `announcements`
-- `audit_logs`
+## Key routes
+
+### Public
+- `/` Home
+- `/about` (alias: `/who-we-are`)
+- `/exec` (alias: `/executive-team`)
+- `/projects`
+- `/projects/<slug>`
+- `/join`
+- `/contact` (alias: `/socials`)
+- `/login`
+- `/signup`
+- `/forgot-password`
+
+### Portal member
+- `/portal/member`
+- `/portal/member/inventory`
+- `/portal/member/inventory/<id>`
+- `/portal/member/my-items` (alias: `/portal/member/checkouts`)
+- `/portal/member/prints`
+- `/portal/member/calendar`
+- `/portal/member/profile`
+
+### Team leader / admin scheduling
+- `/portal/member/schedule`
+- `/portal/leader/schedule` (alias)
+
+### Admin
+- `/portal/admin`
+- `/portal/admin/members`
+- `/portal/admin/nfc`
+- `/portal/admin/attendance`
+- `/portal/admin/inventory`
+- `/portal/admin/prints`
+- `/portal/admin/calendar`
+- `/portal/admin/exports`
+- `/portal/admin/settings`
+
+### Shared NFC URL tag flows
+- `/kiosk` shared login tag entry (login/signup -> inventory)
+- `/checkin` shared attendance tag flow
+- `/checkin/select`
+- `/checkin/success`
+
+## Legacy ops compatibility
+
+Set `ASME_ENABLE_LEGACY_OPS=1` to keep old ops pages active.
+
+Default is `ASME_ENABLE_LEGACY_OPS=0`, so legacy routes redirect into portal equivalents:
+- `/dashboard` -> `/portal`
+- `/attendance` -> `/portal/admin/attendance`
+- `/inventory` -> `/portal/member/inventory`
+- `/prints` -> `/portal/member/prints`
+- `/activity` -> `/portal/admin/inventory`
+- `/settings` -> `/portal/admin/settings`
+- `/scan` -> `/kiosk`
+- `/my-items` -> `/portal/member/my-items`
+- `/admin/nfc` -> `/portal/admin/nfc`
+- `/calendar` -> `/portal/member/calendar`
+- `/app` -> `/kiosk`
+
+## Google Calendar scheduling setup
+
+Required env vars for slot-based scheduling:
+- `GOOGLE_SERVICE_ACCOUNT_JSON` (raw JSON string OR absolute path to JSON file)
+- `GOOGLE_CALENDAR_ID_ROBOTICS`
+- `GOOGLE_CALENDAR_ID_FLUIDS`
+- `GOOGLE_CALENDAR_TIMEZONE` (default `America/Chicago`)
+- `CALENDAR_SCHEDULING_DAYS` (default `14`)
+- `CALENDAR_WORK_HOURS_START` (default `08:00`)
+- `CALENDAR_WORK_HOURS_END` (default `22:00`)
+
+Scheduling uses Google Calendar `freebusy.query` to compute available slots and `events.insert` to create meetings.
+
+## Core env vars
+
+See `.env.example`. Most important:
+- `ASME_SECRET_KEY`
+- `ASME_DATABASE_URL`
+- `ASME_CALENDAR_PROVIDER=google`
+- `ASME_GOOGLE_CALENDAR_EMBED_URL` (optional if room IDs are configured; embed can be generated)
+- `ASME_ENABLE_LEGACY_OPS=0`
 
 ## Quick start (Windows PowerShell)
 ```powershell
@@ -67,20 +109,13 @@ python db_init.py
 python app.py
 ```
 
-Open: `http://127.0.0.1:5000`
+Open `http://127.0.0.1:5000`.
 
-## Demo credentials
-After `python db_init.py`, default seeded users use:
-- password: `ChangeMe123!`
-- sample emails:
-  - `jordan@uiowa.edu` (admin)
-  - `morgan@uiowa.edu` (team_leader)
-  - `avery@uiowa.edu` (member)
-
-## Environment variables
-See `.env.example`.
-
-## Render deploy notes
-- Build command: `pip install -r requirements.txt`
-- Start command: `python app.py`
-- Set `ASME_DATABASE_URL` to a valid SQLAlchemy URL (or keep SQLite for testing).
+## Smoke checks
+After startup, verify:
+- `/`
+- `/login`
+- `/portal/member`
+- `/portal/admin`
+- `/kiosk`
+- `/checkin`

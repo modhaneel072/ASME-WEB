@@ -19,7 +19,7 @@
 
   {% if open_tx %}
   <form method="post" action="/portal/inventory/return" class="form-stack">
-    <input type="hidden" name="next" value="/portal/member/items/{{ item.id }}" />
+    <input type="hidden" name="next" value="/portal/member/inventory/{{ item.id }}" />
     <input type="hidden" name="item_id" value="{{ item.id }}" />
     <input type="hidden" name="qty" value="{{ open_tx.qty }}" />
     <label for="condition">Condition</label>
@@ -34,7 +34,7 @@
   </form>
   {% elif item.available_qty > 0 %}
   <form method="post" action="/portal/inventory/checkout" class="form-stack">
-    <input type="hidden" name="next" value="/portal/member/items/{{ item.id }}" />
+    <input type="hidden" name="next" value="/portal/member/inventory/{{ item.id }}" />
     <input type="hidden" name="item_id" value="{{ item.id }}" />
     <label for="qty">Quantity</label>
     <input id="qty" name="qty" type="number" min="1" value="1" />

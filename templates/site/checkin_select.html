@@ -1,0 +1,19 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel auth-panel">
+  <div class="section-head">
+    <h3>Select Meeting</h3>
+  </div>
+  <p class="muted">Multiple meetings are active. Pick the correct one to complete check-in.</p>
+  <form method="post" class="form-stack">
+    <label for="event_id">Meeting</label>
+    <select id="event_id" name="event_id" required>
+      {% for event in candidate_events %}
+      <option value="{{ event.id }}">{{ event.title }} - {{ event.start_time.strftime('%Y-%m-%d %H:%M') }} ({{ event.location or '' }})</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Mark Me Present</button>
+  </form>
+</section>
+{% endblock %}

@@ -20,23 +20,25 @@
       <nav>
         <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
         <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
-        <a class="{{ 'active' if active_page == 'member_checkouts' else '' }}" href="/portal/member/checkouts">My Checkouts</a>
-        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">3D Printing</a>
+        <a class="{{ 'active' if active_page == 'member_my_items' else '' }}" href="/portal/member/my-items">My Items</a>
+        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Prints</a>
         <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
-        <a class="{{ 'active' if active_page == 'member_help' else '' }}" href="/portal/member/help">Help / Ask Leads</a>
+        {% if current_user and (current_user.role == 'team_leader' or current_user.role == 'admin') %}
+        <a class="{{ 'active' if active_page == 'member_schedule' else '' }}" href="/portal/member/schedule">Schedule Meeting</a>
+        {% endif %}
         <a class="{{ 'active' if active_page == 'member_profile' else '' }}" href="/portal/member/profile">Profile</a>
       </nav>
 
       {% if current_user and current_user.role == 'admin' %}
       <nav class="admin-nav">
         <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Admin Dashboard</a>
-        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members</a>
+        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members / Roles</a>
         <a class="{{ 'active' if active_page == 'admin_nfc' else '' }}" href="/portal/admin/nfc">NFC Tags</a>
         <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
-        <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory Mgmt</a>
-        <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Print Queue Mgmt</a>
+        <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory Admin</a>
+        <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Prints Admin</a>
         <a class="{{ 'active' if active_page == 'admin_calendar' else '' }}" href="/portal/admin/calendar">Calendar</a>
-        <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Announcements</a>
+        <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Content</a>
         <a class="{{ 'active' if active_page == 'admin_exports' else '' }}" href="/portal/admin/exports">Exports</a>
         <a class="{{ 'active' if active_page == 'admin_settings' else '' }}" href="/portal/admin/settings">Settings / Audit</a>
       </nav>

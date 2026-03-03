@@ -1,0 +1,17 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel auth-panel">
+  <div class="section-head">
+    <h3>Meeting Check-in</h3>
+  </div>
+  {% if active_event %}
+  <p class="muted">Preparing automatic check-in...</p>
+  {% else %}
+  <p class="muted">No active meeting right now. Scan again when a meeting is in progress or starting soon.</p>
+  {% endif %}
+  <div class="hero-actions">
+    <a class="btn" href="/portal/member/calendar">View Calendar</a>
+  </div>
+</section>
+{% endblock %}

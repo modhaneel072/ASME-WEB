@@ -1,0 +1,83 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Schedule Meeting</h3>
+  </div>
+  {% if not google_schedule_enabled %}
+  <div class="flash flash-error">Admin needs to configure Google Calendar integration before scheduling can be used.</div>
+  {% for item in google_schedule_errors %}
+  <p class="muted">{{ item }}</p>
+  {% endfor %}
+  {% endif %}
+  <form method="post" class="form-stack">
+    <label for="team_name">Team Name</label>
+    <input id="team_name" name="team_name" value="{{ form_values.team_name }}" required />
+    <div class="split-fields three-up">
+      <div>
+        <label for="duration">Duration</label>
+        <select id="duration" name="duration">
+          {% for minutes in duration_options %}
+          <option value="{{ minutes }}" {% if form_values.duration == minutes %}selected{% endif %}>{{ minutes }} min</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="days">Date Range</label>
+        <select id="days" name="days">
+          {% for days in range_options %}
+          <option value="{{ days }}" {% if form_values.days == days %}selected{% endif %}>Next {{ days }} days</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="location">Preferred Location (optional)</label>
+        <select id="location" name="location">
+          <option value="">Any Available Room</option>
+          {% for room in meeting_rooms %}
+          <option value="{{ room }}" {% if form_values.location == room %}selected{% endif %}>{{ room }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" name="notes">{{ form_values.notes }}</textarea>
+    <button type="submit" name="action" value="preview" {% if not google_schedule_enabled %}disabled{% endif %}>Find Available Slots</button>
+  </form>
+</section>
+
+{% if slots %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Available Slots</h3>
+  </div>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="action" value="book" />
+    <input type="hidden" name="team_name" value="{{ form_values.team_name }}" />
+    <input type="hidden" name="duration" value="{{ form_values.duration }}" />
+    <input type="hidden" name="days" value="{{ form_values.days }}" />
+    <input type="hidden" name="location" value="{{ form_values.location }}" />
+    <input type="hidden" name="notes" value="{{ form_values.notes }}" />
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Select</th><th>Date</th><th>Time</th><th>Location</th></tr>
+        </thead>
+        <tbody>
+          {% for slot in slots %}
+          <tr>
+            <td><input type="radio" name="slot_token" value="{{ slot.token }}" required {% if loop.first %}checked{% endif %} /></td>
+            <td>{{ slot.start.strftime('%Y-%m-%d') }}</td>
+            <td>{{ slot.start.strftime('%H:%M') }} - {{ slot.end.strftime('%H:%M') }}</td>
+            <td>{{ slot.room }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit" {% if not google_schedule_enabled %}disabled{% endif %}>Schedule Selected Slot</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

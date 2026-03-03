@@ -23,7 +23,7 @@
       <tbody>
         {% for item in items %}
         <tr>
-          <td><a href="/portal/member/items/{{ item.id }}">{{ item.name }}</a></td>
+          <td><a href="/portal/member/inventory/{{ item.id }}">{{ item.name }}</a></td>
           <td>{{ item.category or '' }}</td>
           <td>{{ item.available_qty }}/{{ item.total_qty }}</td>
           <td>{{ item.location or '' }}</td>

@@ -15,6 +15,18 @@
         <dt>Embed Configured</dt>
         <dd>{{ 'Yes' if calendar_embed_url else 'No' }}</dd>
       </div>
+      <div>
+        <dt>Scheduling API Ready</dt>
+        <dd>{{ 'Yes' if google_schedule_enabled else 'No' }}</dd>
+      </div>
+      <div>
+        <dt>Work Hours</dt>
+        <dd>{{ calendar_work_start }} - {{ calendar_work_end }}</dd>
+      </div>
+      <div>
+        <dt>Default Range</dt>
+        <dd>{{ calendar_days_default }} days</dd>
+      </div>
     </dl>
     {% if calendar_warnings %}
     <div class="flash-stack">
@@ -28,6 +40,7 @@
     {% else %}
     <p class="muted">Placeholder line: final website copy will be added here.</p>
     {% endif %}
+    <p class="muted">Team leaders and admins schedule meetings from the slot-based page: <a href="/portal/member/schedule">Schedule Meeting</a>.</p>
   </article>
 
   <article class="panel">

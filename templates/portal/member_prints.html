@@ -10,9 +10,12 @@
       <input type="hidden" name="next" value="/portal/member/prints" />
       <label for="printer_type">Printer</label>
       <select id="printer_type" name="printer_type">
-        <option value="H2S">H2S</option>
-        <option value="P1S">P1S</option>
+        {% for printer in portal_print_printers %}
+        <option value="{{ printer }}">{{ printer|replace('_', '-') }}</option>
+        {% endfor %}
       </select>
+      <label for="filament">Filament (required)</label>
+      <input id="filament" name="filament" required placeholder="e.g., PLA Black" />
       <label for="print_file">Upload File</label>
       <input id="print_file" name="print_file" type="file" />
       <label for="file_link">Or File Link</label>
@@ -67,7 +70,7 @@
           {% for req in print_requests %}
           <tr>
             <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ req.printer_type }}</td>
+            <td>{{ req.printer_type|replace('_', '-') }}</td>
             <td><span class="badge">{{ req.status }}</span></td>
             <td><a href="/portal/member/prints/{{ req.id }}">Open</a></td>
           </tr>

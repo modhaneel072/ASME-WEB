@@ -16,7 +16,7 @@
       <label>Role</label>
       <input value="{{ current_user.role }}" readonly />
       <label>Linked NFC Tag (read-only)</label>
-      <input value="{{ active_tag.tag_uid if active_tag else 'Not assigned' }}" readonly />
+      <input value="{{ current_user.nfc_uid or (active_tag.tag_uid if active_tag else 'Not assigned') }}" readonly />
       <button type="submit">Save Profile</button>
     </form>
   </article>

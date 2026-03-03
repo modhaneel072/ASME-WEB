@@ -5,24 +5,26 @@
   <div class="panel-head">
     <h3>3D Print Queue Management</h3>
   </div>
+  {% for printer in portal_print_printers %}
+  <h4>{{ printer|replace('_', '-') }}</h4>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>Submitted</th>
           <th>User</th>
-          <th>Printer</th>
+          <th>Filament</th>
           <th>Status</th>
           <th>File</th>
           <th>Update</th>
         </tr>
       </thead>
       <tbody>
-        {% for req in print_requests %}
+        {% for req in print_requests_by_printer.get(printer, []) %}
         <tr>
           <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
           <td>{{ req.user.name if req.user else req.user_id }}</td>
-          <td>{{ req.printer_type }}</td>
+          <td>{{ req.filament or '' }}</td>
           <td>{{ req.status }}</td>
           <td>{{ req.file_link or req.file_path or '' }}</td>
           <td>
@@ -34,8 +36,9 @@
                 {% endfor %}
               </select>
               <select name="printer_type">
-                <option value="H2S" {% if req.printer_type == 'H2S' %}selected{% endif %}>H2S</option>
-                <option value="P1S" {% if req.printer_type == 'P1S' %}selected{% endif %}>P1S</option>
+                {% for option in portal_print_printers %}
+                <option value="{{ option }}" {% if req.printer_type == option %}selected{% endif %}>{{ option|replace('_', '-') }}</option>
+                {% endfor %}
               </select>
               <input name="admin_notes" value="{{ req.admin_notes or '' }}" placeholder="Admin notes" />
               <button type="submit">Save</button>
@@ -43,8 +46,12 @@
           </td>
         </tr>
         {% endfor %}
+        {% if not print_requests_by_printer.get(printer) %}
+        <tr><td colspan="6" class="muted">No requests in this queue.</td></tr>
+        {% endif %}
       </tbody>
     </table>
   </div>
+  {% endfor %}
 </section>
 {% endblock %}

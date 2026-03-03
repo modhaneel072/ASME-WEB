@@ -21,7 +21,11 @@
         <tbody>
           <tr><td>Calendar Provider</td><td>{{ env_status.calendar_provider }}</td></tr>
           <tr><td>Google Embed URL Set</td><td>{{ 'Yes' if env_status.google_embed_set else 'No' }}</td></tr>
+          <tr><td>Google Service Account Set</td><td>{{ 'Yes' if env_status.google_service_account_set else 'No' }}</td></tr>
+          <tr><td>Google Robotics Calendar ID Set</td><td>{{ 'Yes' if env_status.google_calendar_robotics_set else 'No' }}</td></tr>
+          <tr><td>Google Fluids Calendar ID Set</td><td>{{ 'Yes' if env_status.google_calendar_fluids_set else 'No' }}</td></tr>
           <tr><td>Outlook Embed URL Set</td><td>{{ 'Yes' if env_status.outlook_embed_set else 'No' }}</td></tr>
+          <tr><td>Legacy Ops Enabled</td><td>{{ 'Yes' if env_status.legacy_ops_enabled else 'No' }}</td></tr>
           <tr><td>Shared Admin Email</td><td>{{ env_status.shared_admin_email or 'Not set' }}</td></tr>
           <tr><td>H2S Print Command Set</td><td>{{ 'Yes' if env_status.h2s_print_command_set else 'No' }}</td></tr>
           <tr><td>P1S Print Command Set</td><td>{{ 'Yes' if env_status.p1s_print_command_set else 'No' }}</td></tr>

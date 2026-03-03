@@ -1,0 +1,15 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<section class="panel auth-panel">
+  <div class="section-head">
+    <h3>Checkout Kiosk</h3>
+  </div>
+  <p class="muted">Scan this tag to open quick login for checkout and returns.</p>
+  <div class="hero-actions">
+    <a class="btn" href="/login?next={{ inventory_next|urlencode }}">Member Login</a>
+    <a class="btn ghost" href="/signup?next={{ inventory_next|urlencode }}">Sign Up</a>
+    <a class="btn light" href="/admin-login?next={{ admin_next|urlencode }}">Admin Login</a>
+  </div>
+</section>
+{% endblock %}

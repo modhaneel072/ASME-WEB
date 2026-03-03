@@ -37,8 +37,9 @@
       <button type="submit">Create Event</button>
     </form>
 
-    <form method="post" action="/portal/admin/attendance/checkin" class="form-stack">
+    <form method="post" action="/portal/admin/attendance/checkin" class="form-stack" id="admin-checkin-form">
       <input type="hidden" name="next" value="/portal/admin/attendance" />
+      <input type="hidden" name="checkin_method" value="manual" id="checkin_method" />
       <h4>Check-in Tool</h4>
       <label for="event_id">Event</label>
       <select id="event_id" name="event_id" required>
@@ -48,6 +49,7 @@
       </select>
       <label for="tag_uid">Tag UID (preferred)</label>
       <input id="tag_uid" name="tag_uid" />
+      <button type="button" id="startNfcCheckin">Scan NFC Card (Android Chrome)</button>
       <label for="user_id">Manual User Fallback</label>
       <select id="user_id" name="user_id">
         <option value="">None</option>
@@ -173,4 +175,35 @@
     </table>
   </div>
 </section>
+
+<script>
+  (() => {
+    const trigger = document.getElementById("startNfcCheckin");
+    const uidInput = document.getElementById("tag_uid");
+    const methodInput = document.getElementById("checkin_method");
+    const form = document.getElementById("admin-checkin-form");
+    if (!trigger || !uidInput || !methodInput || !form) return;
+    trigger.addEventListener("click", async () => {
+      if (!("NDEFReader" in window)) {
+        alert("Web NFC is not available on this device. Use manual UID entry.");
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        trigger.textContent = "Waiting for NFC scan...";
+        reader.addEventListener("reading", (event) => {
+          const serial = (event.serialNumber || "").trim();
+          if (!serial) return;
+          uidInput.value = serial;
+          methodInput.value = "kiosk";
+          trigger.textContent = "Card captured";
+          setTimeout(() => form.submit(), 180);
+        });
+      } catch (error) {
+        alert("NFC scan failed. Use manual UID entry.");
+      }
+    });
+  })();
+</script>
 {% endblock %}

@@ -28,6 +28,8 @@ class Item(db.Model):
     notes = db.Column(db.String(500), nullable=True)
     photo_url = db.Column(db.String(500), nullable=True)
     item_type = db.Column(db.String(20), nullable=False, default="tool")  # tool / consumable
+    is_consumable = db.Column(db.Boolean, nullable=False, default=False)
+    active = db.Column(db.Boolean, nullable=False, default=True)
     min_stock_threshold = db.Column(db.Integer, nullable=False, default=0)
 
     total_qty = db.Column(db.Integer, nullable=False, default=0)
@@ -138,8 +140,12 @@ class User(db.Model):
     password_hash = db.Column(db.String(260), nullable=False)
     role = db.Column(db.String(30), nullable=False, default="member")
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    nfc_uid = db.Column(db.String(160), nullable=True, unique=True, index=True)
     major = db.Column(db.String(120), nullable=True)
     graduation_year = db.Column(db.Integer, nullable=True)
+    exec_title = db.Column(db.String(160), nullable=True)
+    exec_message = db.Column(db.String(500), nullable=True)
+    headshot_url = db.Column(db.String(500), nullable=True)
     member_id = db.Column(db.Integer, db.ForeignKey("members.id"), nullable=True, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     last_login_at = db.Column(db.DateTime, nullable=True)
@@ -214,6 +220,7 @@ class PrintRequest(db.Model):
     printer_type = db.Column(db.String(20), nullable=False)  # H2S / P1S
     file_path = db.Column(db.String(500), nullable=True)
     file_link = db.Column(db.String(500), nullable=True)
+    filament = db.Column(db.String(160), nullable=True)
     material = db.Column(db.String(120), nullable=True)
     color = db.Column(db.String(120), nullable=True)
     infill_percent = db.Column(db.Integer, nullable=True)

@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="split-fields two-up">
+      <div class="split-fields three-up">
         <div>
           <label for="item_type">Item Type</label>
           <select id="item_type" name="item_type">
@@ -46,6 +46,13 @@
         <div>
           <label for="min_stock_threshold">Min Stock Threshold</label>
           <input id="min_stock_threshold" name="min_stock_threshold" type="number" min="0" value="0" />
+        </div>
+        <div>
+          <label for="active">Active Listing</label>
+          <select id="active" name="active">
+            <option value="1" selected>Active</option>
+            <option value="0">Inactive</option>
+          </select>
         </div>
       </div>
 
@@ -152,7 +159,7 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Stock</th></tr>
+        <tr><th>Item</th><th>Category</th><th>Location</th><th>Type</th><th>Active</th><th>Stock</th></tr>
       </thead>
       <tbody>
         {% for item in items %}
@@ -161,6 +168,7 @@
           <td>{{ item.category or '' }}</td>
           <td>{{ item.location or '' }}</td>
           <td>{{ item.item_type }}</td>
+          <td>{{ 'yes' if item.active else 'no' }}</td>
           <td>{{ item.available_qty }} / {{ item.total_qty }}</td>
         </tr>
         {% endfor %}
