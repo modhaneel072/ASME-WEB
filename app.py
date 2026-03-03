@@ -282,6 +282,7 @@ EXEC_PROFILE_OVERRIDES = {
         ),
     },
 }
+EXECUTIVE_TEMPLATE_SLOTS = 7
 
 ROLE_ORDER = {"guest": 0, "member": 1, "team_leader": 2, "admin": 3}
 PRINT_REQUEST_STATUSES = ("submitted", "approved", "printing", "completed", "rejected")
@@ -3342,6 +3343,23 @@ def public_site_context(page_title):
                 "headshot": url_for("static", filename="asme_logo.png"),
             }
         ]
+    for index in range(1, EXECUTIVE_TEMPLATE_SLOTS + 1):
+        executive_cards.append(
+            {
+                "name": f"Executive Member Slot {index}",
+                "title": "Role / Title",
+                "message": "",
+                "summary": "Name: __________________",
+                "focus_points": [
+                    "Primary focus: __________________",
+                    "How members can get involved: __________________",
+                ],
+                "contact": "Contact: __________________",
+                "note": "",
+                "headshot": url_for("static", filename="asme_logo.png"),
+                "is_placeholder": True,
+            }
+        )
 
     return {
         "page_title": page_title,

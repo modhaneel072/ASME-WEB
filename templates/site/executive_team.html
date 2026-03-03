@@ -8,13 +8,16 @@
   <p class="muted">Meet the student leaders coordinating ASME @ UIowa initiatives, teams, and chapter operations.</p>
   <div class="exec-grid">
     {% for exec in executive_cards %}
-    <article class="exec-card">
+    <article class="exec-card {% if exec.is_placeholder %}exec-card-placeholder{% endif %}">
       <div class="exec-photo">
         <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
       </div>
       <div>
         <h4>{{ exec.name }}</h4>
         <p class="exec-title">{{ exec.title }}</p>
+        {% if exec.is_placeholder %}
+        <p class="exec-template-label">Template Slot</p>
+        {% endif %}
         {% if exec.summary %}
         <p class="exec-summary">{{ exec.summary }}</p>
         {% endif %}

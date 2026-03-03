@@ -662,6 +662,21 @@ button,
   margin-top: 6px;
 }
 
+.exec-card-placeholder {
+  border-style: dashed;
+  border-color: rgba(122, 126, 167, 0.36);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.exec-template-label {
+  margin: 6px 0 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .social-list {
   padding-left: 20px;
 }
