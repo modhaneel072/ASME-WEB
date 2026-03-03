@@ -231,7 +231,19 @@ FRONT_UIOWA_CURRENT_PROJECTS = [
 ]
 
 EXEC_PROFILE_OVERRIDES = {
-    "brayden-nagra@uiowa.edu": {
+    "email:brayden-nagra@uiowa.edu": {
+        "title": "President",
+        "message": (
+            "As President, I set the overall direction for ASME at Iowa, coordinate the executive board, "
+            "and represent our chapter to the College of Engineering, sponsors, and national ASME.\n"
+            "This semester my main focus is building sustainable systems for funding, mentorship, and project "
+            "management so we can support 150-200+ active members and multiple national competition teams.\n"
+            "Members can come to me if they want to get plugged into a project team, start a new initiative, "
+            "or talk about sponsorships, leadership opportunities, or long-term plans for the club.\n"
+            "brayden-nagra@uiowa.edu, 806-577-2216"
+        ),
+    },
+    "name:braydennagra": {
         "title": "President",
         "message": (
             "As President, I set the overall direction for ASME at Iowa, coordinate the executive board, "
@@ -453,6 +465,14 @@ def parse_executive_message(raw_message):
         "contact": contact,
         "note": note,
     }
+
+
+def executive_profile_override_for_user(user):
+    if not user:
+        return {}
+    email_key = f"email:{(user.email or '').strip().lower()}"
+    name_key = f"name:{normalize_text_key(user.name or '')}"
+    return EXEC_PROFILE_OVERRIDES.get(email_key) or EXEC_PROFILE_OVERRIDES.get(name_key) or {}
 
 
 def username_base_from_name(first_name, last_name):
@@ -3198,32 +3218,43 @@ def public_site_context(page_title):
     project_filters = sorted({(project.project_type or "General").strip() for project in projects if project})
     if not project_filters:
         project_filters = ["General"]
-    override_exec_emails = sorted(EXEC_PROFILE_OVERRIDES.keys())
-    executive_filters = [
-        User.role.in_(["team_leader", "admin"]),
-        User.exec_title.isnot(None),
-        User.exec_message.isnot(None),
-    ]
-    if override_exec_emails:
-        executive_filters.append(func.lower(func.coalesce(User.email, "")).in_(override_exec_emails))
     executives = (
-        User.query.filter(User.is_active.is_(True), or_(*executive_filters))
+        User.query.filter(User.is_active.is_(True))
         .order_by(User.role.desc(), User.name.asc())
         .all()
     )
+    shared_admin_emails = {
+        (os.environ.get("ASME_DEFAULT_ADMIN_EMAIL") or "").strip().lower(),
+        (os.environ.get("ASME_SHARED_ADMIN_EMAIL") or "").strip().lower(),
+        (os.environ.get("ASME_ADMIN_EMAIL") or "").strip().lower(),
+    }
+    shared_admin_emails = {email for email in shared_admin_emails if email}
     executive_cards = []
     for exec_user in executives:
-        override = EXEC_PROFILE_OVERRIDES.get((exec_user.email or "").strip().lower(), {})
+        override = executive_profile_override_for_user(exec_user)
+        raw_exec_title = (exec_user.exec_title or "").strip()
+        raw_exec_message = (exec_user.exec_message or "").strip()
+        has_profile_content = bool(raw_exec_title or raw_exec_message or override)
+        if not has_profile_content:
+            continue
+        if (
+            (exec_user.email or "").strip().lower() in shared_admin_emails
+            and not override
+            and not raw_exec_title
+            and not raw_exec_message
+        ):
+            continue
+
         title = "Executive Member"
         if normalize_role(exec_user.role) == "admin":
             title = "Administrator"
         elif normalize_role(exec_user.role) == "team_leader":
             title = "Team Leader"
-        exec_title = (exec_user.exec_title or "").strip() or (override.get("title") or "").strip() or title
+        exec_title = raw_exec_title or (override.get("title") or "").strip() or title
         exec_message_raw = (
-            (exec_user.exec_message or "").strip()
+            raw_exec_message
             or (override.get("message") or "").strip()
-            or "Focused on safe builds, strong documentation, and reliable execution."
+            or "Executive profile details will be added soon."
         )
         parsed_message = parse_executive_message(exec_message_raw)
         headshot_url = (
