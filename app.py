@@ -477,6 +477,16 @@ def build_fresh_member_credentials():
     if not users:
         return []
 
+    active_tag_rows = (
+        NFCTag.query.filter(NFCTag.active.is_(True))
+        .order_by(NFCTag.assigned_at.desc(), NFCTag.id.desc())
+        .all()
+    )
+    active_tag_by_user = {}
+    for tag_row in active_tag_rows:
+        if tag_row.user_id and tag_row.user_id not in active_tag_by_user:
+            active_tag_by_user[tag_row.user_id] = clean_tag_value(tag_row.tag_uid)
+
     reserved_usernames = {
         (row.username or "").strip().lower()
         for row in User.query.filter(User.username.isnot(None)).all()
@@ -496,13 +506,14 @@ def build_fresh_member_credentials():
         password_plain = password_from_name(first_name, last_name)
         user.password_hash = hash_bulk_password(password_plain)
         member_nfc = clean_tag_value(user.member.nfc_tag) if user.member and user.member.nfc_tag else ""
+        tag_table_nfc = clean_tag_value(active_tag_by_user.get(user.id, ""))
         rows.append(
             {
                 "name": (user.name or "").strip(),
                 "first_name": first_name,
                 "last_name": last_name,
                 "member_id": user.member_id or "",
-                "nfc_uid": clean_tag_value(user.nfc_uid) or member_nfc,
+                "nfc_uid": clean_tag_value(user.nfc_uid) or tag_table_nfc or member_nfc,
                 "username": (user.username or "").strip(),
                 "password": password_plain,
             }
