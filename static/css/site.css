@@ -415,15 +415,15 @@ button,
 .exec-showcase {
   position: relative;
   overflow: hidden;
-  border-color: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.2);
   background:
-    radial-gradient(circle at 12% 8%, rgba(145, 232, 255, 0.34), transparent 38%),
-    radial-gradient(circle at 88% 16%, rgba(191, 178, 255, 0.34), transparent 40%),
-    radial-gradient(circle at 78% 86%, rgba(174, 203, 255, 0.3), transparent 42%),
-    linear-gradient(152deg, rgba(255, 255, 255, 0.76) 0%, rgba(243, 246, 255, 0.6) 100%);
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 88% 16%, rgba(160, 188, 236, 0.12), transparent 40%),
+    radial-gradient(circle at 78% 86%, rgba(255, 255, 255, 0.08), transparent 42%),
+    linear-gradient(152deg, rgba(14, 17, 25, 0.94) 0%, rgba(24, 30, 43, 0.9) 100%);
   box-shadow:
-    0 30px 72px rgba(82, 90, 140, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    0 30px 72px rgba(12, 14, 22, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(16px);
 }
 
@@ -441,7 +441,7 @@ button,
   height: 300px;
   top: -126px;
   right: -96px;
-  background: radial-gradient(circle, rgba(155, 176, 255, 0.4) 0%, transparent 72%);
+  background: radial-gradient(circle, rgba(168, 197, 255, 0.22) 0%, transparent 72%);
 }
 
 .exec-showcase::after {
@@ -449,12 +449,25 @@ button,
   height: 260px;
   bottom: -104px;
   left: -76px;
-  background: radial-gradient(circle, rgba(162, 228, 255, 0.32) 0%, transparent 72%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, transparent 72%);
 }
 
 .exec-showcase > * {
   position: relative;
   z-index: 1;
+}
+
+.exec-showcase .section-head h3,
+.exec-showcase .exec-card h4 {
+  color: #f5f7ff;
+}
+
+.exec-showcase > .muted {
+  color: rgba(228, 235, 250, 0.8);
+}
+
+.exec-showcase .exec-template-label {
+  color: rgba(200, 210, 234, 0.82);
 }
 
 .panel-grid-two .announcement-grid {
@@ -653,12 +666,12 @@ button,
   align-items: start;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.4) 0%, rgba(228, 238, 255, 0.28) 100%);
+    linear-gradient(145deg, rgba(16, 20, 30, 0.78) 0%, rgba(30, 37, 53, 0.72) 100%);
   box-shadow:
-    0 24px 52px rgba(90, 98, 146, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    0 24px 52px rgba(9, 12, 20, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(18px) saturate(1.3);
 }
 
@@ -668,8 +681,8 @@ button,
   inset: -1px;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 20%, rgba(145, 232, 255, 0.14), transparent 48%),
-    radial-gradient(circle at 88% 84%, rgba(191, 178, 255, 0.16), transparent 52%);
+    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.1), transparent 48%),
+    radial-gradient(circle at 88% 84%, rgba(171, 196, 255, 0.1), transparent 52%);
   z-index: 0;
 }
 
@@ -683,8 +696,8 @@ button,
   aspect-ratio: 2 / 3;
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(122, 126, 167, 0.26);
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: #0f131d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -693,17 +706,17 @@ button,
 .exec-copy {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 16px;
   padding: 15px 16px;
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.28) 0%, rgba(226, 234, 255, 0.12) 36%, rgba(171, 223, 255, 0.2) 100%),
-    radial-gradient(circle at 10% 12%, rgba(255, 255, 255, 0.46) 0%, transparent 43%),
-    radial-gradient(circle at 86% 88%, rgba(173, 145, 255, 0.22) 0%, transparent 47%);
+    linear-gradient(140deg, rgba(34, 42, 60, 0.6) 0%, rgba(22, 27, 41, 0.48) 36%, rgba(39, 49, 69, 0.6) 100%),
+    radial-gradient(circle at 10% 12%, rgba(255, 255, 255, 0.18) 0%, transparent 43%),
+    radial-gradient(circle at 86% 88%, rgba(144, 188, 255, 0.14) 0%, transparent 47%);
   box-shadow:
-    0 24px 50px rgba(80, 89, 140, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -24px 34px rgba(122, 136, 214, 0.14);
+    0 24px 50px rgba(10, 14, 24, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -24px 34px rgba(117, 136, 178, 0.18);
   backdrop-filter: blur(30px) saturate(1.9) contrast(1.08);
 }
 
@@ -717,8 +730,8 @@ button,
   border-radius: 13px 13px 26px 26px;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.1) 100%),
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.45), transparent 58%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.03) 100%),
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.28), transparent 58%);
   z-index: 0;
 }
 
@@ -728,10 +741,10 @@ button,
   inset: 1px;
   border-radius: 14px;
   pointer-events: none;
-  border: 1px solid rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.36);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
-    inset 0 -22px 30px rgba(132, 152, 240, 0.1);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -22px 30px rgba(132, 152, 240, 0.08);
   z-index: 0;
 }
 
@@ -750,7 +763,7 @@ button,
 }
 
 .exec-title {
-  color: var(--accent-strong);
+  color: #d8e8ff;
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -759,13 +772,13 @@ button,
 
 .exec-summary {
   margin: 8px 0 0;
-  color: #4f587c;
+  color: rgba(234, 240, 255, 0.9);
 }
 
 .exec-points {
   margin: 8px 0 0;
   padding-left: 18px;
-  color: #5a6387;
+  color: rgba(224, 232, 249, 0.9);
 }
 
 .exec-points li {
@@ -774,25 +787,26 @@ button,
 
 .exec-contact {
   margin: 8px 0 0;
-  color: var(--accent-strong);
+  color: #f0f6ff;
   font-weight: 700;
 }
 
 .exec-note {
   margin-top: 6px;
+  color: rgba(212, 221, 242, 0.82);
 }
 
 .exec-card-placeholder {
   border-style: dashed;
-  border-color: rgba(122, 126, 167, 0.36);
-  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(27, 34, 48, 0.58);
   box-shadow: none;
 }
 
 .exec-card-placeholder .exec-copy {
   border-style: dashed;
-  border-color: rgba(122, 126, 167, 0.34);
-  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(30, 36, 52, 0.46);
   box-shadow: none;
   backdrop-filter: none;
 }
