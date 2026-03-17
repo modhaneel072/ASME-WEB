@@ -1,0 +1,175 @@
+{% extends "member/base.html" %}
+
+{% block title %}Dashboard | Member Portal{% endblock %}
+
+{% block content %}
+  <section class="action-row">
+    <a class="button" href="{{ url_for('member_checkout') }}">Checkout Equipment</a>
+    <a class="button-secondary" href="{{ url_for('member_print') }}">Submit Print Job</a>
+    {% if current_user.role in elevated_roles %}
+      <a class="button-ghost" href="{{ url_for('member_meeting_new') }}">Request Meeting</a>
+    {% else %}
+      <span class="notice">Meeting requests are available to team leads, project managers, and admins.</span>
+    {% endif %}
+  </section>
+
+  <section class="metric-grid">
+    <article class="metric-card">
+      <span>Active Checkouts</span>
+      <strong>{{ active_checkouts|length }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>My Print Jobs</span>
+      <strong>{{ my_print_jobs|length }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Meeting Requests</span>
+      <strong>{{ requested_meetings|length }}</strong>
+    </article>
+  </section>
+
+  <section class="split-grid">
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>My Active Checkouts</h3>
+          <p>Due dates are highlighted if overdue.</p>
+        </div>
+        <a class="button-ghost" href="{{ url_for('member_checkouts') }}">View all</a>
+      </header>
+      {% if active_checkouts %}
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Due Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in active_checkouts %}
+                <tr>
+                  <td>{{ row.item.name }}</td>
+                  <td>{{ row.qty }}</td>
+                  <td>{{ row.due_date.isoformat() if row.due_date else "No due date" }}</td>
+                  <td>
+                    {% if row.is_overdue %}
+                      <span class="badge-amber">Overdue</span>
+                    {% else %}
+                      <span class="badge-blue">Active</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No active checkouts yet.</div>
+      {% endif %}
+    </article>
+
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>My Print Jobs</h3>
+          <p>Track approvals and queue progress.</p>
+        </div>
+      </header>
+      {% if my_print_jobs %}
+        <div class="stack">
+          {% for job in my_print_jobs %}
+            <div class="list-item">
+              <div>
+                <strong>#{{ job.id }} - {{ job.file_name }}</strong><br>
+                <span class="helper">{{ job.printer_type }} - {{ job.submitted_at.strftime("%Y-%m-%d %H:%M") if job.submitted_at else "" }}</span>
+              </div>
+              <div>
+                <span class="{{ badge_class(job.status) }}">{{ job.status|title }}</span>
+                <div class="inline-actions" style="margin-top: 0.4rem;">
+                  <a class="button-ghost" href="{{ url_for('open_print_job', job_id=job.id) }}">Open</a>
+                  <a class="button-ghost" href="{{ url_for('download_print_job', job_id=job.id) }}">Download</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No print jobs submitted yet.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="panel-grid" style="margin-top: 1rem;">
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Requested Meetings</h3>
+          <p>Pending and approved requests tied to your account.</p>
+        </div>
+      </header>
+      {% if requested_meetings %}
+        <div class="stack">
+          {% for meeting in requested_meetings %}
+            <div class="list-item">
+              <div>
+                <strong>{{ meeting.team_name }}</strong><br>
+                <span class="helper">
+                  {{ meeting.room }} - {{ meeting.meeting_date.isoformat() }}
+                  {{ meeting.start_time.strftime("%H:%M") }}-{{ meeting.end_time.strftime("%H:%M") }}
+                </span>
+              </div>
+              <span class="{{ badge_class('scheduled' if meeting.google_event_id else 'pending') }}">
+                {{ "Scheduled" if meeting.google_event_id else "Pending Approval" }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No active meeting requests.</div>
+      {% endif %}
+    </article>
+
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Upcoming Confirmed Meetings</h3>
+          <p>Chapter-wide confirmed calendar entries.</p>
+        </div>
+      </header>
+      {% if confirmed_meetings %}
+        <div class="stack">
+          {% for meeting in confirmed_meetings %}
+            <div class="list-item">
+              <div>
+                <strong>{{ meeting.team_name }}</strong><br>
+                <span class="helper">
+                  {{ meeting.room }} - {{ meeting.meeting_date.isoformat() }}
+                  {{ meeting.start_time.strftime("%H:%M") }}-{{ meeting.end_time.strftime("%H:%M") }}
+                </span>
+              </div>
+              <span class="badge-blue">Scheduled</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No upcoming confirmed meetings.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="card" style="margin-top: 1rem;">
+    <header class="card-header">
+      <div>
+        <h3>Live Calendar</h3>
+        <p>Read-only chapter calendar feed.</p>
+      </div>
+    </header>
+    <iframe class="calendar-frame" src="{{ google_calendar_embed_url }}" title="Member Calendar" loading="lazy"></iframe>
+    {% if google_calendar_placeholder %}
+      <p class="helper">A placeholder calendar is shown until ASME calendar environment variables are configured.</p>
+    {% endif %}
+  </section>
+{% endblock %}

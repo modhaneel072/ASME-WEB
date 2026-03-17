@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Attendance | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="grid-2">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Scan NFC UID</h3>
+          <p>Manual fallback for scanner submissions.</p>
+        </div>
+      </header>
+      <form class="field-grid" method="post" action="{{ url_for('attendance_scan') }}">
+        <input type="hidden" name="next" value="{{ url_for('admin_attendance') }}">
+        <div class="field">
+          <label for="uid">Member UID</label>
+          <input id="uid" name="uid" type="text" placeholder="Scan or paste UID" required>
+        </div>
+        <div class="field" style="align-self: end;">
+          <button class="button" type="submit">Record Attendance</button>
+        </div>
+      </form>
+      <p class="helper">
+        Physical scanner integrations can also post directly to <code>/attendance/scan</code> using <code>X-NFC-Secret</code>.
+      </p>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Today Attendance</h3>
+          <p>Unique members scanned today.</p>
+        </div>
+      </header>
+      <div class="dense-table-wrap">
+        <table data-sort-table>
+          <thead>
+            <tr>
+              <th data-sort-key="name"><button class="sort-button" type="button">Member</button></th>
+              <th data-sort-key="email"><button class="sort-button" type="button">Email</button></th>
+              <th data-sort-key="uid"><button class="sort-button" type="button">UID</button></th>
+              <th data-sort-key="time"><button class="sort-button" type="button">Scanned At</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for scan in today_attendance %}
+              <tr>
+                <td>{{ scan.member.name }}</td>
+                <td>{{ scan.member.email }}</td>
+                <td>{{ scan.scanned_uid }}</td>
+                <td>{{ scan.scanned_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">No attendance scans yet today.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+{% endblock %}

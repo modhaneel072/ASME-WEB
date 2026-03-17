@@ -1,0 +1,57 @@
+{% extends "member/base.html" %}
+
+{% block title %}Calendar | Member Portal{% endblock %}
+
+{% block content %}
+  <section class="panel-grid">
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Live Google Calendar</h3>
+          <p>Read-only chapter schedule.</p>
+        </div>
+      </header>
+      <iframe class="calendar-frame" src="{{ google_calendar_embed_url }}" title="ASME Calendar" loading="lazy"></iframe>
+      {% if google_calendar_placeholder %}
+        <p class="helper">A placeholder calendar is shown until the ASME Google Calendar is configured.</p>
+      {% endif %}
+    </article>
+
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Upcoming Confirmed Meetings</h3>
+          <p>Meetings already approved and pushed to calendar.</p>
+        </div>
+      </header>
+      {% if confirmed_meetings %}
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Room</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for meeting in confirmed_meetings %}
+                <tr>
+                  <td>{{ meeting.team_name }}</td>
+                  <td>{{ meeting.room }}</td>
+                  <td>{{ meeting.meeting_date.isoformat() }}</td>
+                  <td>{{ meeting.start_time.strftime("%H:%M") }}-{{ meeting.end_time.strftime("%H:%M") }}</td>
+                  <td><span class="badge-blue">Scheduled</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No upcoming confirmed meetings.</div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

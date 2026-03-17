@@ -1,0 +1,43 @@
+{% extends "public/base.html" %}
+
+{% block title %}Initial Admin Setup | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <div class="auth-card">
+      <img class="auth-brand" src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME at Iowa">
+      <h1>Create the first admin account</h1>
+      <p class="lede">
+        This page is only available until the first member password is set. The account created here becomes the initial admin.
+      </p>
+
+      <form class="form-grid" method="post" action="{{ url_for('setup') }}">
+        <div class="input-grid">
+          <div class="field">
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label for="member_class">Class / Year</label>
+            <input id="member_class" name="member_class" type="text" placeholder="ME Junior" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div class="input-grid">
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required>
+          </div>
+          <div class="field">
+            <label for="confirm_password">Confirm password</label>
+            <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required>
+          </div>
+        </div>
+        <button class="button" type="submit">Create Admin Account</button>
+      </form>
+    </div>
+  </section>
+{% endblock %}

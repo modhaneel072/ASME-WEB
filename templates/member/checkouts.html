@@ -1,0 +1,48 @@
+{% extends "member/base.html" %}
+
+{% block title %}My Checkouts | Member Portal{% endblock %}
+
+{% block content %}
+  <article class="table-card">
+    <header class="card-header">
+      <div>
+        <h3>My Current Checkouts</h3>
+        <p>Items currently checked out under your account.</p>
+      </div>
+    </header>
+    {% if active_checkouts %}
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Checked Out At</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in active_checkouts %}
+            <tr>
+              <td>{{ row.item.name }}</td>
+              <td>{{ row.qty }}</td>
+              <td>{{ row.checked_out_at.strftime("%Y-%m-%d %H:%M") if row.checked_out_at else "Unknown" }}</td>
+              <td>{{ row.due_date.isoformat() if row.due_date else "No due date" }}</td>
+              <td>
+                {% if row.is_overdue %}
+                  <span class="badge-amber">Overdue</span>
+                {% else %}
+                  <span class="badge-blue">Active</span>
+                {% endif %}
+              </td>
+              <td>{{ row.notes or "-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">You have no active checkouts.</div>
+    {% endif %}
+  </article>
+{% endblock %}

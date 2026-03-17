@@ -1,0 +1,141 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Members | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h3>Add Member</h3>
+        <p>Create a member account and set a temporary password.</p>
+      </div>
+    </header>
+    <form class="form-grid" method="post" action="{{ url_for('admin_members_add') }}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required>
+      </div>
+      <div class="field">
+        <label for="member_class">Class / Year</label>
+        <input id="member_class" name="member_class" type="text" required>
+      </div>
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role" name="role" required>
+          {% for role in role_choices %}
+            <option value="{{ role }}">{{ role_labels.get(role, role) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="password">Temporary Password</label>
+        <input id="password" name="password" type="text" required>
+      </div>
+      <div class="field" style="align-self: end;">
+        <button class="button" type="submit">Add Member</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" style="margin-top: 1rem;">
+    <header class="panel-header">
+      <div>
+        <h3>All Members</h3>
+        <p>Manage roles, login credentials, and account status.</p>
+      </div>
+    </header>
+    <div class="dense-table-wrap">
+      <table data-sort-table>
+        <thead>
+          <tr>
+            <th data-sort-key="name"><button class="sort-button" type="button">Name</button></th>
+            <th data-sort-key="email"><button class="sort-button" type="button">Email</button></th>
+            <th data-sort-key="class"><button class="sort-button" type="button">Class/Year</button></th>
+            <th data-sort-key="role"><button class="sort-button" type="button">Role</button></th>
+            <th data-sort-key="nfc"><button class="sort-button" type="button">NFC Status</button></th>
+            <th data-sort-key="active"><button class="sort-button" type="button">Last Active</button></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in member_rows %}
+            {% set member = row.record %}
+            <tr>
+              <td>{{ member.name }}</td>
+              <td>{{ member.email }}</td>
+              <td>{{ member.member_class }}</td>
+              <td>
+                <span class="{{ role_badge_class(member.role) }}">{{ role_labels.get(member.role, member.role) }}</span>
+                {% if not member.is_active %}
+                  <span class="badge-red">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.nfc_paired %}
+                  <span class="badge-green">Paired</span>
+                {% else %}
+                  <span class="badge-amber">Unpaired</span>
+                {% endif %}
+              </td>
+              <td>{{ row.last_active.strftime("%Y-%m-%d %H:%M") if row.last_active else "-" }}</td>
+              <td>
+                <details class="details-card">
+                  <summary>Manage</summary>
+                  <form class="field-grid" method="post" action="{{ url_for('admin_member_edit', member_id=member.id) }}">
+                    <div class="field">
+                      <label>Name</label>
+                      <input name="name" type="text" value="{{ member.name }}" required>
+                    </div>
+                    <div class="field">
+                      <label>Email</label>
+                      <input name="email" type="email" value="{{ member.email }}" required>
+                    </div>
+                    <div class="field">
+                      <label>Class / Year</label>
+                      <input name="member_class" type="text" value="{{ member.member_class }}" required>
+                    </div>
+                    <div class="field">
+                      <label>Role</label>
+                      <select name="role" required>
+                        {% for role in role_choices %}
+                          <option value="{{ role }}" {{ 'selected' if member.role == role else '' }}>{{ role_labels.get(role, role) }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="field" style="align-self: end;">
+                      <button class="button-secondary" type="submit">Save Profile</button>
+                    </div>
+                  </form>
+
+                  <form class="field-grid" style="margin-top: 0.75rem;" method="post" action="{{ url_for('admin_member_set_password', member_id=member.id) }}">
+                    <div class="field">
+                      <label>Set Temporary Password</label>
+                      <input name="password" type="text" placeholder="New temporary password" required>
+                    </div>
+                    <div class="field" style="align-self: end;">
+                      <button class="button-secondary" type="submit">Set Password</button>
+                    </div>
+                  </form>
+
+                  {% if member.id != current_user.id and member.is_active %}
+                    <form style="margin-top: 0.75rem;" method="post" action="{{ url_for('admin_member_deactivate', member_id=member.id) }}" onsubmit="return confirm('Deactivate this member account?');">
+                      <button class="button-danger" type="submit">Deactivate</button>
+                    </form>
+                  {% endif %}
+                </details>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7">No member records found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

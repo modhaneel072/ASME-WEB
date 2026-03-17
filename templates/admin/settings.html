@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Settings | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="grid-2">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>System Readiness</h3>
+          <p>Operational environment checks for print + calendar automation.</p>
+        </div>
+      </header>
+      <div class="status-list">
+        <div class="summary-row">
+          <span>Google service account file</span>
+          <span class="{{ badge_class('done' if calendar_automation_status.service_account_file_exists else 'failed') }}">
+            {{ "Found" if calendar_automation_status.service_account_file_exists else "Missing" }}
+          </span>
+        </div>
+        <div class="summary-row">
+          <span>Calendar IDs configured</span>
+          <span class="{{ badge_class('done' if calendar_automation_status.has_any_calendar_id else 'failed') }}">
+            {{ "Yes" if calendar_automation_status.has_any_calendar_id else "No" }}
+          </span>
+        </div>
+        <div class="summary-row">
+          <span>SMTP configured</span>
+          <span class="{{ badge_class('done' if calendar_automation_status.smtp_ready else 'failed') }}">
+            {{ "Yes" if calendar_automation_status.smtp_ready else "No" }}
+          </span>
+        </div>
+        <div class="summary-row">
+          <span>H2S print command</span>
+          <span class="{{ badge_class('done' if h2s_print_cmd_configured else 'failed') }}">
+            {{ "Configured" if h2s_print_cmd_configured else "Missing" }}
+          </span>
+        </div>
+        <div class="summary-row">
+          <span>P1S print command</span>
+          <span class="{{ badge_class('done' if p1s_print_cmd_configured else 'failed') }}">
+            {{ "Configured" if p1s_print_cmd_configured else "Missing" }}
+          </span>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Admin Shortcuts</h3>
+          <p>Common operational actions.</p>
+        </div>
+      </header>
+      <div class="status-list">
+        <div class="summary-row">
+          <span>Pair member NFC tags</span>
+          <a class="button-ghost" href="{{ url_for('admin_pair_member') }}">Open</a>
+        </div>
+        <div class="summary-row">
+          <span>Pair item NFC tags</span>
+          <a class="button-ghost" href="{{ url_for('admin_pair_item') }}">Open</a>
+        </div>
+        <div class="summary-row">
+          <span>Export data workbook</span>
+          <a class="button" href="{{ url_for('admin_export') }}">Download Excel</a>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel" style="margin-top: 1rem;">
+    <header class="panel-header">
+      <div>
+        <h3>Environment Notes</h3>
+        <p>Where print command variables are loaded from during startup.</p>
+      </div>
+    </header>
+    <div class="notice">
+      <p><strong>Print command env file:</strong> <code>{{ print_commands_env_file }}</code></p>
+      <p><strong>Service account file:</strong> <code>{{ calendar_automation_status.service_account_file }}</code></p>
+      <p class="helper">Update environment variables, then restart the Flask app to apply changes.</p>
+    </div>
+  </section>
+{% endblock %}

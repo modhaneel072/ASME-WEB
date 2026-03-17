@@ -1,0 +1,56 @@
+{% extends "member/base.html" %}
+
+{% block title %}Request Meeting | Member Portal{% endblock %}
+
+{% block content %}
+  <article class="card">
+    <header class="card-header">
+      <div>
+        <h3>Request a Meeting</h3>
+        <p>Requests are saved first, then an admin approves and pushes to Google Calendar.</p>
+      </div>
+    </header>
+    <form class="form-grid" method="post" action="{{ url_for('member_meeting_submit') }}">
+      <input type="hidden" name="next" value="{{ url_for('member_meeting_new') }}">
+      <div class="field-grid">
+        <div class="field">
+          <label for="team_name">Team Name</label>
+          <input id="team_name" name="team_name" type="text" required>
+        </div>
+        <div class="field">
+          <label for="requester_email">Requester Email</label>
+          <input id="requester_email" name="requester_email" type="email" value="{{ current_user.email }}" readonly>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="room">Room</label>
+          <select id="room" name="room" required>
+            {% for room in meeting_rooms %}
+              <option value="{{ room }}">{{ room }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="meeting_date">Meeting Date</label>
+          <input id="meeting_date" name="meeting_date" type="date" value="{{ calendar_default_date }}" required>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="start_time">Start Time</label>
+          <input id="start_time" name="start_time" type="time" required>
+        </div>
+        <div class="field">
+          <label for="end_time">End Time</label>
+          <input id="end_time" name="end_time" type="time" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Agenda, setup needs, or context for admin review."></textarea>
+      </div>
+      <button class="button" type="submit">Submit Meeting Request</button>
+    </form>
+  </article>
+{% endblock %}

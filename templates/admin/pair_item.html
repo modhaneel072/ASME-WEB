@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pair Item NFC | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="grid-2">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Pair NFC Tag to Inventory Item</h3>
+          <p>Assign a physical UID to an inventory record.</p>
+        </div>
+      </header>
+      <form class="field-grid" method="post" action="{{ url_for('admin_pair_item') }}">
+        <div class="field">
+          <label for="item_id">Item</label>
+          <select id="item_id" name="item_id" required>
+            <option value="">Select item</option>
+            {% for item in items %}
+              <option value="{{ item.id }}">{{ item.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="tag">UID</label>
+          <input id="tag" name="tag" type="text" placeholder="Scan/enter UID" required>
+        </div>
+        <div class="field" style="align-self: end;">
+          <button class="button" type="submit">Save Pairing</button>
+        </div>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Paired Inventory Items</h3>
+          <p>Current item UID mappings.</p>
+        </div>
+      </header>
+      <div class="dense-table-wrap">
+        <table data-sort-table>
+          <thead>
+            <tr>
+              <th data-sort-key="name"><button class="sort-button" type="button">Item</button></th>
+              <th data-sort-key="category"><button class="sort-button" type="button">Category</button></th>
+              <th data-sort-key="uid"><button class="sort-button" type="button">UID</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in paired %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category or "-" }}</td>
+                <td>{{ item.nfc_tag }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="3">No paired items yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+{% endblock %}

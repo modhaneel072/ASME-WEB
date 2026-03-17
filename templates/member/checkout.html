@@ -1,0 +1,103 @@
+{% extends "member/base.html" %}
+
+{% block title %}Checkout Equipment | Member Portal{% endblock %}
+
+{% block content %}
+  <section class="panel-grid">
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Checkout or Return</h3>
+          <p>Use item dropdown or scan NFC UID values.</p>
+        </div>
+      </header>
+      <form class="form-grid" method="post" action="{{ url_for('member_transact') }}">
+        <input type="hidden" name="next" value="{{ url_for('member_checkout') }}">
+        <div class="field-grid">
+          <div class="field">
+            <label for="item_id">Inventory Item</label>
+            <select id="item_id" name="item_id">
+              <option value="">Select an item</option>
+              {% for item in items %}
+                <option value="{{ item.id }}">{{ item.name }} ({{ item.available_qty }}/{{ item.total_qty }} available)</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="item_tag">Item NFC UID (optional)</label>
+            <input id="item_tag" name="item_tag" type="text" placeholder="Scan/enter UID">
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="action">Action</label>
+            <select id="action" name="action" required>
+              <option value="checkout">Checkout</option>
+              <option value="return">Return</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qty">Quantity</label>
+            <input id="qty" name="qty" type="number" min="1" value="1" required>
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="due_date">Due Date (checkout only)</label>
+            <input id="due_date" name="due_date" type="date" value="{{ default_due }}">
+          </div>
+          <div class="field">
+            <label for="notes">Notes</label>
+            <input id="notes" name="notes" type="text" placeholder="Optional notes">
+          </div>
+        </div>
+        <button class="button" type="submit">Submit Transaction</button>
+      </form>
+    </article>
+
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Available Inventory</h3>
+          <p>Current stock snapshot for member checkout.</p>
+        </div>
+      </header>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category or "Uncategorized" }}</td>
+                <td>{{ item.location or "Unassigned" }}</td>
+                <td>{{ item.available_qty }}/{{ item.total_qty }}</td>
+                <td>
+                  {% if item.available_qty <= 0 %}
+                    <span class="badge-red">Out</span>
+                  {% elif item.available_qty <= 2 %}
+                    <span class="badge-amber">Low</span>
+                  {% else %}
+                    <span class="badge-green">In Stock</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5">No inventory items found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+{% endblock %}

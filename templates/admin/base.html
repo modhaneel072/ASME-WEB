@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ page_title }} | Admin Panel{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="{{ url_for('admin_dashboard') }}">
+        <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME at Iowa">
+        <span>
+          <h1>ASME Admin</h1>
+          <p>Operations Control</p>
+        </span>
+      </a>
+
+      <nav class="admin-nav" aria-label="Admin navigation">
+        <a class="admin-link {{ 'active' if active_page == 'dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        <a class="admin-link {{ 'active' if active_page == 'attendance' else '' }}" href="{{ url_for('admin_attendance') }}">Attendance</a>
+        <a class="admin-link {{ 'active' if active_page == 'members' else '' }}" href="{{ url_for('admin_members') }}">Members</a>
+        <a class="admin-link {{ 'active' if active_page == 'inventory' else '' }}" href="{{ url_for('admin_inventory') }}">Inventory</a>
+        <a class="admin-link {{ 'active' if active_page == 'prints' else '' }}" href="{{ url_for('admin_prints') }}">Print Queue</a>
+        <a class="admin-link {{ 'active' if active_page == 'calendar' else '' }}" href="{{ url_for('admin_calendar') }}">Meetings</a>
+        <a class="admin-link {{ 'active' if active_page == 'activity' else '' }}" href="{{ url_for('admin_activity') }}">Activity</a>
+        <a class="admin-link {{ 'active' if active_page == 'settings' else '' }}" href="{{ url_for('admin_settings') }}">Settings</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <strong>{{ current_user.name }}</strong>
+        <p>{{ role_labels.get(current_user.role, current_user.role) }}</p>
+        <div style="margin-top: 0.8rem;">
+          <a class="text-link" href="{{ url_for('logout') }}">Logout</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div class="page-heading">
+          <h2>{{ page_title }}</h2>
+          <p>{{ page_subtitle }}</p>
+        </div>
+        <div class="topbar-meta">
+          <span class="admin-chip">{{ current_user.name }}</span>
+          <span class="{{ role_badge_class(current_user.role) }}">{{ role_labels.get(current_user.role, current_user.role) }}</span>
+          <a class="text-link" href="{{ url_for('member_dashboard') }}">Member View</a>
+        </div>
+      </header>
+
+      <section class="metrics-grid">
+        {% for metric in admin_metrics %}
+          <article class="metric-card">
+            <div class="metric-card-inner">
+              <span>{{ metric.label }}</span>
+              <strong>{{ metric.value }}</strong>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll("[data-sort-table]").forEach((table) => {
+      const tbody = table.tBodies[0];
+      if (!tbody) {
+        return;
+      }
+
+      const headers = Array.from(table.querySelectorAll("th[data-sort-key]"));
+      headers.forEach((th, index) => {
+        const button = th.querySelector(".sort-button");
+        if (!button) {
+          return;
+        }
+
+        button.addEventListener("click", () => {
+          const direction = button.classList.contains("is-sorted-asc") ? "desc" : "asc";
+          const type = th.dataset.sortType || "text";
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+
+          rows.sort((rowA, rowB) => {
+            const a = (rowA.children[index]?.innerText || "").trim();
+            const b = (rowB.children[index]?.innerText || "").trim();
+            if (type === "number") {
+              return (parseFloat(a) || 0) - (parseFloat(b) || 0);
+            }
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+          });
+          if (direction === "desc") {
+            rows.reverse();
+          }
+
+          rows.forEach((row) => tbody.appendChild(row));
+          table.querySelectorAll(".sort-button").forEach((el) => el.classList.remove("is-sorted-asc", "is-sorted-desc"));
+          button.classList.add(direction === "asc" ? "is-sorted-asc" : "is-sorted-desc");
+        });
+      });
+    });
+  </script>
+</body>
+</html>

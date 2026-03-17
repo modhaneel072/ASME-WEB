@@ -1,0 +1,170 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="dashboard-grid">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Jobs Awaiting Approval</h3>
+          <p>Print jobs are now staged as pending until accepted.</p>
+        </div>
+        <a class="button-ghost" href="{{ url_for('admin_prints') }}">Open Queue</a>
+      </header>
+      {% if pending_print_jobs %}
+        <div class="status-list">
+          {% for job in pending_print_jobs %}
+            <div class="status-item">
+              <div>
+                <strong>#{{ job.id }} - {{ job.member.name }}</strong><br>
+                <span class="helper">{{ job.printer_type }} - {{ job.file_name }}</span>
+              </div>
+              <div class="inline-actions">
+                <form method="post" action="{{ url_for('admin_print_accept', job_id=job.id) }}">
+                  <input type="hidden" name="next" value="{{ url_for('admin_dashboard') }}">
+                  <button class="button" type="submit">Accept</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_print_deny', job_id=job.id) }}" onsubmit="return confirm('Deny this print job and delete its file?');">
+                  <input type="hidden" name="next" value="{{ url_for('admin_dashboard') }}">
+                  <button class="button-danger" type="submit">Deny</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No print jobs are awaiting approval.</div>
+      {% endif %}
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Meeting Requests Pending Approval</h3>
+          <p>Member requests without a Google event ID.</p>
+        </div>
+        <a class="button-ghost" href="{{ url_for('admin_calendar') }}">Open Meetings</a>
+      </header>
+      {% if pending_meeting_requests %}
+        <div class="status-list">
+          {% for meeting in pending_meeting_requests %}
+            <div class="status-item">
+              <div>
+                <strong>{{ meeting.team_name }}</strong><br>
+                <span class="helper">
+                  {{ meeting.room }} - {{ meeting.meeting_date.isoformat() }}
+                  {{ meeting.start_time.strftime("%H:%M") }}-{{ meeting.end_time.strftime("%H:%M") }}
+                </span>
+              </div>
+              <div class="inline-actions">
+                <form method="post" action="{{ url_for('admin_calendar_approve', meeting_id=meeting.id) }}">
+                  <button class="button" type="submit">Approve</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_calendar_deny', meeting_id=meeting.id) }}" onsubmit="return confirm('Deny and remove this meeting request?');">
+                  <button class="button-danger" type="submit">Deny</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No pending meeting requests.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="grid-2" style="margin-top: 1rem;">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Today Attendance</h3>
+          <p>Unique NFC scans for {{ today_value.isoformat() }}.</p>
+        </div>
+      </header>
+      {% if today_attendance %}
+        <div class="status-list">
+          {% for scan in today_attendance %}
+            <div class="summary-row">
+              <span>{{ scan.member.name }}</span>
+              <span class="helper">{{ scan.scanned_at.strftime("%H:%M:%S") }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No attendance scans recorded yet today.</div>
+      {% endif %}
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Low Stock Alert</h3>
+          <p>Inventory with low availability.</p>
+        </div>
+      </header>
+      {% if low_stock_items %}
+        <div class="status-list">
+          {% for item in low_stock_items %}
+            <div class="summary-row">
+              <span>{{ item.name }}</span>
+              <span class="{{ 'badge-red' if item.available_qty <= 0 else 'badge-amber' }}">{{ item.available_qty }}/{{ item.total_qty }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No low stock items right now.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="grid-2" style="margin-top: 1rem;">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Queue Snapshot</h3>
+          <p>Live print queue state by printer.</p>
+        </div>
+      </header>
+      <div class="queue-list">
+        {% for printer, snapshot in queues.items() %}
+          <div class="queue-item">
+            <div>
+              <strong>{{ printer }}</strong><br>
+              <span class="helper">
+                Pending {{ snapshot.pending|length }} - Queued {{ snapshot.queued|length }} -
+                {% if snapshot.active %}Active #{{ snapshot.active.id }}{% else %}No active print{% endif %}
+              </span>
+            </div>
+            <a class="button-ghost" href="{{ url_for('admin_prints') }}">Manage</a>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Recent Transactions</h3>
+          <p>Latest checkout and return activity.</p>
+        </div>
+        <a class="button-ghost" href="{{ url_for('admin_activity') }}">View Activity</a>
+      </header>
+      {% if recent_transactions %}
+        <div class="status-list">
+          {% for tx in recent_transactions %}
+            <div class="summary-row">
+              <div>
+                <strong>{{ tx.member.name }}</strong><br>
+                <span class="helper">{{ tx.action|title }} {{ tx.qty }} x {{ tx.item.name }}</span>
+              </div>
+              <span class="helper">{{ tx.timestamp.strftime("%Y-%m-%d %H:%M") }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No transactions yet.</div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

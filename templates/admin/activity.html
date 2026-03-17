@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Activity | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h3>Transaction Activity Log</h3>
+        <p>Search and export full inventory transaction history.</p>
+      </div>
+      <div class="inline-actions">
+        <form class="toolbar" method="get" action="{{ url_for('admin_activity') }}">
+          <input type="text" name="q" value="{{ search_query }}" placeholder="Search member, email, item, action, notes">
+          <button class="button-secondary" type="submit">Search</button>
+        </form>
+        <a class="button" href="{{ url_for('admin_export') }}">Download Excel</a>
+      </div>
+    </header>
+    <div class="dense-table-wrap">
+      <table data-sort-table>
+        <thead>
+          <tr>
+            <th data-sort-key="timestamp"><button class="sort-button" type="button">Timestamp</button></th>
+            <th data-sort-key="member"><button class="sort-button" type="button">Member</button></th>
+            <th data-sort-key="email"><button class="sort-button" type="button">Email</button></th>
+            <th data-sort-key="item"><button class="sort-button" type="button">Item</button></th>
+            <th data-sort-key="action"><button class="sort-button" type="button">Action</button></th>
+            <th data-sort-key="qty" data-sort-type="number"><button class="sort-button" type="button">Qty</button></th>
+            <th data-sort-key="due"><button class="sort-button" type="button">Due Date</button></th>
+            <th data-sort-key="notes"><button class="sort-button" type="button">Notes</button></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tx in recent_transactions %}
+            <tr>
+              <td>{{ tx.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td>{{ tx.member.name }}</td>
+              <td>{{ tx.member.email }}</td>
+              <td>{{ tx.item.name }}</td>
+              <td><span class="{{ badge_class(tx.action) }}">{{ tx.action|title }}</span></td>
+              <td>{{ tx.qty }}</td>
+              <td>{{ tx.due_date.isoformat() if tx.due_date else "-" }}</td>
+              <td>{{ tx.notes or "-" }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="8">No matching transactions found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

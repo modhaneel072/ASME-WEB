@@ -1,0 +1,182 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Print Queue | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="grid-2">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Submit Job on Behalf of Member</h3>
+          <p>Admin submissions go directly to queued and may auto-start.</p>
+        </div>
+      </header>
+      <form class="field-grid" method="post" action="{{ url_for('admin_print_submit') }}" enctype="multipart/form-data">
+        <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+        <div class="field">
+          <label for="member_id">Member</label>
+          <select id="member_id" name="member_id">
+            <option value="">Select member</option>
+            {% for member in members %}
+              <option value="{{ member.id }}">{{ member.name }} ({{ member.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="member_tag">Member UID (optional)</label>
+          <input id="member_tag" name="member_tag" type="text" placeholder="Scan/enter member UID">
+        </div>
+        <div class="field">
+          <label for="printer_type">Printer</label>
+          <select id="printer_type" name="printer_type" required>
+            {% for printer in printer_types %}
+              <option value="{{ printer }}">{{ printer }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="gcode_file">File</label>
+          <input id="gcode_file" name="gcode_file" type="file" required>
+        </div>
+        <div class="field">
+          <label for="notes">Notes</label>
+          <input id="notes" name="notes" type="text" placeholder="Optional print notes">
+        </div>
+        <div class="field" style="align-self: end;">
+          <button class="button" type="submit">Submit to Queue</button>
+        </div>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Pending Approval</h3>
+          <p>Members submit here first. Accept or deny each request.</p>
+        </div>
+      </header>
+      {% if pending_print_jobs %}
+        <div class="dense-table-wrap">
+          <table data-sort-table>
+            <thead>
+              <tr>
+                <th data-sort-key="id" data-sort-type="number"><button class="sort-button" type="button">ID</button></th>
+                <th data-sort-key="member"><button class="sort-button" type="button">Member</button></th>
+                <th data-sort-key="printer"><button class="sort-button" type="button">Printer</button></th>
+                <th data-sort-key="file"><button class="sort-button" type="button">File</button></th>
+                <th data-sort-key="submitted"><button class="sort-button" type="button">Submitted</button></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in pending_print_jobs %}
+                <tr>
+                  <td>#{{ job.id }}</td>
+                  <td>{{ job.member.name }}</td>
+                  <td>{{ job.printer_type }}</td>
+                  <td>{{ job.file_name }}</td>
+                  <td>{{ job.submitted_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                  <td>
+                    <div class="inline-actions">
+                      <form method="post" action="{{ url_for('admin_print_accept', job_id=job.id) }}">
+                        <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                        <button class="button" type="submit">Accept</button>
+                      </form>
+                      <form method="post" action="{{ url_for('admin_print_deny', job_id=job.id) }}" onsubmit="return confirm('Deny this print job and delete its uploaded file?');">
+                        <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                        <button class="button-danger" type="submit">Deny</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No pending print jobs right now.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="grid-2" style="margin-top: 1rem;">
+    {% for printer, snapshot in queues.items() %}
+      <article class="panel">
+        <header class="panel-header">
+          <div>
+            <h3>{{ printer }} Queue</h3>
+            <p>Active, queued, and recent jobs.</p>
+          </div>
+        </header>
+
+        <h4 style="margin: 0 0 0.5rem;">Active</h4>
+        {% if snapshot.active %}
+          <div class="queue-item">
+            <div>
+              <strong>#{{ snapshot.active.id }} - {{ snapshot.active.member.name }}</strong><br>
+              <span class="helper">{{ snapshot.active.file_name }}</span>
+            </div>
+            <div class="inline-actions">
+              <form method="post" action="{{ url_for('admin_print_complete', job_id=snapshot.active.id) }}">
+                <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                <button class="button-secondary" type="submit">Mark Done</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_print_fail', job_id=snapshot.active.id) }}" onsubmit="return confirm('Mark this active print as failed?');">
+                <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                <button class="button-danger" type="submit">Mark Failed</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="empty-state">No active {{ printer }} print.</div>
+        {% endif %}
+
+        <h4 style="margin: 1rem 0 0.5rem;">Queued</h4>
+        {% if snapshot.queued %}
+          <div class="status-list">
+            {% for job in snapshot.queued %}
+              <div class="queue-item">
+                <div>
+                  <strong>#{{ job.id }} - {{ job.member.name }}</strong><br>
+                  <span class="helper">{{ job.file_name }}</span>
+                </div>
+                <div class="inline-actions">
+                  <a class="button-ghost" href="{{ url_for('open_print_job', job_id=job.id) }}">Open</a>
+                  <form method="post" action="{{ url_for('admin_print_delete', job_id=job.id) }}" onsubmit="return confirm('Delete this queued job and remove its file?');">
+                    <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                    <button class="button-danger" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">No queued jobs for {{ printer }}.</div>
+        {% endif %}
+
+        <h4 style="margin: 1rem 0 0.5rem;">Recent Finished</h4>
+        {% if snapshot.recent_finished %}
+          <div class="status-list">
+            {% for job in snapshot.recent_finished %}
+              <div class="queue-item">
+                <div>
+                  <strong>#{{ job.id }} - {{ job.member.name }}</strong><br>
+                  <span class="helper">{{ job.file_name }}</span>
+                </div>
+                <div class="inline-actions">
+                  <span class="{{ badge_class(job.status) }}">{{ job.status|title }}</span>
+                  <form method="post" action="{{ url_for('admin_print_delete', job_id=job.id) }}" onsubmit="return confirm('Delete this completed/failed record and file reference?');">
+                    <input type="hidden" name="next" value="{{ url_for('admin_prints') }}">
+                    <button class="button-ghost" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">No recently finished jobs.</div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

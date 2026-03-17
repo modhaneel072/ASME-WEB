@@ -1,0 +1,232 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Inventory | Admin Panel{% endblock %}
+
+{% block content %}
+  <section class="grid-2">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Add Inventory Item</h3>
+          <p>Create new stock records.</p>
+        </div>
+      </header>
+      <form class="field-grid" method="post" action="{{ url_for('admin_inventory_add') }}">
+        <div class="field">
+          <label for="name">Item Name</label>
+          <input id="name" name="name" type="text" required>
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <input id="category" name="category" type="text">
+        </div>
+        <div class="field">
+          <label for="location">Location</label>
+          <input id="location" name="location" type="text">
+        </div>
+        <div class="field">
+          <label for="total_qty">Total Qty</label>
+          <input id="total_qty" name="total_qty" type="number" min="1" value="1">
+        </div>
+        <div class="field">
+          <label for="available_qty">Available Qty</label>
+          <input id="available_qty" name="available_qty" type="number" min="0" value="1">
+        </div>
+        <div class="field" style="align-self: end;">
+          <button class="button" type="submit">Add Item</button>
+        </div>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Checkout or Return</h3>
+          <p>Admin transaction form with member and item NFC support.</p>
+        </div>
+      </header>
+      <form class="field-grid" method="post" action="{{ url_for('admin_transact') }}">
+        <input type="hidden" name="next" value="{{ url_for('admin_inventory') }}">
+        <div class="field">
+          <label for="member_id">Member</label>
+          <select id="member_id" name="member_id">
+            <option value="">Select member</option>
+            {% for member in members %}
+              <option value="{{ member.id }}">{{ member.name }} ({{ member.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="member_tag">Member UID (optional)</label>
+          <input id="member_tag" name="member_tag" type="text" placeholder="Scan/enter member UID">
+        </div>
+        <div class="field">
+          <label for="item_id">Item</label>
+          <select id="item_id" name="item_id">
+            <option value="">Select item</option>
+            {% for item in items %}
+              <option value="{{ item.id }}">{{ item.name }} ({{ item.available_qty }}/{{ item.total_qty }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="item_tag">Item UID (optional)</label>
+          <input id="item_tag" name="item_tag" type="text" placeholder="Scan/enter item UID">
+        </div>
+        <div class="field">
+          <label for="action">Action</label>
+          <select id="action" name="action" required>
+            <option value="checkout">Checkout</option>
+            <option value="return">Return</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="qty">Qty</label>
+          <input id="qty" name="qty" type="number" min="1" value="1" required>
+        </div>
+        <div class="field">
+          <label for="due_date">Due Date</label>
+          <input id="due_date" name="due_date" type="date" value="{{ default_due }}">
+        </div>
+        <div class="field">
+          <label for="notes">Notes</label>
+          <input id="notes" name="notes" type="text" placeholder="Optional notes">
+        </div>
+        <div class="field" style="align-self: end;">
+          <button class="button" type="submit">Save Transaction</button>
+        </div>
+      </form>
+    </article>
+  </section>
+
+  <section class="panel" style="margin-top: 1rem;">
+    <header class="panel-header">
+      <div>
+        <h3>Inventory Stock</h3>
+        <p>Live item availability and NFC pairing status.</p>
+      </div>
+    </header>
+    <div class="dense-table-wrap">
+      <table data-sort-table>
+        <thead>
+          <tr>
+            <th data-sort-key="name"><button class="sort-button" type="button">Name</button></th>
+            <th data-sort-key="category"><button class="sort-button" type="button">Category</button></th>
+            <th data-sort-key="location"><button class="sort-button" type="button">Location</button></th>
+            <th data-sort-key="available" data-sort-type="number"><button class="sort-button" type="button">Available</button></th>
+            <th data-sort-key="total" data-sort-type="number"><button class="sort-button" type="button">Total</button></th>
+            <th data-sort-key="status"><button class="sort-button" type="button">Status</button></th>
+            <th>NFC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td>{{ item.category or "Uncategorized" }}</td>
+              <td>{{ item.location or "Unassigned" }}</td>
+              <td>{{ item.available_qty }}</td>
+              <td>{{ item.total_qty }}</td>
+              <td>
+                {% if item.available_qty <= 0 %}
+                  <span class="badge-red">Out</span>
+                {% elif item.available_qty <= 2 %}
+                  <span class="badge-amber">Low</span>
+                {% else %}
+                  <span class="badge-green">In Stock</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.nfc_tag %}
+                  <span class="badge-green">Paired</span>
+                {% else %}
+                  <span class="badge-amber">Unpaired</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7">No inventory items found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="grid-2" style="margin-top: 1rem;">
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Active Checkouts</h3>
+          <p>Current outstanding checkouts across members.</p>
+        </div>
+      </header>
+      <div class="dense-table-wrap">
+        <table data-sort-table>
+          <thead>
+            <tr>
+              <th data-sort-key="member"><button class="sort-button" type="button">Member</button></th>
+              <th data-sort-key="item"><button class="sort-button" type="button">Item</button></th>
+              <th data-sort-key="qty" data-sort-type="number"><button class="sort-button" type="button">Qty</button></th>
+              <th data-sort-key="due"><button class="sort-button" type="button">Due Date</button></th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in active_checkouts %}
+              <tr>
+                <td>{{ row.member.name }}</td>
+                <td>{{ row.item.name }}</td>
+                <td>{{ row.qty }}</td>
+                <td>{{ row.due_date.isoformat() if row.due_date else "-" }}</td>
+                <td><span class="{{ 'badge-amber' if row.is_overdue else 'badge-blue' }}">{{ "Overdue" if row.is_overdue else "Active" }}</span></td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5">No active checkouts.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header class="panel-header">
+        <div>
+          <h3>Recent Transactions</h3>
+          <p>Latest inventory actions.</p>
+        </div>
+      </header>
+      <div class="dense-table-wrap">
+        <table data-sort-table>
+          <thead>
+            <tr>
+              <th data-sort-key="time"><button class="sort-button" type="button">Timestamp</button></th>
+              <th data-sort-key="member"><button class="sort-button" type="button">Member</button></th>
+              <th data-sort-key="item"><button class="sort-button" type="button">Item</button></th>
+              <th data-sort-key="action"><button class="sort-button" type="button">Action</button></th>
+              <th data-sort-key="qty" data-sort-type="number"><button class="sort-button" type="button">Qty</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in recent_transactions %}
+              <tr>
+                <td>{{ tx.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ tx.member.name }}</td>
+                <td>{{ tx.item.name }}</td>
+                <td><span class="{{ badge_class(tx.action) }}">{{ tx.action|title }}</span></td>
+                <td>{{ tx.qty }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5">No transaction history yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "member/base.html" %}
+
+{% block title %}Submit Print Job | Member Portal{% endblock %}
+
+{% block content %}
+  <section class="panel-grid">
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>Submit 3D Print Job</h3>
+          <p>Member submissions enter <strong>pending</strong> status and require admin approval.</p>
+        </div>
+      </header>
+      <form class="form-grid" method="post" action="{{ url_for('member_print_submit') }}" enctype="multipart/form-data">
+        <input type="hidden" name="next" value="{{ url_for('member_print') }}">
+        <div class="field-grid">
+          <div class="field">
+            <label for="printer_type">Printer</label>
+            <select id="printer_type" name="printer_type" required>
+              {% for printer in printer_types %}
+                <option value="{{ printer }}">{{ printer }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="gcode_file">File (.gcode, .gco, .3mf)</label>
+            <input id="gcode_file" name="gcode_file" type="file" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" placeholder="Material, nozzle, color, or any print constraints."></textarea>
+        </div>
+        <button class="button" type="submit">Submit for Approval</button>
+      </form>
+    </article>
+
+    <article class="card">
+      <header class="card-header">
+        <div>
+          <h3>My Print Jobs</h3>
+          <p>Status updates from pending through done/failed.</p>
+        </div>
+      </header>
+      {% if my_print_jobs %}
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Printer</th>
+                <th>File</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in my_print_jobs %}
+                <tr>
+                  <td>#{{ job.id }}</td>
+                  <td>{{ job.printer_type }}</td>
+                  <td>{{ job.file_name }}</td>
+                  <td><span class="{{ badge_class(job.status) }}">{{ job.status|title }}</span></td>
+                  <td>{{ job.submitted_at.strftime("%Y-%m-%d %H:%M") if job.submitted_at else "-" }}</td>
+                  <td>
+                    <div class="inline-actions">
+                      <a class="button-ghost" href="{{ url_for('open_print_job', job_id=job.id) }}">Open</a>
+                      <a class="button-ghost" href="{{ url_for('download_print_job', job_id=job.id) }}">Download</a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No print jobs submitted yet.</div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}
