@@ -1,0 +1,17 @@
+{% macro nav_link(item, current_page) -%}
+  <a
+    class="nav-link{% if current_page == item.key %} is-active{% endif %}"
+    href="{{ url_for(item.endpoint) }}"
+    {% if current_page == item.key %}aria-current="page"{% endif %}
+  >
+    {{ item.label }}
+  </a>
+{%- endmacro %}
+
+{% macro section_header(eyebrow, title, description, align='left') -%}
+  <div class="section-heading{% if align == 'center' %} align-center{% endif %}">
+    <span class="eyebrow">{{ eyebrow }}</span>
+    <h2>{{ title }}</h2>
+    <p>{{ description }}</p>
+  </div>
+{%- endmacro %}

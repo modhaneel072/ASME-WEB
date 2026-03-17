@@ -1,0 +1,49 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}Executive Team | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">Executive Team</span>
+        <h1>Student leadership with responsibility for chapter direction, delivery, and member experience.</h1>
+        <p>
+          This page gives the public site a real leadership surface instead of burying officer information in a long
+          landing page. Swap placeholder names for active officers whenever the roster is updated.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('join_page') }}">Join the Chapter</a>
+          <a class="button-secondary" href="{{ url_for('contact_page') }}">Contact Leadership</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel">
+        <span class="card-kicker">Leadership Focus</span>
+        <h3>Direction, continuity, and visible support for members.</h3>
+        <p>The public team page now stands on its own, making the organization feel more established and easier to trust.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "Leadership Roles",
+        "The officer team shaping how the chapter shows up.",
+        "These cards are built as reusable entries, so adding real names, bios, and contact links later is straightforward."
+      ) }}
+
+      <div class="exec-grid refined-grid">
+        {% for officer in exec_team_entries %}
+          <article class="exec-card">
+            <span class="card-kicker">{{ officer.title }}</span>
+            <h3>{{ officer.name }}</h3>
+            <p>{{ officer.summary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

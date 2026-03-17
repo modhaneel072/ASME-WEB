@@ -1,0 +1,104 @@
+{% from "public/_macros.html" import nav_link %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ASME at Iowa{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}">
+</head>
+<body class="public-page page-{{ public_page|default('home') }}">
+  <div class="site-shell">
+    <header class="public-nav" data-public-nav data-open="false">
+      <div class="container public-nav-inner">
+        <a class="brand" href="{{ url_for('home') }}">
+          <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME at Iowa">
+          <span class="brand-mark">
+            <strong>ASME at Iowa</strong>
+            <span>University of Iowa chapter</span>
+          </span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="public-nav-panel"
+          aria-label="Toggle navigation"
+          data-nav-toggle
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <div class="nav-panel" id="public-nav-panel">
+          <nav class="nav-links" aria-label="Primary">
+            {% for item in public_nav_items %}
+              {{ nav_link(item, public_page) }}
+            {% endfor %}
+          </nav>
+          <div class="nav-actions">
+            <a class="button-secondary nav-action-dark" href="{{ url_for('join_page') }}">Join the Chapter</a>
+            <a class="button nav-action-gold" href="{{ url_for('member_portal_entry') }}">Member Portal</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <div class="site-content{% if public_page == 'home' %} is-home{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="container flash-stack">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+    <footer class="public-footer">
+      <div class="container public-footer-grid">
+        <div class="footer-brand">
+          <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME at Iowa">
+          <div>
+            <strong>ASME at Iowa</strong>
+            <p>Design, build, compete, and lead with a chapter experience built for engineering momentum.</p>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <span class="footer-label">Site</span>
+          {% for item in public_nav_items %}
+            <a href="{{ url_for(item.endpoint) }}">{{ item.label }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="footer-links">
+          <span class="footer-label">Connect</span>
+          {% for social in public_social_links %}
+            <a href="{{ social.href }}" {% if social.href.startswith('http') %}target="_blank" rel="noreferrer"{% endif %}>{{ social.title }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="footer-meta">
+          <span class="footer-label">Contact</span>
+          <a href="mailto:{{ public_contact.email }}">{{ public_contact.email }}</a>
+          <a href="{{ public_contact.official_url }}" target="_blank" rel="noreferrer">Official UIowa Page</a>
+          <p>{{ public_contact.location }}</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/public.js') }}" defer></script>
+</body>
+</html>

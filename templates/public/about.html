@@ -1,0 +1,83 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}About | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">About</span>
+        <h1>A student chapter designed to make engineering feel active, collaborative, and visible.</h1>
+        <p>
+          ASME at Iowa connects projects, operations, and leadership so members build stronger technical instincts and
+          more credible stories than coursework alone can provide.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('projects_page') }}">See the Work</a>
+          <a class="button-secondary" href="{{ url_for('join_page') }}">How to Join</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel media-panel">
+        <img src="{{ url_for('static', filename='hero-cinematic.svg') }}" alt="">
+        <div class="panel-caption">A premium public-facing shell with the same black, gold, and engineering-forward identity.</div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "What the Chapter Delivers",
+        "A stronger engineering identity before graduation.",
+        "The public-facing About page now carries the chapter story, leaving the homepage free to lead with vision and atmosphere."
+      ) }}
+
+      <div class="feature-grid three-up">
+        {% for item in about_features %}
+          <article class="content-card">
+            <span class="card-kicker">{{ item.label }}</span>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.summary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="container split-section">
+      <div>
+        {{ section_header(
+          "Chapter Rhythm",
+          "How the organization grows over time.",
+          "A healthy chapter keeps recruiting, building, and handing off knowledge in a way that makes momentum visible."
+        ) }}
+      </div>
+
+      <div class="timeline-stack">
+        {% for item in about_rhythm %}
+          <article class="timeline-card">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.summary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container callout-banner">
+      <div>
+        <span class="card-kicker">Next Step</span>
+        <h3>Use the deeper pages to move from curiosity into action.</h3>
+        <p>Projects, leadership, joining, and contact now each have room to breathe instead of competing for attention on the homepage.</p>
+      </div>
+      <div class="inline-actions">
+        <a class="button" href="{{ url_for('projects_page') }}">Projects</a>
+        <a class="button-secondary" href="{{ url_for('contact_page') }}">Contact</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

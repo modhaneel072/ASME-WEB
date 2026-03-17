@@ -1,0 +1,49 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}Contact | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">Contact</span>
+        <h1>Reach the chapter, follow the work, and stay connected to public updates.</h1>
+        <p>
+          The contact page now lives independently, which keeps the homepage lighter and gives visitors a clear place
+          to reach out about membership, partnerships, sponsorship, or general questions.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="mailto:{{ public_contact.email }}">Email the Chapter</a>
+          <a class="button-secondary" href="{{ public_contact.official_url }}" target="_blank" rel="noreferrer">Official UIowa Page</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel">
+        <span class="card-kicker">Location</span>
+        <h3>{{ public_contact.location }}</h3>
+        <p>Use the official page, social platforms, or email to keep the public conversation and recruiting flow moving.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "Social + Direct Contact",
+        "Every public channel in one dedicated place.",
+        "This keeps the landing page focused while making contact options much easier to scan."
+      ) }}
+
+      <div class="social-grid refined-social-grid">
+        {% for social in public_social_links %}
+          <a class="social-card" href="{{ social.href }}" {% if social.href.startswith('http') %}target="_blank" rel="noreferrer"{% endif %}>
+            <span class="card-kicker">{{ social.title }}</span>
+            <h3>{{ social.handle }}</h3>
+            <p>{{ social.summary }}</p>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "public/base.html" %}
+
+{% block title %}{{ portal_config.title }} | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="auth-shell portal-login-shell">
+    <div class="container portal-login-grid">
+      <div class="portal-intro">
+        <div class="eyebrow">{{ portal_config.kicker }}</div>
+        <h1>{{ portal_config.heading }}</h1>
+        <p class="lede">{{ portal_config.description }}</p>
+        <div class="portal-note-card">
+          <strong>{{ portal_config.support_label }}</strong>
+          <p>{{ portal_config.support_copy }}</p>
+          <div class="inline-actions">
+            <a class="button-ghost" href="{{ url_for('login') }}">Back to Login</a>
+            <a class="button-ghost" href="{{ url_for('home') }}">Home</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-card portal-auth-card {{ portal_config.portal }}">
+        <img class="auth-brand" src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME at Iowa">
+        <h1>{{ portal_config.title }}</h1>
+        <p class="lede">Use the email address and password already assigned to your account.</p>
+
+        {% if forgot_password_notice %}
+          <div class="flash info">Contact your admin to reset your password.</div>
+        {% endif %}
+
+        <form class="form-grid" method="post" action="{{ request.path }}">
+          <input type="hidden" name="next" value="{{ next_target }}">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="auth-links">
+            <a class="helper" href="{{ url_for('forgot_password') }}">Forgot password?</a>
+            {% if setup_available and portal_config.portal == 'admin' %}
+              <a class="helper" href="{{ url_for('setup') }}">First-time admin setup</a>
+            {% endif %}
+          </div>
+          <button class="button" type="submit">{{ portal_config.button_label }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

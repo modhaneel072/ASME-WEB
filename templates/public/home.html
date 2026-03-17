@@ -1,0 +1,76 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}ASME at Iowa | Design. Build. Compete. Lead.{% endblock %}
+
+{% block content %}
+  <section class="hero-cinematic home-hero">
+    <div class="hero-media" aria-hidden="true">
+      <img src="{{ url_for('static', filename='media/asme-drone-flight.jpeg') }}" alt="">
+    </div>
+
+    <div class="container hero-shell">
+      <div class="hero-copy">
+        <span class="eyebrow hero-kicker">ASME at Iowa</span>
+        <h1>Design. Build. Compete. Lead.</h1>
+        <p>
+          ASME at Iowa gives students hands-on engineering experience, leadership opportunities, and a stronger
+          community for building beyond the classroom.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="{{ url_for('projects_page') }}">Explore Projects</a>
+          <a class="button-secondary" href="{{ url_for('join_page') }}">Join ASME</a>
+          <a class="button-ghost light" href="#chapter-message">Watch the Message</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section home-section home-message" id="chapter-message">
+    <div class="container message-grid">
+      <div class="message-copy">
+        {{ section_header(
+          featured_message.eyebrow,
+          featured_message.title,
+          featured_message.summary
+        ) }}
+        <a class="button" href="{{ featured_message.href }}" target="_blank" rel="noreferrer">{{ featured_message.cta }}</a>
+      </div>
+
+      <a
+        class="message-video"
+        href="{{ featured_message.href }}"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="{{ featured_message.cta }}"
+      >
+        <div class="message-video-frame achievement-poster">
+          <img src="{{ url_for('static', filename=featured_message.poster) }}" alt="Chapter message poster">
+          <span class="video-play" aria-hidden="true">
+            <span></span>
+          </span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section home-section home-previews">
+    <div class="container">
+      {{ section_header(
+        "Quick Preview",
+        "Explore the chapter.",
+        "Start here, then head to the pages with the full details."
+      ) }}
+
+      <div class="home-card-grid">
+        {% for card in home_preview_cards %}
+          <article class="home-card">
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.summary }}</p>
+            <a class="text-link" href="{{ url_for(card.endpoint) }}">{{ card.cta }}</a>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

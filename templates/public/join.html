@@ -1,0 +1,73 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}Join | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">Join</span>
+        <h1>Joining should feel clear, welcoming, and worth the time.</h1>
+        <p>
+          This page replaces the old homepage overload with a focused path into the chapter. It shows how students can
+          step in, contribute quickly, and start building confidence through real work.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('contact_page') }}">Reach Out</a>
+          <a class="button-secondary" href="{{ url_for('member_portal_entry') }}">Member Portal</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel">
+        <span class="card-kicker">Who This Is For</span>
+        <h3>Students who want more than passive membership.</h3>
+        <p>The chapter is built for people who want hands-on work, stronger stories, and a visible place in the engineering community.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "Join Process",
+        "A straightforward path into the chapter.",
+        "No clutter, no buried details. Just the three moves that get new members into the work."
+      ) }}
+
+      <div class="steps-grid">
+        {% for step in join_steps %}
+          <article class="step-card">
+            <span class="step-index">{{ step.step }}</span>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.summary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="container split-section">
+      <div>
+        {{ section_header(
+          "Why Members Stay",
+          "The chapter offers more than meeting attendance.",
+          "These are the signals and experiences students typically want more of by the time they graduate."
+        ) }}
+      </div>
+
+      <article class="content-card">
+        <ul class="benefit-list">
+          {% for benefit in join_benefits %}
+            <li>{{ benefit }}</li>
+          {% endfor %}
+        </ul>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('contact_page') }}">Contact the Chapter</a>
+          <a class="button-secondary" href="{{ url_for('projects_page') }}">See Projects</a>
+        </div>
+      </article>
+    </div>
+  </section>
+{% endblock %}

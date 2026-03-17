@@ -1,0 +1,50 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}Login | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">Login</span>
+        <h1>Choose the workspace that matches your role.</h1>
+        <p>
+          The public site now has a dedicated login page instead of sending visitors straight into a member form from
+          the homepage. Member and admin access still use the same underlying auth flows.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('member_portal_entry') }}">Member Login</a>
+          <a class="button-secondary" href="{{ url_for('admin_portal_entry') }}">Admin Login</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel">
+        <span class="card-kicker">Need Access?</span>
+        <h3>Contact an officer or admin to activate your account.</h3>
+        <p>If you are new to the chapter, start on the Join or Contact pages first and the team can route you correctly.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "Portal Access",
+        "Two paths, one consistent public experience.",
+        "The chooser keeps the public sitemap clean while preserving the existing member and admin auth endpoints."
+      ) }}
+
+      <div class="portal-choice-grid">
+        {% for choice in login_choices %}
+          <article class="portal-choice-card">
+            <span class="card-kicker">{{ choice.label }}</span>
+            <h3>{{ choice.title }}</h3>
+            <p>{{ choice.summary }}</p>
+            <a class="button" href="{{ url_for(choice.endpoint) }}">{{ choice.cta }}</a>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

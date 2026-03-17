@@ -1,0 +1,76 @@
+{% extends "public/base.html" %}
+{% from "public/_macros.html" import section_header %}
+
+{% block title %}Projects | ASME at Iowa{% endblock %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div class="page-copy">
+        <span class="eyebrow">Projects</span>
+        <h1>Engineering experience is built through work that is shared, technical, and real.</h1>
+        <p>
+          The new projects page gives the chapter a clearer public portfolio. It shows what members actually touch:
+          competition builds, robotics, systems work, and chapter infrastructure that supports making.
+        </p>
+        <div class="inline-actions">
+          <a class="button" href="{{ url_for('join_page') }}">Join a Team</a>
+          <a class="button-secondary" href="{{ url_for('contact_page') }}">Ask About Projects</a>
+        </div>
+      </div>
+
+      <aside class="page-hero-panel media-panel">
+        <img src="{{ url_for('static', filename='media/asme-rover-claw.jpeg') }}" alt="ASME rover claw prototype on a workbench">
+        <div class="panel-caption">
+          <span class="card-kicker">Prototype Work</span>
+          <div>Hands-on iteration is a visible part of how members learn, test, and improve their designs.</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      {{ section_header(
+        "Featured Work",
+        "Projects that give the chapter technical depth and public energy.",
+        "Each card is structured as a reusable project module so the portfolio can grow without reworking the page."
+      ) }}
+
+      <div class="project-grid">
+        {% for project in project_showcase %}
+          <article class="project-panel">
+            <span class="card-kicker">{{ project.label }}</span>
+            <h3>{{ project.title }}</h3>
+            <p>{{ project.summary }}</p>
+            <ul class="card-points">
+              {% for point in project.focus %}
+                <li>{{ point }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="container">
+      {{ section_header(
+        "How Members Grow",
+        "The chapter is strongest when project work produces both technical and leadership reps.",
+        "These four stages keep the public story clean and the internal experience easy to understand.",
+        "center"
+      ) }}
+
+      <div class="stage-grid">
+        {% for stage in project_stages %}
+          <article class="stage-card">
+            <span class="card-kicker">{{ stage.label }}</span>
+            <p>{{ stage.summary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

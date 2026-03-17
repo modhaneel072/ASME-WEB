@@ -1,0 +1,64 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#09111A"/>
+  <rect width="1600" height="900" fill="url(#paint0_radial)" fill-opacity="0.82"/>
+  <rect width="1600" height="900" fill="url(#paint1_linear)"/>
+  <path d="M0 640C180 566 303 510 492 510C719 510 826 681 1089 681C1277 681 1404 635 1600 558V900H0V640Z" fill="url(#paint2_linear)"/>
+  <path d="M0 702C182 642 332 618 509 629C713 642 870 764 1125 748C1293 737 1436 680 1600 624V900H0V702Z" fill="url(#paint3_linear)" fill-opacity="0.7"/>
+  <g opacity="0.16">
+    <path d="M-66 118H514" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M130 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M216 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M302 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M388 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M474 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M560 48V420" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M-66 198H514" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M-66 278H514" stroke="#FFE9A8" stroke-width="1.2"/>
+    <path d="M-66 358H514" stroke="#FFE9A8" stroke-width="1.2"/>
+  </g>
+  <g opacity="0.32">
+    <path d="M764 124C957 165 1107 266 1241 446" stroke="#A8C5E4" stroke-width="2.5"/>
+    <path d="M714 177C925 219 1094 330 1265 543" stroke="#A8C5E4" stroke-width="1.6"/>
+    <path d="M682 236C864 274 1037 385 1249 644" stroke="#FFE9A8" stroke-width="2.5"/>
+  </g>
+  <circle cx="1180" cy="238" r="186" fill="url(#paint4_radial)" fill-opacity="0.8"/>
+  <circle cx="1270" cy="602" r="246" fill="url(#paint5_radial)" fill-opacity="0.56"/>
+  <circle cx="1132" cy="284" r="44" fill="#FFE9A8" fill-opacity="0.16"/>
+  <circle cx="1132" cy="284" r="84" stroke="#FFE9A8" stroke-opacity="0.3"/>
+  <path d="M1111 284H1153" stroke="#FFE9A8" stroke-width="1.3" stroke-linecap="round"/>
+  <path d="M1132 263V305" stroke="#FFE9A8" stroke-width="1.3" stroke-linecap="round"/>
+  <g opacity="0.42">
+    <path d="M878 722L960 564L1032 606L1149 413L1238 471L1336 314" stroke="#FFE9A8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="960" cy="564" r="8" fill="#FFE9A8"/>
+    <circle cx="1032" cy="606" r="8" fill="#FFE9A8"/>
+    <circle cx="1149" cy="413" r="8" fill="#FFE9A8"/>
+    <circle cx="1238" cy="471" r="8" fill="#FFE9A8"/>
+    <circle cx="1336" cy="314" r="8" fill="#FFE9A8"/>
+  </g>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(826 86) rotate(90) scale(814 1282.83)">
+      <stop stop-color="#294D6D"/>
+      <stop offset="1" stop-color="#09111A"/>
+    </radialGradient>
+    <linearGradient id="paint1_linear" x1="800" y1="0" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173247" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#09111A" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="paint2_linear" x1="800" y1="510" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#112130" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#05080D"/>
+    </linearGradient>
+    <linearGradient id="paint3_linear" x1="800" y1="624" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20384E"/>
+      <stop offset="1" stop-color="#071119" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="paint4_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 238) rotate(90) scale(186)">
+      <stop stop-color="#FFE9A8"/>
+      <stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="paint5_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1270 602) rotate(90) scale(246)">
+      <stop stop-color="#2F5C80"/>
+      <stop offset="1" stop-color="#2F5C80" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
