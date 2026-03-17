@@ -444,7 +444,7 @@ def ensure_member_auth_schema_columns():
     if "role" not in existing_columns:
         alters.append("ALTER TABLE members ADD COLUMN role VARCHAR(30) NOT NULL DEFAULT 'member'")
     if "is_active" not in existing_columns:
-        alters.append("ALTER TABLE members ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1")
+        alters.append("ALTER TABLE members ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE")
 
     if alters:
         with db.engine.begin() as conn:
@@ -479,7 +479,7 @@ def ensure_meeting_schema_columns():
     if "cancel_request_token" not in existing_columns:
         alters.append("ALTER TABLE meetings ADD COLUMN cancel_request_token VARCHAR(120)")
     if "cancel_requested_at" not in existing_columns:
-        alters.append("ALTER TABLE meetings ADD COLUMN cancel_requested_at DATETIME")
+        alters.append("ALTER TABLE meetings ADD COLUMN cancel_requested_at TIMESTAMP")
 
     if alters:
         with db.engine.begin() as conn:
