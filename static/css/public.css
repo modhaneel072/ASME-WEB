@@ -832,6 +832,127 @@ select {
   gap: 1rem;
 }
 
+.team-gallery-section {
+  padding-top: 2.25rem;
+}
+
+.team-gallery-heading {
+  max-width: 760px;
+  margin-bottom: 2.2rem;
+}
+
+.exec-feature-card {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 1.4rem;
+  margin-bottom: 1.35rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 241, 235, 0.96));
+  box-shadow: var(--shadow-soft);
+}
+
+.exec-feature-media {
+  min-height: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(15, 23, 33, 0.92), rgba(29, 42, 56, 0.86));
+}
+
+.exec-feature-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exec-feature-body {
+  display: grid;
+  align-content: center;
+  gap: 0.7rem;
+  padding: 1.7rem 1.6rem;
+}
+
+.exec-feature-body h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+}
+
+.exec-feature-body p:last-child {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--text-soft);
+}
+
+.exec-portrait-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.exec-portrait-card {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 241, 235, 0.96));
+  box-shadow: var(--shadow-soft);
+}
+
+.exec-portrait-media {
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(15, 23, 33, 0.92), rgba(29, 42, 56, 0.86));
+}
+
+.exec-portrait-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exec-portrait-media--placeholder {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.exec-portrait-body {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.25rem 1.2rem 1.35rem;
+}
+
+.exec-portrait-card--placeholder {
+  border-style: dashed;
+}
+
+.exec-portrait-role {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a5b00;
+}
+
+.exec-portrait-body h3 {
+  margin: 0;
+  font-size: 1.38rem;
+}
+
+.exec-portrait-body p:last-child {
+  margin: 0;
+  color: var(--text-soft);
+}
+
 .timeline-stack {
   grid-template-columns: 1fr;
 }
@@ -1074,6 +1195,7 @@ select {
   .portal-login-grid,
   .video-showcase,
   .callout-banner,
+  .exec-feature-card,
   .public-footer-grid {
     grid-template-columns: 1fr;
   }
@@ -1090,6 +1212,10 @@ select {
   .home-card-grid,
   .portal-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .exec-portrait-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1167,7 +1293,8 @@ select {
   .refined-grid,
   .steps-grid,
   .stage-grid,
-  .input-grid {
+  .input-grid,
+  .exec-portrait-grid {
     grid-template-columns: 1fr;
   }
   .hero-shell {
