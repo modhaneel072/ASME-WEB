@@ -4,3 +4,4 @@ instance/
 
 # Keep secrets out of git
 instance/print_commands.env
+instance/inventory.db
