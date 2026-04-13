@@ -1,15 +1,18 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel auth-panel">
-  <div class="section-head">
-    <h3>Checkout Kiosk</h3>
+<div class="auth-panel" style="max-width: 560px;">
+  <div class="panel" style="text-align: center;">
+    <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME" style="width: 56px; height: 56px; margin: 0 auto var(--sp-5); object-fit: contain;" />
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: var(--text-2xl); font-weight: 700;">Checkout Kiosk</h3>
+    <p style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--sp-2); margin-bottom: var(--sp-8);">
+      Sign in to browse inventory, check out tools, or return items.
+    </p>
+    <div style="display: flex; flex-direction: column; gap: var(--sp-3);">
+      <a class="btn btn-primary btn-lg" href="/login?next={{ inventory_next|urlencode }}" style="width: 100%;">Member Login</a>
+      <a class="btn btn-secondary btn-lg" href="/signup?next={{ inventory_next|urlencode }}" style="width: 100%;">Sign Up</a>
+      <a class="btn btn-ghost btn-lg" href="/admin-login?next={{ admin_next|urlencode }}" style="width: 100%;">Admin Login</a>
+    </div>
   </div>
-  <p class="muted">Scan this tag to open quick login for checkout and returns.</p>
-  <div class="hero-actions">
-    <a class="btn" href="/login?next={{ inventory_next|urlencode }}">Member Login</a>
-    <a class="btn ghost" href="/signup?next={{ inventory_next|urlencode }}">Sign Up</a>
-    <a class="btn light" href="/admin-login?next={{ admin_next|urlencode }}">Admin Login</a>
-  </div>
-</section>
+</div>
 {% endblock %}

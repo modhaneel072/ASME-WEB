@@ -3,45 +3,84 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="ASME at the University of Iowa — Engineering Innovation, Competition Teams, and Professional Development" />
   <title>{{ page_title }} | ASME @ UIowa</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
 </head>
 <body>
   <div class="site-bg"></div>
-  <header class="site-header">
-    <a href="/" class="site-brand">
-      <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
-      <div>
-        <p>University of Iowa</p>
-        <h1>ASME @ UIowa</h1>
+
+  <!-- ── HEADER ────────────────────────────── -->
+  <header class="site-header" id="siteHeader">
+    <div class="site-header-inner">
+      <a href="/" class="site-brand">
+        <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+        <div class="site-brand-text">
+          <p>University of Iowa</p>
+          <h1>ASME</h1>
+        </div>
+      </a>
+
+      <nav class="site-nav" id="siteNav">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/exec">Team</a>
+        <a href="/projects">Projects</a>
+        <a href="/events">Events</a>
+        <a href="/join">Join</a>
+        <a href="/contact">Contact</a>
+      </nav>
+
+      <div class="site-actions">
+        {% if current_user %}
+        <a class="btn btn-secondary btn-sm" href="/portal">Portal</a>
+        <form action="/logout" method="post" style="display:inline">
+          <button type="submit" class="btn btn-ghost btn-sm">Logout</button>
+        </form>
+        {% else %}
+        <a class="btn btn-secondary btn-sm" href="/login">Login</a>
+        <a class="btn btn-primary btn-sm" href="/join">Join ASME</a>
+        {% endif %}
       </div>
-    </a>
-    <nav class="site-nav">
-      <a href="/">Home</a>
-      <a href="/about">About</a>
-      <a href="/exec">Executive Team</a>
-      <a href="/projects">Projects</a>
-      <a href="/join">Join</a>
-      <a href="/socials">Socials</a>
-      <a href="/login">Login</a>
-    </nav>
-    <div class="site-actions">
-      {% if current_user %}
-      <form action="/logout" method="post">
-        <button type="submit" class="btn light">Logout</button>
-      </form>
-      {% else %}
-      <a class="btn light" href="/admin-login">Admin Login</a>
-      <a class="btn ghost" href="/signup">Sign Up</a>
-      <a class="btn" href="/login">Member Login</a>
-      {% endif %}
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </header>
 
+  <!-- ── MOBILE NAV ────────────────────────── -->
+  <div class="mobile-nav" id="mobileNav">
+    <a href="/">Home</a>
+    <a href="/about">About</a>
+    <a href="/exec">Team</a>
+    <a href="/projects">Projects</a>
+    <a href="/events">Events</a>
+    <a href="/join">Join</a>
+    <a href="/contact">Contact</a>
+    <div class="mobile-nav-actions">
+      {% if current_user %}
+      <a class="btn btn-primary" href="/portal">Go to Portal</a>
+      <form action="/logout" method="post">
+        <button type="submit" class="btn btn-secondary" style="width:100%">Logout</button>
+      </form>
+      {% else %}
+      <a class="btn btn-primary" href="/join">Join ASME</a>
+      <a class="btn btn-secondary" href="/login">Member Login</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="site-header-spacer"></div>
+
+  <!-- ── MAIN ──────────────────────────────── -->
   <main class="site-main">
     {% with messages = get_flashed_messages(with_categories=True) %}
       {% if messages %}
-      <section class="flash-stack">
+      <section class="flash-stack" style="margin-bottom: var(--sp-4);">
         {% for category, message in messages %}
         <div class="flash flash-{{ category }}">{{ message }}</div>
         {% endfor %}
@@ -51,8 +90,94 @@
     {% block content %}{% endblock %}
   </main>
 
+  <!-- ── FOOTER ────────────────────────────── -->
   <footer class="site-footer">
-    <p>Placeholder line: final website copy will be added here.</p>
+    <div class="site-footer-inner">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME" />
+            <div class="footer-brand-text">
+              <h3>ASME @ UIowa</h3>
+              <p>University of Iowa</p>
+            </div>
+          </div>
+          <p class="footer-desc">
+            The American Society of Mechanical Engineers student chapter at the University of Iowa.
+            Building engineers, building community.
+          </p>
+        </div>
+        <div>
+          <h4 class="footer-heading">Navigate</h4>
+          <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
+            <a href="/exec">Executive Team</a>
+            <a href="/projects">Projects</a>
+            <a href="/events">Events</a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-heading">Get Involved</h4>
+          <div class="footer-links">
+            <a href="/join">Join ASME</a>
+            <a href="/contact">Contact Us</a>
+            <a href="/sponsors">Sponsors</a>
+            <a href="/login">Member Login</a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-heading">Resources</h4>
+          <div class="footer-links">
+            <a href="/portal/member/inventory">Inventory</a>
+            <a href="/portal/member/prints">3D Printing</a>
+            <a href="/portal/member/calendar">Calendar</a>
+            <a href="/kiosk">Kiosk</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">&copy; 2025 ASME @ University of Iowa. All rights reserved.</p>
+        <div class="footer-socials">
+          <a href="https://instagram.com/asme_uiowa" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
+          <a href="https://discord.gg/asme" target="_blank" rel="noopener" aria-label="Discord">DC</a>
+          <a href="mailto:asme@uiowa.edu" aria-label="Email">@</a>
+        </div>
+      </div>
+    </div>
   </footer>
+
+  <!-- ── SCRIPTS ───────────────────────────── -->
+  <script>
+    // Scroll-aware header
+    const header = document.getElementById('siteHeader');
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Mobile menu
+    const toggle = document.getElementById('menuToggle');
+    const nav = document.getElementById('mobileNav');
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('open');
+      nav.classList.toggle('open');
+      document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+    });
+    // Close on link click
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      nav.classList.remove('open');
+      document.body.style.overflow = '';
+    }));
+
+    // Highlight active nav link based on URL
+    const path = window.location.pathname;
+    document.querySelectorAll('#siteNav a').forEach(a => {
+      const href = a.getAttribute('href');
+      if (href === '/' ? path === '/' : path.startsWith(href)) {
+        a.classList.add('active');
+      }
+    });
+  </script>
 </body>
 </html>

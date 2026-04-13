@@ -1,35 +1,79 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel split">
-  <article>
-    <div class="section-head">
-      <h3>Socials / Contact</h3>
-    </div>
-    <ul class="social-list">
-      <li><strong>Instagram:</strong> Placeholder line: final website copy will be added here.</li>
-      <li><strong>Discord:</strong> Placeholder line: final website copy will be added here.</li>
-      <li><strong>LinkedIn:</strong> Placeholder line: final website copy will be added here.</li>
-      <li><strong>Email:</strong> Placeholder line: final website copy will be added here.</li>
-    </ul>
-    <p class="muted"><strong>Location:</strong> Placeholder line: final website copy will be added here.</p>
-  </article>
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Reach Out</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Contact Us</h3>
+    <p class="section-desc">
+      Have a question, want to collaborate, or just want to learn more?
+      We'd love to hear from you.
+    </p>
+  </div>
 
-  <article>
-    <div class="section-head">
-      <h3>Contact Form</h3>
+  <div class="split">
+    <div>
+      <div class="panel" style="margin-bottom: var(--sp-5);">
+        <div class="section-head">
+          <h3>Find Us Online</h3>
+        </div>
+        <div style="display: grid; gap: var(--sp-4);">
+          <div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-md);">
+            <span style="font-size: 20px;">&#128247;</span>
+            <div>
+              <p style="font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Instagram</p>
+              <a href="https://instagram.com/asme_uiowa" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 600; font-size: var(--text-sm);">@asme_uiowa</a>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-md);">
+            <span style="font-size: 20px;">&#128172;</span>
+            <div>
+              <p style="font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Discord</p>
+              <a href="https://discord.gg/asme" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 600; font-size: var(--text-sm);">Join our server</a>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-md);">
+            <span style="font-size: 20px;">&#9993;</span>
+            <div>
+              <p style="font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Email</p>
+              <a href="mailto:asme@uiowa.edu" style="color: var(--accent); font-weight: 600; font-size: var(--text-sm);">asme@uiowa.edu</a>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-md);">
+            <span style="font-size: 20px;">&#128205;</span>
+            <div>
+              <p style="font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Location</p>
+              <span style="font-size: var(--text-sm); color: var(--ink-secondary);">Seamans Center, University of Iowa</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <form method="post" class="form-stack">
-      <label for="name">Name</label>
-      <input id="name" name="name" required />
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" required />
-      <label for="subject">Subject</label>
-      <input id="subject" name="subject" />
-      <label for="message">Message</label>
-      <textarea id="message" name="message" required></textarea>
-      <button class="btn" type="submit">Send Message</button>
-    </form>
-  </article>
+
+    <div class="panel">
+      <div class="section-head">
+        <h3>Send a Message</h3>
+      </div>
+      <form method="post" class="form-stack">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input id="name" name="name" required placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required placeholder="you@email.com" />
+        </div>
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <input id="subject" name="subject" placeholder="What's this about?" />
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required placeholder="Your message..."></textarea>
+        </div>
+        <button type="submit">Send Message</button>
+      </form>
+    </div>
+  </div>
 </section>
 {% endblock %}

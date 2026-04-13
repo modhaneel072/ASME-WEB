@@ -1,24 +1,33 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel auth-panel">
-  <div class="section-head">
-    <h3>Admin Login</h3>
+<div class="auth-panel">
+  <div class="panel">
+    <div style="text-align: center; margin-bottom: var(--sp-6);">
+      <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME" style="width: 48px; height: 48px; margin: 0 auto var(--sp-4); object-fit: contain;" />
+      <h3>Admin Login</h3>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--sp-2);">
+        Administrative access for chapter officers and team leads.
+        {% if shared_admin_email %}
+        <br/>Shared admin: <strong>{{ shared_admin_email }}</strong>
+        {% endif %}
+      </p>
+    </div>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="next" value="{{ next_url or '' }}" />
+      <div class="form-group">
+        <label for="identifier">Admin Email or Username</label>
+        <input id="identifier" name="identifier" type="text" value="{{ shared_admin_email or '' }}" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" style="width: 100%;">Sign In as Admin</button>
+    </form>
+    <div class="auth-links" style="text-align: center; margin-top: var(--sp-5);">
+      <p><a href="/login" style="color: var(--muted);">&larr; Back to member login</a></p>
+    </div>
   </div>
-  <p class="muted">
-    Placeholder line: final website copy will be added here.
-    {% if shared_admin_email %}
-    Shared admin email detected: <strong>{{ shared_admin_email }}</strong> (you can leave email blank).
-    {% endif %}
-  </p>
-  <form method="post" class="form-stack">
-    <input type="hidden" name="next" value="{{ next_url or '' }}" />
-    <label for="identifier">Admin Email or Username</label>
-    <input id="identifier" name="identifier" type="text" value="{{ shared_admin_email or '' }}" />
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password" required />
-    <button class="btn" type="submit">Login as Admin</button>
-  </form>
-  <p class="muted auth-links"><a href="/login">Go to member login</a></p>
-</section>
+</div>
 {% endblock %}

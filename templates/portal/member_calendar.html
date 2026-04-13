@@ -31,7 +31,10 @@
           </tr>
           {% endfor %}
           {% if not upcoming_events %}
-          <tr><td colspan="4" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          <tr><td colspan="4" style="text-align: center; padding: var(--sp-6);">
+            <p style="font-weight: 600; margin-bottom: var(--sp-1);">No upcoming events</p>
+            <p class="muted">Check back for scheduled meetings and events.</p>
+          </td></tr>
           {% endif %}
         </tbody>
       </table>
@@ -45,7 +48,7 @@
     {% if calendar_embed_url %}
     <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
     {% else %}
-    <p class="muted">Placeholder line: final website copy will be added here.</p>
+    <p class="muted" style="padding: var(--sp-6) 0; text-align: center;">Calendar embed not configured. Contact an admin to set up the calendar integration.</p>
     {% endif %}
   </article>
 </section>

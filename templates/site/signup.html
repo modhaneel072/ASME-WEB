@@ -1,25 +1,40 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel auth-panel">
-  <div class="section-head">
-    <h3>Sign Up</h3>
+<div class="auth-panel">
+  <div class="panel">
+    <div style="text-align: center; margin-bottom: var(--sp-6);">
+      <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME" style="width: 48px; height: 48px; margin: 0 auto var(--sp-4); object-fit: contain;" />
+      <h3>Create Account</h3>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--sp-2);">
+        Set up your ASME member account to access the portal.
+      </p>
+    </div>
+    <form method="post" class="form-stack">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input id="name" name="name" required placeholder="Your full name" autocomplete="name" />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required placeholder="you@uiowa.edu" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" minlength="8" required placeholder="Min. 8 characters" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="member">Member</option>
+          <option value="team_leader">Team Leader</option>
+        </select>
+      </div>
+      <button type="submit" style="width: 100%;">Create Account</button>
+    </form>
+    <div class="auth-links" style="text-align: center; margin-top: var(--sp-5);">
+      <p>Already have an account? <a href="/login">Sign in</a></p>
+    </div>
   </div>
-  <p class="muted">Placeholder line: final website copy will be added here.</p>
-  <form method="post" class="form-stack">
-    <label for="name">Full Name</label>
-    <input id="name" name="name" required />
-    <label for="email">Email</label>
-    <input id="email" name="email" type="email" required />
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password" minlength="8" required />
-    <label for="role">Role</label>
-    <select id="role" name="role">
-      <option value="member">Member</option>
-      <option value="team_leader">Team Leader</option>
-    </select>
-    <button class="btn" type="submit">Create Account</button>
-  </form>
-  <p class="muted auth-links"><a href="/login">Already have an account?</a></p>
-</section>
+</div>
 {% endblock %}

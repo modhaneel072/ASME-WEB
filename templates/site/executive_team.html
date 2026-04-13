@@ -1,28 +1,36 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel exec-showcase">
-  <div class="section-head">
-    <h3>Executive Team</h3>
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Leadership</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Executive Team</h3>
+    <p class="section-desc">
+      Meet the student leaders coordinating ASME @ UIowa initiatives, competition teams, and chapter operations.
+    </p>
   </div>
-  <p class="muted">Meet the student leaders coordinating ASME @ UIowa initiatives, teams, and chapter operations.</p>
+
   <div class="exec-grid">
     {% for exec in executive_cards %}
     <article class="exec-card {% if exec.is_placeholder %}exec-card-placeholder{% endif %}">
       <div class="exec-photo">
-        <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
-      </div>
-      <div class="exec-copy">
-        <h4>{{ exec.name }}</h4>
-        <p class="exec-title">{{ exec.title }}</p>
         {% if exec.is_placeholder %}
-        <p class="exec-template-label">Template Slot</p>
+        <span style="font-size: 48px; opacity: 0.3;">&#128100;</span>
+        {% else %}
+        <img src="{{ exec.headshot }}" alt="{{ exec.name }}" />
+        {% endif %}
+      </div>
+      <div class="exec-card-body">
+        <p class="exec-title">{{ exec.title }}</p>
+        <h4>{{ exec.name }}</h4>
+        {% if exec.is_placeholder %}
+        <p class="exec-template-label" style="margin-top: var(--sp-2);">Position Open</p>
         {% endif %}
         {% if exec.summary %}
         <p class="exec-summary">{{ exec.summary }}</p>
         {% endif %}
         {% if exec.focus_points %}
-        <ul class="exec-points">
+        <ul class="exec-points" style="margin-top: var(--sp-3);">
           {% for point in exec.focus_points %}
           <li>{{ point }}</li>
           {% endfor %}
@@ -32,11 +40,20 @@
         <p class="exec-contact">{{ exec.contact }}</p>
         {% endif %}
         {% if exec.note %}
-        <p class="muted exec-note">{{ exec.note }}</p>
+        <p class="exec-note">{{ exec.note }}</p>
         {% endif %}
       </div>
     </article>
     {% endfor %}
+  </div>
+</section>
+
+<section class="cta-section">
+  <h3>Want to lead?</h3>
+  <p>Executive positions open each spring. Get involved with a team now and grow into a leadership role.</p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join ASME</a>
+    <a class="btn btn-secondary btn-lg" href="/contact">Contact Us</a>
   </div>
 </section>
 {% endblock %}

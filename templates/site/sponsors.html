@@ -1,33 +1,70 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel split">
-  <article>
-    <div class="section-head">
-      <h3>Sponsors / Partners</h3>
-    </div>
-    <p class="lead">Placeholder line: final website copy will be added here.</p>
-    <div class="sponsor-grid">
-      <div class="sponsor-card">Placeholder line</div>
-      <div class="sponsor-card">Placeholder line</div>
-      <div class="sponsor-card">Placeholder line</div>
-    </div>
-    <p class="muted">Placeholder line: final website copy will be added here.</p>
-  </article>
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Partners</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Sponsors</h3>
+    <p class="section-desc">
+      Our sponsors make it possible for students to design, build, and compete.
+      Partner with ASME at Iowa to support the next generation of engineers.
+    </p>
+  </div>
 
-  <article>
-    <div class="section-head">
-      <h3>Become a Sponsor</h3>
+  <div class="split">
+    <div>
+      <div class="panel" style="margin-bottom: var(--sp-5);">
+        <div class="section-head">
+          <h3>Current Sponsors</h3>
+        </div>
+        <div class="sponsor-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="sponsor-card">Your Logo Here</div>
+          <div class="sponsor-card">Your Logo Here</div>
+          <div class="sponsor-card">Your Logo Here</div>
+          <div class="sponsor-card">Your Logo Here</div>
+        </div>
+        <p style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--sp-4);">
+          Sponsor funds go directly toward materials, tools, travel, and competition costs.
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <h3>What Sponsors Get</h3>
+        </div>
+        <ul class="bulleted">
+          <li>Logo placement on team vehicles, banners, and website</li>
+          <li>Direct access to talented engineering students for recruiting</li>
+          <li>Invitation to competition events and demonstrations</li>
+          <li>Recognition at chapter meetings and university events</li>
+        </ul>
+      </div>
     </div>
-    <form method="post" class="form-stack">
-      <label for="name">Contact Name</label>
-      <input id="name" name="name" required />
-      <label for="email">Contact Email</label>
-      <input id="email" name="email" type="email" required />
-      <label for="message">How would you like to partner?</label>
-      <textarea id="message" name="message" required></textarea>
-      <button class="btn" type="submit">Send Sponsor Inquiry</button>
-    </form>
-  </article>
+
+    <div class="panel">
+      <div class="section-head">
+        <h3>Become a Sponsor</h3>
+      </div>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--sp-5);">
+        Interested in supporting our teams? Fill out this form and we'll follow up with
+        sponsorship tiers and partnership details.
+      </p>
+      <form method="post" class="form-stack">
+        <div class="form-group">
+          <label for="name">Contact Name</label>
+          <input id="name" name="name" required placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label for="email">Contact Email</label>
+          <input id="email" name="email" type="email" required placeholder="you@company.com" />
+        </div>
+        <div class="form-group">
+          <label for="message">How would you like to partner?</label>
+          <textarea id="message" name="message" required placeholder="Financial support, equipment donations, mentorship, internships..."></textarea>
+        </div>
+        <button type="submit">Send Inquiry</button>
+      </form>
+    </div>
+  </div>
 </section>
 {% endblock %}

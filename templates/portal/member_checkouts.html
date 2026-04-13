@@ -40,7 +40,10 @@
         </tr>
         {% endfor %}
         {% if not open_checkouts %}
-        <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+        <tr><td colspan="5" style="text-align: center; padding: var(--sp-8);">
+          <p style="font-weight: 600; margin-bottom: var(--sp-1);">No items checked out</p>
+          <p class="muted">Browse the <a href="/portal/member/inventory" style="color: var(--accent); font-weight: 600;">inventory</a> to check out tools and equipment.</p>
+        </td></tr>
         {% endif %}
       </tbody>
     </table>

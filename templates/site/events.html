@@ -1,0 +1,101 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<section class="section" style="padding-bottom: var(--sp-8);">
+  <div class="section-header">
+    <p class="section-label">What's Happening</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Events &amp; News</h3>
+    <p class="section-desc">
+      Announcements, upcoming meetings, and featured projects from ASME at Iowa.
+    </p>
+  </div>
+</section>
+
+<!-- ── ANNOUNCEMENTS ───────────────────────── -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header">
+    <p class="section-label">Latest</p>
+    <h3 class="section-title">Announcements</h3>
+  </div>
+  <div class="announcement-grid" style="max-width: 800px;">
+    {% for note in announcements %}
+    <article class="announcement-card">
+      <h4>{{ note.title }}</h4>
+      <p>{{ note.body if note.body else '' }}</p>
+      <span class="announcement-date">{{ note.published_at.strftime("%b %d, %Y") if note.published_at else note.created_at.strftime("%b %d, %Y") }}</span>
+    </article>
+    {% endfor %}
+    {% if not announcements %}
+    <div class="panel">
+      <div class="empty-state">
+        <p class="empty-state-title">No announcements yet</p>
+        <p class="empty-state-desc">Check back soon for updates from the ASME team.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ── FEATURED PROJECT ────────────────────── -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Spotlight</p>
+    <h3 class="section-title">Featured Project</h3>
+  </div>
+  {% set featured = projects[0] if projects else None %}
+  {% if featured %}
+  <div class="panel" style="max-width: 800px;">
+    <div class="project-card-meta" style="margin-bottom: var(--sp-3);">
+      <span class="badge badge-accent">{{ featured.status }}</span>
+      <span class="badge badge-default">{{ featured.project_type or 'General' }}</span>
+    </div>
+    <h4 style="font-family: 'Space Grotesk', sans-serif; font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--sp-3);">{{ featured.title }}</h4>
+    <p style="color: var(--muted); font-size: var(--text-sm); line-height: 1.7; margin-bottom: var(--sp-4);">{{ featured.summary or '' }}</p>
+    {% if featured.lead_name %}
+    <p style="font-size: var(--text-xs); color: var(--muted); margin-bottom: var(--sp-4);">Lead: {{ featured.lead_name }}</p>
+    {% endif %}
+    <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap;">
+      <a class="btn btn-primary btn-sm" href="/projects/{{ featured.slug }}">View Project</a>
+      <a class="btn btn-secondary btn-sm" href="/projects">All Projects &rarr;</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="panel" style="max-width: 800px;">
+    <div class="empty-state">
+      <p class="empty-state-title">Projects coming soon</p>
+      <p class="empty-state-desc">Our competition teams are gearing up. Stay tuned.</p>
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<!-- ── QUICK LINKS ──────────────────────────── -->
+<section class="section">
+  <div class="panel" style="max-width: 800px;">
+    <div class="section-head">
+      <h3>Quick Links</h3>
+    </div>
+    <div class="quick-link-grid">
+      <a href="/projects">Projects &amp; Teams</a>
+      <a href="/join">Join / Get Involved</a>
+      <a href="/kiosk">Inventory Kiosk</a>
+      <a href="/portal/member/prints">3D Print Requests</a>
+      <a href="/portal/member/calendar">Calendar &amp; Meetings</a>
+      <a href="/contact">Socials &amp; Contact</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ──────────────────────────────────── -->
+<section class="cta-section">
+  <h3>Don't miss out</h3>
+  <p>
+    Join ASME to stay in the loop on events, competitions, and opportunities.
+  </p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join ASME</a>
+    <a class="btn btn-secondary btn-lg" href="/contact">Get in Touch</a>
+  </div>
+</section>
+{% endblock %}

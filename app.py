@@ -33,6 +33,7 @@ from flask import (
     render_template,
     request,
     send_file,
+    send_from_directory,
     session,
     url_for,
 )
@@ -3232,14 +3233,14 @@ def ensure_runtime_schema():
     # Keeps schema upgrades seamless without introducing migration tooling for this project.
     # Use a lightweight health endpoint and one-time guarded initialization to avoid
     # concurrent startup races on limited instances.
-    if request.path.startswith("/static/") or request.path == "/healthz":
+    if request.path.startswith("/static/") or request.path.startswith("/arm-sim") or request.path == "/healthz":
         return
     ensure_runtime_schema_once()
 
 
 @app.before_request
 def enforce_auth_session_guardrails():
-    if request.path.startswith("/static/") or request.path == "/healthz":
+    if request.path.startswith("/static/") or request.path.startswith("/arm-sim") or request.path == "/healthz":
         return
     current_auth_user()
 
@@ -3563,6 +3564,20 @@ def admin_dashboard_context():
 @app.get("/")
 def public_home():
     return render_template("site/home.html", **public_site_context("Home"))
+
+
+@app.get("/events")
+def public_events():
+    return render_template("site/events.html", **public_site_context("Events"))
+
+
+@app.route("/arm-sim/<path:subpath>")
+def arm_sim_assets(subpath):
+    return send_from_directory(os.path.join(app.static_folder, "arm-sim"), subpath)
+
+@app.route("/arm-sim")
+def arm_sim_index():
+    return send_from_directory(os.path.join(app.static_folder, "arm-sim"), "index.html")
 
 
 @app.get("/healthz")

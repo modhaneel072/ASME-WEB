@@ -37,7 +37,7 @@
   <p><strong>Member Notes:</strong> {{ print_request.notes or 'None' }}</p>
   <p><strong>Lead/Admin Notes:</strong> {{ print_request.admin_notes or 'None' }}</p>
   {% if print_request.file_link %}
-  <p><a href="{{ print_request.file_link }}" target="_blank" rel="noopener noreferrer">Open linked file</a></p>
+  <p style="margin-top: var(--sp-3);"><a href="{{ print_request.file_link }}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); font-weight: 600;">Open linked file &rarr;</a></p>
   {% elif print_request.file_path %}
   <p class="muted">Uploaded file is saved on the server.</p>
   {% endif %}

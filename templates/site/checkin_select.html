@@ -1,19 +1,25 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel auth-panel">
-  <div class="section-head">
-    <h3>Select Meeting</h3>
+<div class="auth-panel" style="max-width: 560px;">
+  <div class="panel">
+    <div style="text-align: center; margin-bottom: var(--sp-5);">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: var(--text-2xl); font-weight: 700;">Select Meeting</h3>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--sp-2);">
+        Multiple meetings are active. Select the correct one to complete check-in.
+      </p>
+    </div>
+    <form method="post" class="form-stack">
+      <div class="form-group">
+        <label for="event_id">Active Meetings</label>
+        <select id="event_id" name="event_id" required>
+          {% for event in candidate_events %}
+          <option value="{{ event.id }}">{{ event.title }} &mdash; {{ event.start_time.strftime('%b %d, %H:%M') }} ({{ event.location or 'TBD' }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" style="width: 100%;">Mark Me Present</button>
+    </form>
   </div>
-  <p class="muted">Multiple meetings are active. Pick the correct one to complete check-in.</p>
-  <form method="post" class="form-stack">
-    <label for="event_id">Meeting</label>
-    <select id="event_id" name="event_id" required>
-      {% for event in candidate_events %}
-      <option value="{{ event.id }}">{{ event.title }} - {{ event.start_time.strftime('%Y-%m-%d %H:%M') }} ({{ event.location or '' }})</option>
-      {% endfor %}
-    </select>
-    <button class="btn" type="submit">Mark Me Present</button>
-  </form>
-</section>
+</div>
 {% endblock %}

@@ -1,49 +1,101 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel">
-  <div class="section-head">
-    <h3>{{ project.title }}</h3>
-    <a href="/projects">Back to projects</a>
-  </div>
+<section class="section" style="padding-bottom: var(--sp-6);">
+  <a href="/projects" style="display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 600; color: var(--muted); margin-bottom: var(--sp-6);">
+    &larr; Back to Projects
+  </a>
 
-  <p class="project-status">{{ project.status }}</p>
-  <p class="project-type">{{ project.project_type or "General" }}</p>
-  <p class="lead">Placeholder line: final website copy will be added here.</p>
-  <p>Placeholder line: final website copy will be added here.</p>
-
-  <div class="detail-grid">
-    <div>
-      <dt>Lead</dt>
-      <dd>Placeholder line: final website copy will be added here.</dd>
+  <div class="section-header" style="margin-bottom: var(--sp-6);">
+    <div style="display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3);">
+      <span class="badge badge-accent">{{ project.status }}</span>
+      <span class="badge badge-default">{{ project.project_type or "General" }}</span>
     </div>
-    <div>
-      <dt>External Link</dt>
-      <dd>
-        Placeholder line: final website copy will be added here.
-      </dd>
-    </div>
+    <h3 class="section-title" style="font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));">{{ project.title }}</h3>
+    {% if project.summary %}
+    <p class="section-desc">{{ project.summary }}</p>
+    {% endif %}
   </div>
 </section>
 
-<section class="panel">
+{% if project.image_url %}
+<div class="photo-strip" style="grid-template-columns: 1fr; margin-bottom: var(--sp-8);">
+  <div class="photo-strip-item" style="aspect-ratio: 21/9;">
+    <img src="{{ project.image_url }}" alt="{{ project.title }}" />
+  </div>
+</div>
+{% endif %}
+
+<div class="split" style="margin-bottom: var(--sp-8);">
+  <div class="panel">
+    <div class="section-head">
+      <h3>Overview</h3>
+    </div>
+    {% if project.description %}
+    <div class="lead" style="font-size: var(--text-base); white-space: pre-line;">{{ project.description }}</div>
+    {% else %}
+    <p class="muted">Project description coming soon.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="panel" style="margin-bottom: var(--sp-5);">
+      <div class="section-head">
+        <h3>Details</h3>
+      </div>
+      <div class="detail-grid" style="grid-template-columns: 1fr; margin-top: 0;">
+        <div>
+          <dt>Lead</dt>
+          <dd>{{ project.lead_name or 'TBD' }}</dd>
+        </div>
+        <div style="margin-top: var(--sp-3);">
+          <dt>Status</dt>
+          <dd>{{ project.status }}</dd>
+        </div>
+        <div style="margin-top: var(--sp-3);">
+          <dt>Type</dt>
+          <dd>{{ project.project_type or 'General' }}</dd>
+        </div>
+        {% if project.external_link %}
+        <div style="margin-top: var(--sp-3);">
+          <dt>External Link</dt>
+          <dd><a href="{{ project.external_link }}" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 600;">View &rarr;</a></dd>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h3>Get Involved</h3>
+      </div>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--sp-4);">
+        Interested in joining this project? Reach out to the team lead or sign up through our join form.
+      </p>
+      <a class="btn btn-primary btn-sm" href="/join">Join This Team</a>
+    </div>
+  </div>
+</div>
+
+{% if project.timeline %}
+<section class="panel" style="margin-bottom: var(--sp-5);">
   <div class="section-head">
     <h3>Timeline</h3>
   </div>
-  <ul class="bulleted">
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-  </ul>
+  <div style="white-space: pre-line; color: var(--ink-secondary); font-size: var(--text-sm); line-height: 1.8;">{{ project.timeline }}</div>
 </section>
+{% endif %}
 
+{% if gallery_items %}
 <section class="panel">
   <div class="section-head">
     <h3>Gallery</h3>
   </div>
   <div class="gallery-grid">
-    <a href="#" onclick="return false;">Placeholder line: final website copy will be added here.</a>
-    <a href="#" onclick="return false;">Placeholder line: final website copy will be added here.</a>
+    {% for item in gallery_items %}
+    <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.label or 'View' }}</a>
+    {% endfor %}
   </div>
 </section>
+{% endif %}
 {% endblock %}

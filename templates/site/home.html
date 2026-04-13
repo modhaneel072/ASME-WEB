@@ -1,90 +1,87 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="landing-shell">
-  <div class="hero">
-    <div class="hero-copy">
-      <p class="eyebrow">Placeholder Category Label</p>
-      <h2>Build Bold Systems.</h2>
-      <p>
-        Placeholder line: final website copy will be added here.
+<!-- ── HERO: Robot with speech bubble ─────── -->
+<div class="spline-hero" style="min-height: 560px;">
+  <!-- Spotlight SVG -->
+  <svg class="spline-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
+    <g filter="url(#filter)">
+      <ellipse cx="1924.71" cy="273.501" rx="1924.71" ry="273.501"
+        transform="matrix(-0.822377 -0.568943 -0.568943 0.822377 3631.88 2291.09)"
+        fill="white" fill-opacity="0.21"></ellipse>
+    </g>
+    <defs>
+      <filter id="filter" x="0.860352" y="0.838989" width="3785.16" height="2840.26"
+        filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
+        <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur_1065_8"></feGaussianBlur>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="spline-hero-flex">
+    <!-- Left content -->
+    <div class="spline-hero-text">
+      <h1 class="spline-hero-title">ASME at Iowa</h1>
+      <p class="spline-hero-sub">Where Engineers Become Builders</p>
+      <p class="spline-hero-desc">
+        Design rovers. Race drones. 3D print anything. We're the University of Iowa's
+        hands-on engineering community &mdash; and we'd love to have you on the team.
       </p>
-      <div class="hero-actions">
-        <a class="btn" href="/join">Join The Team</a>
-        <a class="btn ghost" href="/projects">Explore Projects</a>
-        <a class="btn light" href="/login">Member Login</a>
+      <div class="spline-hero-actions">
+        <a class="btn btn-gold btn-lg" href="/join">Get Involved</a>
+        <a class="btn btn-outline-light btn-lg" href="/projects">See What We Build</a>
       </div>
     </div>
-    <aside class="hero-visual hero-showcase" aria-label="ASME showcase panels">
-      <a class="showcase-panel panel-projects" href="/projects">
-        <span>Projects</span>
-      </a>
-      <a class="showcase-panel panel-printing" href="/portal/member/prints">
-        <span>3D Printing</span>
-      </a>
-      <a class="showcase-panel panel-calendar" href="/portal/member/calendar">
-        <span>Meetings</span>
-      </a>
-    </aside>
-  </div>
 
-  <aside class="hero-links">
-    <h3>Quick Links</h3>
-    <div class="quick-link-grid">
-      <a href="/projects">Projects</a>
-      <a href="/join">Join / Get Involved</a>
-      <a href="/kiosk">Inventory Kiosk</a>
-      <a href="/portal/member/prints">3D Printing</a>
-      <a href="/portal/member/calendar">Calendar</a>
-      <a href="/contact">Socials + Contact</a>
+    <!-- Right content: Spline 3D robot -->
+    <div class="spline-hero-scene">
+      <spline-viewer id="splineBot" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"></spline-viewer>
     </div>
-  </aside>
+  </div>
+</div>
+<script>
+  (function killBadge() {
+    const sv = document.getElementById('splineBot');
+    if (!sv || !sv.shadowRoot) return setTimeout(killBadge, 500);
+    const logo = sv.shadowRoot.querySelector('#logo');
+    if (logo) { logo.remove(); return; }
+    const links = sv.shadowRoot.querySelectorAll('a');
+    links.forEach(a => { if (a.href && a.href.includes('spline')) a.remove(); });
+    setTimeout(killBadge, 500);
+  })();
+</script>
+
+<!-- ── SHOWCASE PANELS ──────────────────────── -->
+<section class="section" style="padding-top: var(--sp-8);">
+  <div class="showcase-grid">
+    <a class="showcase-panel" href="/projects">
+      <img src="{{ url_for('static', filename='images/gallery/drone_course.jpg') }}" alt="Drone Racing" />
+      <span>Competition Teams</span>
+    </a>
+    <a class="showcase-panel" href="/about">
+      <img src="{{ url_for('static', filename='images/gallery/electronics_lab.jpg') }}" alt="Lab Work" />
+      <span>Hands-On Engineering</span>
+    </a>
+    <a class="showcase-panel" href="/contact">
+      <img src="{{ url_for('static', filename='images/gallery/lounge_hangout.jpg') }}" alt="Community" />
+      <span>Community</span>
+    </a>
+  </div>
 </section>
 
-<section class="panel-grid-two">
-  <section class="panel">
-    <div class="section-head">
-      <h3>Announcements</h3>
-    </div>
-    <div class="announcement-grid">
-      {% for note in announcements %}
-      <article class="announcement-card">
-        <h4>{{ note.title }}</h4>
-        <p>Placeholder line: final website copy will be added here.</p>
-        <span>{{ note.published_at.strftime("%Y-%m-%d") if note.published_at else note.created_at.strftime("%Y-%m-%d") }}</span>
-      </article>
-      {% endfor %}
-      {% if not announcements %}
-      <article class="announcement-card">
-        <h4>Placeholder Heading</h4>
-        <p>Placeholder line: final website copy will be added here.</p>
-        <span>Placeholder Date</span>
-      </article>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="section-head">
-      <h3>Featured Project</h3>
-      <a href="/projects">All projects</a>
-    </div>
-    {% set featured = projects[0] if projects else None %}
-    {% if featured %}
-    <article class="project-feature">
-      <p class="project-status">{{ featured.status }}</p>
-      <h4>{{ featured.title }}</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-      <p class="muted">Placeholder line: final website copy will be added here.</p>
-      <a href="/projects/{{ featured.slug }}">Open Project Detail</a>
-    </article>
-    {% else %}
-    <p class="muted">Placeholder line: final website copy will be added here.</p>
-    {% endif %}
-    <div class="hero-actions">
-      <a class="btn" href="/join">Get Involved</a>
-      <a class="btn ghost" href="/contact">Contact Leads</a>
-    </div>
-  </section>
+<!-- ── JOIN CTA ─────────────────────────────── -->
+<section class="cta-section">
+  <p class="section-label" style="margin-bottom: var(--sp-4);">Ready to build?</p>
+  <h3>Join ASME at Iowa</h3>
+  <p>
+    Whether you want to compete, build, learn, or just hang out with fellow engineers
+    &mdash; there's a place for you here.
+  </p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join Now</a>
+    <a class="btn btn-secondary btn-lg" href="/about">Learn More</a>
+  </div>
 </section>
 {% endblock %}

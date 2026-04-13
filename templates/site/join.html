@@ -1,41 +1,74 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel split">
-  <article>
-    <div class="section-head">
-      <h3>Join / Get Involved</h3>
-    </div>
-    <p class="lead">Placeholder line: final website copy will be added here.</p>
-    <ul class="bulleted">
-      <li>Placeholder line: final website copy will be added here.</li>
-      <li>Placeholder line: final website copy will be added here.</li>
-      <li>Placeholder line: final website copy will be added here.</li>
-      <li>Placeholder line: final website copy will be added here.</li>
-    </ul>
-  </article>
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Get Involved</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Join ASME</h3>
+    <p class="section-desc">
+      Whether you want to compete, build, learn, or connect with fellow engineers,
+      there's a place for you. Fill out the form to get started.
+    </p>
+  </div>
 
-  <article>
-    <div class="section-head">
-      <h3>Interest Form</h3>
+  <div class="split">
+    <div>
+      <div class="panel" style="margin-bottom: var(--sp-5);">
+        <div class="section-head">
+          <h3>What You Get</h3>
+        </div>
+        <ul class="bulleted">
+          <li>Access to 3D printers, tools, and prototyping equipment</li>
+          <li>Hands-on competition team experience</li>
+          <li>Professional development workshops and industry connections</li>
+          <li>A community of engineers who build things together</li>
+        </ul>
+      </div>
+
+      <div class="photo-strip" style="grid-template-columns: 1fr 1fr;">
+        <div class="photo-strip-item">
+          <img src="{{ url_for('static', filename='images/gallery/field_day.jpg') }}" alt="ASME field day" />
+        </div>
+        <div class="photo-strip-item">
+          <img src="{{ url_for('static', filename='images/gallery/outdoor_event.jpg') }}" alt="ASME outdoor event" />
+        </div>
+      </div>
     </div>
-    <form method="post" class="form-stack">
-      <label for="name">Name</label>
-      <input id="name" name="name" required />
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" required />
-      <label for="interest">Interest Area</label>
-      <select id="interest" name="interest" required>
-        <option value="Rover">Rover</option>
-        <option value="Arm">Arm</option>
-        <option value="Outreach">Outreach</option>
-        <option value="Manufacturing">Manufacturing</option>
-        <option value="Operations">Operations</option>
-      </select>
-      <label for="message">Message</label>
-      <textarea id="message" name="message" placeholder="Share your interests or experience"></textarea>
-      <button class="btn" type="submit">Apply / Submit Interest</button>
-    </form>
-  </article>
+
+    <div class="panel">
+      <div class="section-head">
+        <h3>Interest Form</h3>
+      </div>
+      <p style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--sp-5);">
+        Tell us about yourself and what you're interested in. We'll follow up with next steps.
+      </p>
+      <form method="post" class="form-stack">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input id="name" name="name" required placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required placeholder="you@uiowa.edu" />
+        </div>
+        <div class="form-group">
+          <label for="interest">Interest Area</label>
+          <select id="interest" name="interest" required>
+            <option value="">Select an area...</option>
+            <option value="Rover">Rover Team</option>
+            <option value="Arm">Robotic Arm</option>
+            <option value="Outreach">Outreach</option>
+            <option value="Manufacturing">Manufacturing</option>
+            <option value="Operations">Operations</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="message">Tell us about yourself</label>
+          <textarea id="message" name="message" placeholder="Year, major, relevant experience, what interests you..."></textarea>
+        </div>
+        <button type="submit">Submit Interest</button>
+      </form>
+    </div>
+  </div>
 </section>
 {% endblock %}

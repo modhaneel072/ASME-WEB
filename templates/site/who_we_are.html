@@ -1,82 +1,206 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel">
-  <div class="section-head">
-    <h3>Mission</h3>
-  </div>
-  <p class="lead">Placeholder line: final website copy will be added here.</p>
-</section>
-
-<section class="panel">
-  <div class="section-head">
-    <h3>What ASME Does</h3>
-  </div>
-  <div class="highlight-grid">
-    <article class="highlight-card">
-      <h4>Design + Build</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-    </article>
-    <article class="highlight-card">
-      <h4>Testing + Validation</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-    </article>
-    <article class="highlight-card">
-      <h4>Leadership + Collaboration</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-    </article>
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<section class="section" style="padding-bottom: var(--sp-8);">
+  <div class="section-header">
+    <p class="section-label">About Us</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Who We Are</h3>
+    <p class="section-desc">
+      The University of Iowa ASME student chapter is a community of engineers who design,
+      build, and compete together. We turn classroom knowledge into hands-on experience.
+    </p>
   </div>
 </section>
 
-<section class="panel">
+<!-- ── MISSION ──────────────────────────────── -->
+<section class="panel" style="margin-bottom: var(--sp-5);">
   <div class="section-head">
-    <h3>What Members Gain</h3>
+    <h3>Our Mission</h3>
   </div>
-  <ul class="bulleted">
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-  </ul>
+  <p class="lead">
+    To foster a community of mechanical engineering students at the University of Iowa
+    who grow through hands-on design, competitive teamwork, and professional development.
+    We equip members with real-world engineering skills and a network that lasts beyond college.
+  </p>
 </section>
 
-<section class="panel">
-  <div class="section-head">
-    <h3>About ASME</h3>
+<!-- ── WHY ASME ─────────────────────────────── -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Why ASME</p>
+    <h3 class="section-title">More Than a Club</h3>
+    <p class="section-desc">
+      ASME at Iowa gives you access to real engineering projects, professional connections,
+      and the tools to build things that matter.
+    </p>
   </div>
-  <ul class="bulleted">
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-    <li>Placeholder line: final website copy will be added here.</li>
-  </ul>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#9881;</div>
+      <h4>Hands-On Projects</h4>
+      <p>Design, prototype, and compete in national ASME competitions. Work on real engineering challenges with real deadlines.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9889;</div>
+      <h4>3D Print Lab</h4>
+      <p>Free access to Bambu Lab printers for coursework, personal projects, and competition parts. Submit prints through our portal.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#127891;</div>
+      <h4>Professional Growth</h4>
+      <p>Industry speakers, resume workshops, networking events, and connections to engineering companies hiring Iowa grads.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128736;</div>
+      <h4>Tool &amp; Equipment Library</h4>
+      <p>Borrow tools, measurement equipment, and prototyping supplies from our inventory system. Check out with NFC or through the portal.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128640;</div>
+      <h4>Competition Teams</h4>
+      <p>Join our drone racing, robotics, or design competition teams. Travel to regionals and nationals representing Iowa.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#129309;</div>
+      <h4>Community</h4>
+      <p>Social events, study groups, cookouts, and a network of like-minded engineers. The people you build with become your network.</p>
+    </div>
+  </div>
 </section>
 
-<section class="panel">
-  <div class="section-head">
-    <h3>Current UIowa ASME Projects</h3>
+<!-- ── PHOTO STRIP ──────────────────────────── -->
+<section class="photo-strip">
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/asme_cards.jpg') }}" alt="ASME at Iowa business cards" />
   </div>
-  <div class="highlight-grid">
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/lecture_hall.jpg') }}" alt="ASME general meeting" />
+  </div>
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/group_photo.jpg') }}" alt="ASME team photo" />
+  </div>
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/volleyball_campus.jpg') }}" alt="Volleyball on campus" />
+  </div>
+</section>
+
+<!-- ── WHAT WE DO ──────────────────────────── -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">What We Do</p>
+    <h3 class="section-title">Three Pillars</h3>
+  </div>
+  <div class="feature-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="feature-card">
+      <div class="feature-icon">&#9881;</div>
+      <h4>Design &amp; Build</h4>
+      <p>We design, manufacture, and test real engineering systems.
+         From drones to rovers, our teams take projects from concept to competition.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128200;</div>
+      <h4>Testing &amp; Validation</h4>
+      <p>Our projects go through rigorous testing cycles. Members learn to iterate,
+         measure, and improve designs using real engineering processes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128101;</div>
+      <h4>Leadership &amp; Collaboration</h4>
+      <p>Run meetings, manage budgets, coordinate teams, and present to stakeholders.
+         ASME builds leaders, not just engineers.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── DRONEVIEW IMAGE ─────────────────────── -->
+<div class="photo-strip" style="grid-template-columns: 1fr;">
+  <div class="photo-strip-item" style="aspect-ratio: 21/7;">
+    <img src="{{ url_for('static', filename='images/hero/droneview.jpg') }}" alt="University of Iowa Engineering Campus" style="object-position: center 40%;" />
+  </div>
+</div>
+
+<!-- ── WHAT MEMBERS GAIN + ABOUT ASME ─────── -->
+<section class="section">
+  <div class="split">
+    <div class="panel">
+      <div class="section-head">
+        <h3>What Members Gain</h3>
+      </div>
+      <ul class="bulleted">
+        <li>Hands-on experience with CAD, manufacturing, electronics, and systems integration</li>
+        <li>Free access to 3D printers and prototyping tools through our inventory system</li>
+        <li>Travel to regional and national ASME competitions</li>
+        <li>Resume-building project leadership and team management experience</li>
+        <li>Professional networking with industry engineers and Iowa alumni</li>
+        <li>A community of motivated, like-minded engineering students</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h3>About ASME</h3>
+      </div>
+      <ul class="bulleted">
+        <li>ASME (American Society of Mechanical Engineers) is a global professional organization founded in 1880</li>
+        <li>Over 85,000 members across 140+ countries in industry, academia, and government</li>
+        <li>ASME sets engineering standards used worldwide in design, manufacturing, and safety</li>
+        <li>Student chapters connect university engineers to the broader professional community</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── CURRENT PROJECTS ────────────────────── -->
+{% if uiowa_projects %}
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Active Work</p>
+    <h3 class="section-title">Current Projects</h3>
+  </div>
+  <div class="feature-grid">
     {% for project in uiowa_projects %}
-    <article class="highlight-card">
+    <div class="feature-card">
       <h4>{{ project.name }}</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-    </article>
+      <p>{{ project.description or 'Active competition team project.' }}</p>
+    </div>
     {% endfor %}
   </div>
 </section>
+{% endif %}
 
+<!-- ── TEAM STRUCTURE ──────────────────────── -->
 <section class="panel">
   <div class="section-head">
     <h3>Team Structure</h3>
-    <a href="/executive-team">Executive Team</a>
+    <a href="/exec">Meet the Team &rarr;</a>
   </div>
-  <p class="muted">Placeholder line: final website copy will be added here.</p>
-  <div class="highlight-grid">
+  <p style="color: var(--muted); margin-bottom: var(--sp-5);">
+    ASME at Iowa is led by a student executive board and organized into specialized teams.
+    Each team has a lead who coordinates with the executive board to keep projects on track.
+  </p>
+  {% if highlights %}
+  <div class="feature-grid">
     {% for card in highlights %}
-    <article class="highlight-card">
+    <div class="feature-card">
       <h4>{{ card.label }}</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-    </article>
+      <p>{{ card.description or 'Core team function.' }}</p>
+    </div>
     {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<!-- ── CTA ──────────────────────────────────── -->
+<section class="cta-section" style="margin-top: var(--sp-10);">
+  <h3>Ready to join?</h3>
+  <p>
+    Whether you're a freshman exploring engineering or a senior looking for hands-on
+    experience, there's a place for you in ASME at Iowa.
+  </p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join ASME</a>
+    <a class="btn btn-secondary btn-lg" href="/exec">Meet the Team</a>
   </div>
 </section>
 {% endblock %}

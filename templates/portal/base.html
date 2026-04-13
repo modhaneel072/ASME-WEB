@@ -4,30 +4,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ page_title }} | ASME Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
 </head>
 <body class="{{ 'portal-theme-admin' if (current_user and (current_user.role|lower) == 'admin' and not (active_page and active_page.startswith('member_'))) else 'portal-theme-member' }}">
   {% set is_admin = current_user and (current_user.role|lower) == 'admin' %}
   {% set in_member_view = active_page and active_page.startswith('member_') %}
   {% set show_admin_nav = is_admin and not in_member_view %}
+
+  <!-- ── SIDEBAR ─────────────────────────── -->
+  <div class="portal-side-overlay" id="sidebarOverlay"></div>
   <div class="portal-layout">
-    <aside class="portal-side">
+    <aside class="portal-side" id="portalSidebar">
       <div class="brand">
         <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
         <div>
           <p>ASME @ UIowa</p>
-          <h1>{{ 'ASME Admin' if show_admin_nav else 'ASME Portal' }}</h1>
+          <h1>{{ 'Admin' if show_admin_nav else 'Portal' }}</h1>
         </div>
       </div>
 
       {% if show_admin_nav %}
       <nav>
-        <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Admin Home</a>
-        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members / Roles</a>
+        <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Dashboard</a>
+        <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members</a>
         <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
         <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory</a>
         <a class="{{ 'active' if active_page == 'admin_prints' else '' }}" href="/portal/admin/prints">Prints</a>
         <a class="{{ 'active' if active_page == 'admin_calendar' else '' }}" href="/portal/admin/calendar">Calendar</a>
+        <a class="{{ 'active' if active_page == 'admin_nfc' else '' }}" href="/portal/admin/nfc">NFC Tags</a>
+        <a class="{{ 'active' if active_page == 'admin_exports' else '' }}" href="/portal/admin/exports">Exports</a>
+        <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Announcements</a>
+        <a class="{{ 'active' if active_page == 'admin_settings' else '' }}" href="/portal/admin/settings">Settings</a>
       </nav>
       <a class="subtle-switch" href="/portal/member">Switch to Member View</a>
       {% else %}
@@ -35,23 +44,28 @@
         <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
         <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
         <a class="{{ 'active' if active_page == 'member_my_items' else '' }}" href="/portal/member/my-items">My Items</a>
-        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Prints</a>
+        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Print Requests</a>
         <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
         {% if current_user and ((current_user.role|lower) == 'team_leader' or (current_user.role|lower) == 'admin') %}
         <a class="{{ 'active' if active_page == 'member_schedule' else '' }}" href="/portal/member/schedule">Schedule Meeting</a>
         {% endif %}
         <a class="{{ 'active' if active_page == 'member_profile' else '' }}" href="/portal/member/profile">Profile</a>
+        <a class="{{ 'active' if active_page == 'member_help' else '' }}" href="/portal/member/help">Help</a>
       </nav>
       {% if is_admin %}
-      <a class="subtle-switch" href="/portal/admin">Back to Admin</a>
+      <a class="subtle-switch" href="/portal/admin">Switch to Admin</a>
       {% endif %}
       {% endif %}
 
-      <form action="/logout" method="post">
-        <button type="submit">Logout</button>
-      </form>
+      <div style="margin-top: auto; padding-top: var(--sp-3); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px;">
+        <a href="/" class="subtle-switch">&larr; Website</a>
+        <form action="/logout" method="post">
+          <button type="submit">Logout</button>
+        </form>
+      </div>
     </aside>
 
+    <!-- ── MAIN CONTENT ──────────────────── -->
     <main class="portal-main">
       <header class="portal-head">
         <h2>{{ page_title }}</h2>
@@ -73,5 +87,27 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  <!-- ── MOBILE NAV TOGGLE ───────────────── -->
+  <button class="portal-mobile-toggle" id="mobileToggle" aria-label="Open navigation">&#9776;</button>
+
+  <script>
+    const sidebar = document.getElementById('portalSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const toggle = document.getElementById('mobileToggle');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+    }
+
+    toggle.addEventListener('click', openSidebar);
+    overlay.addEventListener('click', closeSidebar);
+    sidebar.querySelectorAll('nav a').forEach(a => a.addEventListener('click', closeSidebar));
+  </script>
 </body>
 </html>

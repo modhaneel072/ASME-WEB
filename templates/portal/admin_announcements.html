@@ -93,7 +93,7 @@
         <tbody>
           {% for row in announcements %}
           <tr>
-            <td>{{ row.title }}<div class="muted">Placeholder line: final website copy will be added here.</div></td>
+            <td><span style="font-weight: 600;">{{ row.title }}</span><div class="muted">{{ row.body[:80] if row.body else '' }}{% if row.body and row.body|length > 80 %}...{% endif %}</div></td>
             <td>
               public={{ 'yes' if row.show_on_public else 'no' }}<br />
               member={{ 'yes' if row.show_on_member else 'no' }}<br />
@@ -146,7 +146,7 @@
           <tr>
             <td>{{ msg.kind }}</td>
             <td>{{ msg.name }}<div class="muted">{{ msg.email }}</div></td>
-            <td>Placeholder line: final website copy will be added here.<div class="muted">Placeholder line: final website copy will be added here.</div></td>
+            <td><span style="font-weight: 600;">{{ msg.subject or '—' }}</span><div class="muted">{{ msg.message[:80] if msg.message else '' }}{% if msg.message and msg.message|length > 80 %}...{% endif %}</div></td>
             <td>{{ msg.status }}</td>
             <td>
               <form method="post" action="/portal/admin/contact/{{ msg.id }}/status" class="form-stack compact">

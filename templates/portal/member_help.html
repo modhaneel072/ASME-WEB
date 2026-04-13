@@ -4,33 +4,40 @@
 <section class="panel-grid two">
   <article class="panel">
     <div class="panel-head">
-      <h3>Ask Leads</h3>
+      <h3>Ask for Help</h3>
     </div>
+    <p class="muted" style="margin-bottom: var(--sp-4);">Send a message to team leads or printer operators.</p>
     <form method="post" class="form-stack">
-      <label for="target">Target</label>
-      <select id="target" name="target">
-        <option value="h2s">Ask H2S Lead</option>
-        <option value="p1s">Ask P1S Lead</option>
-        <option value="team_leads">Ask Team Leads</option>
-      </select>
-      <label for="subject">Subject</label>
-      <input id="subject" name="subject" required />
-      <label for="message">Message</label>
-      <textarea id="message" name="message" required></textarea>
-      <button type="submit">Send</button>
+      <div class="form-group">
+        <label for="target">Send To</label>
+        <select id="target" name="target">
+          <option value="team_leads">Team Leads</option>
+          <option value="h2s">H2S Printer Operator</option>
+          <option value="p1s">P1S Printer Operator</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="subject">Subject</label>
+        <input id="subject" name="subject" required placeholder="Brief description of your question" />
+      </div>
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required placeholder="What do you need help with?"></textarea>
+      </div>
+      <button type="submit">Send Message</button>
     </form>
   </article>
 
   <article class="panel">
     <div class="panel-head">
-      <h3>My Help Inbox History</h3>
+      <h3>Message History</h3>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Target</th>
+            <th>Date</th>
+            <th>To</th>
             <th>Subject</th>
             <th>Status</th>
             <th>Reply</th>
@@ -39,15 +46,31 @@
         <tbody>
           {% for row in my_help_messages %}
           <tr>
-            <td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ row.target or 'team_leads' }}</td>
-            <td>Placeholder line: final website copy will be added here.<div class="muted">Placeholder line: final website copy will be added here.</div></td>
-            <td>{{ row.status }}</td>
-            <td>Placeholder line: final website copy will be added here.</td>
+            <td>{{ row.created_at.strftime('%b %d, %H:%M') }}</td>
+            <td>{{ row.target or 'Team Leads' }}</td>
+            <td>
+              <span style="font-weight: 600;">{{ row.subject or '—' }}</span>
+              {% if row.message %}
+              <div class="muted" style="margin-top: 2px;">{{ row.message[:60] }}{% if row.message|length > 60 %}...{% endif %}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.status == 'resolved' %}
+              <span class="badge good">Resolved</span>
+              {% elif row.status == 'in_progress' %}
+              <span class="badge">In Progress</span>
+              {% else %}
+              <span class="badge" style="background: rgba(255,255,255,0.04); border-color: var(--line); color: var(--muted);">{{ row.status }}</span>
+              {% endif %}
+            </td>
+            <td style="color: var(--muted); font-size: var(--text-xs);">{{ row.admin_reply or '—' }}</td>
           </tr>
           {% endfor %}
           {% if not my_help_messages %}
-          <tr><td colspan="5" class="muted">Placeholder line: final website copy will be added here.</td></tr>
+          <tr><td colspan="5" style="text-align: center; padding: var(--sp-6);">
+            <p style="font-weight: 600; margin-bottom: var(--sp-1);">No messages yet</p>
+            <p class="muted">Send a message to get help from team leads.</p>
+          </td></tr>
           {% endif %}
         </tbody>
       </table>

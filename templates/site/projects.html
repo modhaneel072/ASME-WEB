@@ -1,28 +1,146 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel">
-  <div class="section-head">
-    <h3>Projects</h3>
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<section class="section" style="padding-bottom: var(--sp-6);">
+  <div class="section-header">
+    <p class="section-label">Our Work</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Projects &amp; Teams</h3>
+    <p class="section-desc">
+      Competition teams, research projects, and hands-on builds.
+      Every project is student-led and built from scratch.
+    </p>
   </div>
-  <div class="filter-row" data-project-filters>
-    <button type="button" class="btn chip active" data-filter="all">All</button>
-    {% for filter_name in project_filters %}
-    <button type="button" class="btn chip" data-filter="{{ filter_name|lower }}">{{ filter_name }}</button>
-    {% endfor %}
+</section>
+
+<!-- ── ARM SIMULATOR (same style as hero robot) ── -->
+<div class="spline-hero" style="margin-bottom: var(--sp-6);">
+  <svg class="spline-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
+    <g filter="url(#filter2)">
+      <ellipse cx="1924.71" cy="273.501" rx="1924.71" ry="273.501"
+        transform="matrix(-0.822377 -0.568943 -0.568943 0.822377 3631.88 2291.09)"
+        fill="white" fill-opacity="0.21"></ellipse>
+    </g>
+    <defs>
+      <filter id="filter2" x="0.860352" y="0.838989" width="3785.16" height="2840.26"
+        filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
+        <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur"></feGaussianBlur>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="spline-hero-flex">
+    <div class="spline-hero-text">
+      <p class="spline-hero-eyebrow">Interactive Demo</p>
+      <h1 class="spline-hero-title" style="font-size: clamp(28px, 4vw, 44px);">Crater Cruncher Arm</h1>
+      <p class="spline-hero-desc">
+        Our 6-DOF robotic arm built for the ASME IAM3D competition.
+        Drag to move the arm &mdash; the same code drives our physical
+        rover arm via ESP32.
+      </p>
+    </div>
+    <div class="spline-hero-scene" style="overflow: hidden;">
+      <iframe src="/arm-sim" title="Crater Cruncher Arm Simulator" allow="accelerometer; gyroscope"
+        style="position: absolute; inset: 0; width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ── PROJECT GALLERY ─────────────────────── -->
+<section class="photo-strip" style="margin-top: var(--sp-8); margin-bottom: var(--sp-8);">
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/electronics_lab.jpg') }}" alt="Electronics prototyping" />
+  </div>
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/drone_course.jpg') }}" alt="Drone racing course" />
+  </div>
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/team_presenting.jpg') }}" alt="Team presenting rover design" />
+  </div>
+  <div class="photo-strip-item">
+    <img src="{{ url_for('static', filename='images/gallery/team_standing.jpg') }}" alt="Team presenting" />
+  </div>
+</section>
+
+<!-- ── BROWSE TEAMS ─────────────────────────── -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-label">Competition Teams</p>
+    <h3 class="section-title">Browse Teams</h3>
   </div>
 
-  <div class="project-grid" data-project-grid>
-    {% for project in projects %}
-    <article class="project-card" data-type="{{ (project.project_type or 'general')|lower }}">
-      <p class="project-status">{{ project.status }}</p>
-      <p class="project-type">{{ project.project_type or "General" }}</p>
-      <h4>{{ project.title }}</h4>
-      <p>Placeholder line: final website copy will be added here.</p>
-      <p class="muted">Placeholder line: final website copy will be added here.</p>
-      <a href="/projects/{{ project.slug }}">Project detail</a>
-    </article>
-    {% endfor %}
+  <div class="feature-grid">
+    <!-- IAM3D -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background: #fffbeb; color: #d97706;">&#9881;</div>
+      <h4>IAM3D</h4>
+      <p style="font-size: var(--text-xs); color: var(--accent); font-weight: 600; margin-bottom: var(--sp-2);">Innovative Additive Manufacturing 3D</p>
+      <p>Design and build a functional device using additive manufacturing. Our team competes at the ASME national level — designing a lunar rover with a 6-DOF robotic arm, custom drivetrain, and 3D-printed chassis.</p>
+      <a href="/join" style="display: inline-block; margin-top: var(--sp-3); font-size: var(--text-sm); font-weight: 600; color: var(--accent);">Join this team &rarr;</a>
+    </div>
+
+    <!-- Student Design Competition -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background: #eff6ff; color: #2563eb;">&#128736;</div>
+      <h4>Student Design Competition</h4>
+      <p style="font-size: var(--text-xs); color: var(--accent); font-weight: 600; margin-bottom: var(--sp-2);">ASME SDC</p>
+      <p>A head-to-head engineering challenge where teams design, build, and test a device to complete a specific task. New challenge revealed each year — past themes include lifting, launching, and sorting mechanisms.</p>
+      <a href="/join" style="display: inline-block; margin-top: var(--sp-3); font-size: var(--text-sm); font-weight: 600; color: var(--accent);">Join this team &rarr;</a>
+    </div>
+
+    <!-- MATE ROV -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background: #ecfdf5; color: #059669;">&#127754;</div>
+      <h4>MATE ROV</h4>
+      <p style="font-size: var(--text-xs); color: var(--accent); font-weight: 600; margin-bottom: var(--sp-2);">Marine Advanced Technology Education</p>
+      <p>Build an underwater remotely operated vehicle to complete mission tasks. Our ROV team designs propulsion, control systems, manipulators, and cameras for underwater exploration challenges.</p>
+      <a href="/join" style="display: inline-block; margin-top: var(--sp-3); font-size: var(--text-sm); font-weight: 600; color: var(--accent);">Join this team &rarr;</a>
+    </div>
+  </div>
+
+  <!-- DB projects below if any -->
+  {% if projects %}
+  <div style="margin-top: var(--sp-8);">
+    <div class="section-header">
+      <p class="section-label">More Projects</p>
+      <h3 class="section-title">All Projects</h3>
+    </div>
+    <div class="project-grid">
+      {% for project in projects %}
+      <a href="/projects/{{ project.slug }}" class="project-card" style="text-decoration: none;">
+        {% if project.image_url %}
+        <div class="project-card-image">
+          <img src="{{ project.image_url }}" alt="{{ project.title }}" />
+        </div>
+        {% endif %}
+        <div class="project-card-body">
+          <div class="project-card-meta">
+            <span class="badge badge-accent">{{ project.status }}</span>
+            <span class="badge badge-default">{{ project.project_type or "General" }}</span>
+          </div>
+          <h4>{{ project.title }}</h4>
+          <p>{{ project.summary or '' }}</p>
+          <div class="project-card-footer">
+            <span style="font-size: var(--text-xs); color: var(--muted);">{{ project.lead_name or '' }}</span>
+            <span class="project-card-link">View Details &rarr;</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<!-- ── CTA ──────────────────────────────────── -->
+<section class="cta-section">
+  <h3>Want to build something?</h3>
+  <p>Join a team, start a project, or bring your own idea.</p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join a Team</a>
+    <a class="btn btn-secondary btn-lg" href="/contact">Pitch a Project</a>
   </div>
 </section>
 

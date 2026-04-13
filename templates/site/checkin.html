@@ -1,17 +1,23 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<section class="panel auth-panel">
-  <div class="section-head">
-    <h3>Meeting Check-in</h3>
+<div class="auth-panel" style="max-width: 560px;">
+  <div class="panel" style="text-align: center;">
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: var(--text-2xl); font-weight: 700;">Meeting Check-in</h3>
+    {% if active_event %}
+    <div style="margin: var(--sp-5) 0;">
+      <span class="badge badge-success" style="font-size: var(--text-sm); padding: 6px 14px;">Checking you in...</span>
+    </div>
+    <p style="color: var(--muted); font-size: var(--text-sm);">Preparing automatic check-in for the current meeting.</p>
+    {% else %}
+    <div style="margin: var(--sp-5) 0;">
+      <span class="badge badge-default" style="font-size: var(--text-sm); padding: 6px 14px;">No Active Meeting</span>
+    </div>
+    <p style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--sp-6);">
+      No meeting is currently in progress. Scan again when a meeting is starting or check the calendar for upcoming events.
+    </p>
+    {% endif %}
+    <a class="btn btn-secondary" href="/portal/member/calendar">View Calendar</a>
   </div>
-  {% if active_event %}
-  <p class="muted">Preparing automatic check-in...</p>
-  {% else %}
-  <p class="muted">No active meeting right now. Scan again when a meeting is in progress or starting soon.</p>
-  {% endif %}
-  <div class="hero-actions">
-    <a class="btn" href="/portal/member/calendar">View Calendar</a>
-  </div>
-</section>
+</div>
 {% endblock %}
