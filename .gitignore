@@ -1,7 +1,21 @@
-# Local app/runtime files
+# Runtime
 __pycache__/
-instance/
+*.pyc
+*.pyo
 
-# Keep secrets out of git
-instance/print_commands.env
-instance/inventory.db
+# Database
+instance/
+*.db
+
+# Secrets
+.env
+
+# OS / IDE
+.DS_Store
+.vscode/
+*.log
+
+# Legacy (no longer used)
+run_inventory.command
+print_commands.env.example
+bambu.log
