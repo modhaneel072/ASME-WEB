@@ -1,0 +1,178 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Printer Automation Status</h3>
+  </div>
+  <p class="inline-meta"><strong>H2S:</strong> {{ "Configured" if h2s_print_cmd_configured else "Not Configured" }}</p>
+  <p class="inline-meta"><strong>P1S:</strong> {{ "Configured" if p1s_print_cmd_configured else "Not Configured" }}</p>
+  <p class="inline-meta">Config file: <code>{{ print_commands_env_file }}</code></p>
+  {% if h2s_print_cmd_value %}
+  <p class="inline-meta"><strong>H2S command:</strong> <code>{{ h2s_print_cmd_value }}</code></p>
+  {% endif %}
+  {% if p1s_print_cmd_value %}
+  <p class="inline-meta"><strong>P1S command:</strong> <code>{{ p1s_print_cmd_value }}</code></p>
+  {% endif %}
+  {% if not h2s_print_cmd_configured or not p1s_print_cmd_configured %}
+  <p class="inline-meta">
+    Auto-start will fail until commands are configured. Use:
+    <code>python -m bambucli.cli add-local</code> then set
+    <code>ASME_H2S_PRINT_CMD</code> / <code>ASME_P1S_PRINT_CMD</code> in the config file above.
+  </p>
+  <p class="inline-meta">
+    Fast setup: run <code>.\scripts\setup_bambu_print.ps1</code> from the project root.
+  </p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Submit Print Job</h3>
+  </div>
+  <form method="post" action="/print/submit" enctype="multipart/form-data">
+    <input type="hidden" name="next" value="/prints" />
+    <div class="form-grid">
+      <div>
+        <label for="member_tag">Member UID (optional)</label>
+        <input id="member_tag" name="member_tag" placeholder="Scan member UID" />
+        <label for="member_id">Or Select Member</label>
+        <select id="member_id" name="member_id">
+          <option value="">-- Select member --</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="printer_type">Printer Queue</label>
+        <select id="printer_type" name="printer_type">
+          <option value="H2S">H2S</option>
+          <option value="P1S">P1S</option>
+        </select>
+        <label for="gcode_file">Print File (.gcode, .gco, .3mf)</label>
+        <input id="gcode_file" name="gcode_file" type="file" accept=".gcode,.gco,.3mf" required />
+        <button type="button" id="clearPrintFile" class="btn light">Clear Selected File</button>
+      </div>
+    </div>
+    <label for="notes">Print Notes</label>
+    <textarea id="notes" name="notes" placeholder="Material, color, special notes"></textarea>
+    <button type="submit" class="btn">Submit Job</button>
+  </form>
+</section>
+
+<section class="panel-grid two">
+  {% for printer, queue in queues.items() %}
+  <article class="panel">
+    <div class="panel-head">
+      <h3>{{ printer }} Queue</h3>
+    </div>
+
+    {% if queue.active %}
+      <div class="active-job">
+        <p><strong>Printing:</strong> {{ queue.active.file_name }}</p>
+        <p>Member: {{ queue.active.member.name }}</p>
+        <p>Started: {{ queue.active.started_at.strftime("%Y-%m-%d %H:%M") if queue.active.started_at else "" }}</p>
+        <div class="action-row">
+          <form method="post" action="/print/job/{{ queue.active.id }}/complete">
+            <input type="hidden" name="next" value="/prints" />
+            <button type="submit" class="btn light">Mark Done</button>
+          </form>
+          <form method="post" action="/print/job/{{ queue.active.id }}/fail">
+            <input type="hidden" name="next" value="/prints" />
+            <button type="submit" class="btn danger">Mark Failed</button>
+          </form>
+          <a class="file-link" href="/print/job/{{ queue.active.id }}/open" target="_blank" rel="noopener noreferrer">Open File</a>
+          <a class="file-link" href="/print/job/{{ queue.active.id }}/download">Download File</a>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty">No active print. Next queued job auto-starts when available.</p>
+    {% endif %}
+
+    <h4>Waiting</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Member</th><th>File</th><th>Submitted</th><th>Manage</th></tr>
+        </thead>
+        <tbody>
+          {% for job in queue.queued %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ job.member.name }}</td>
+            <td>{{ job.file_name }}</td>
+            <td>{{ job.submitted_at.strftime("%m-%d %H:%M") }}</td>
+            <td>
+              <div class="action-row">
+                <a class="file-link" href="/print/job/{{ job.id }}/open" target="_blank" rel="noopener noreferrer">Open</a>
+                <a class="file-link" href="/print/job/{{ job.id }}/download">Download</a>
+                <form method="post" action="/print/job/{{ job.id }}/delete" onsubmit="return confirm('Delete this job and file?');">
+                  <input type="hidden" name="next" value="/prints" />
+                  <button type="submit" class="btn danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not queue.queued %}
+          <tr><td colspan="5" class="empty">Queue is empty.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Recent Finished</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Member</th><th>File</th><th>Status</th><th>Time</th><th>Manage</th></tr>
+        </thead>
+        <tbody>
+          {% for job in queue.recent_finished %}
+          <tr>
+            <td>{{ job.member.name }}</td>
+            <td><a class="file-link" href="/print/job/{{ job.id }}/open" target="_blank" rel="noopener noreferrer">{{ job.file_name }}</a></td>
+            <td>
+              {% if job.status == "done" %}
+              <span class="badge good">DONE</span>
+              {% elif job.status == "failed" %}
+              <span class="badge bad">FAILED</span>
+              {% else %}
+              {{ job.status }}
+              {% endif %}
+            </td>
+            <td>{{ job.completed_at.strftime("%m-%d %H:%M") if job.completed_at else "" }}</td>
+            <td>
+              <div class="action-row">
+                <a class="file-link" href="/print/job/{{ job.id }}/download">Download</a>
+                <form method="post" action="/print/job/{{ job.id }}/delete" onsubmit="return confirm('Delete this job and file?');">
+                  <input type="hidden" name="next" value="/prints" />
+                  <button type="submit" class="btn danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not queue.recent_finished %}
+          <tr><td colspan="5" class="empty">No finished jobs yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<script>
+  (() => {
+    const fileInput = document.getElementById("gcode_file");
+    const clearButton = document.getElementById("clearPrintFile");
+    if (!fileInput || !clearButton) return;
+    clearButton.addEventListener("click", () => {
+      fileInput.value = "";
+      fileInput.focus();
+    });
+  })();
+</script>
+{% endblock %}

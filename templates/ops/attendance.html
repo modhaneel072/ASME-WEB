@@ -1,0 +1,43 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel-grid two">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Scan Attendance</h3>
+    </div>
+    <form method="post" action="/attendance/scan" class="form-stack">
+      <input type="hidden" name="next" value="/attendance" />
+      <label for="uid">Member UID</label>
+      <input id="uid" name="uid" placeholder="Tap card and scan UID" autofocus required />
+      <button type="submit" class="btn">Mark Attendance</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Today: {{ today }}</h3>
+    </div>
+    <p class="inline-meta"><strong>{{ attendance_count }}</strong> unique members checked in.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Member</th><th>UID</th><th>Last Scan</th></tr>
+        </thead>
+        <tbody>
+          {% for s in today_attendance %}
+          <tr>
+            <td>{{ s.member.name }}</td>
+            <td><code>{{ s.scanned_uid }}</code></td>
+            <td>{{ s.scanned_at.strftime("%H:%M:%S") }}</td>
+          </tr>
+          {% endfor %}
+          {% if not today_attendance %}
+          <tr><td colspan="3" class="empty">No attendance scans yet today.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Recent Inventory Transactions</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Member</th><th>Item</th><th>Action</th><th>Qty</th><th>Due</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        {% for t in recent_transactions %}
+        <tr>
+          <td>{{ t.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ t.member.name }}</td>
+          <td>{{ t.item.name }}</td>
+          <td>{{ t.action }}</td>
+          <td>{{ t.qty }}</td>
+          <td>{{ t.due_date or "" }}</td>
+          <td>{{ t.notes or "" }}</td>
+        </tr>
+        {% endfor %}
+        {% if not recent_transactions %}
+        <tr><td colspan="7" class="empty">No transactions yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

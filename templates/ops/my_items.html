@@ -1,0 +1,87 @@
+{% extends "ops/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>My Checked Out Items</h3>
+    <a href="/scan">Open Scanner</a>
+  </div>
+  {% if not active_member %}
+  <p class="inline-meta">Select your member profile on the <a class="file-link" href="/scan">Scan page</a> to view your items.</p>
+  {% elif not open_checkouts %}
+  <p class="inline-meta">You have no open checkouts.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table id="myItemsTable">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Checked Out</th>
+          <th>Qty</th>
+          <th>Notes</th>
+          <th>Quick Return</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in open_checkouts %}
+        <tr data-open-item="{{ tx.item_id }}">
+          <td>
+            <strong>{{ tx.item.name }}</strong>
+            <div class="inline-meta">{{ tx.item.category or "" }}{% if tx.item.location %} • {{ tx.item.location }}{% endif %}</div>
+          </td>
+          <td>{{ (tx.checkout_time or tx.timestamp).strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ tx.qty }}</td>
+          <td>{{ tx.checkout_notes or tx.notes or "" }}</td>
+          <td>
+            <form class="quick-return-form" data-item-id="{{ tx.item_id }}">
+              <input type="hidden" name="qty" value="{{ tx.qty }}" />
+              <label>Condition</label>
+              <select name="condition" required>
+                <option value="good">Good</option>
+                <option value="used">Used</option>
+                <option value="damaged">Damaged</option>
+              </select>
+              <label>Notes</label>
+              <input name="notes" placeholder="Optional" />
+              <button type="submit" class="btn light">Quick Return</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+{% if active_member and open_checkouts %}
+<script>
+  (() => {
+    const table = document.getElementById("myItemsTable");
+    if (!table) return;
+
+    table.addEventListener("submit", async (event) => {
+      const form = event.target.closest(".quick-return-form");
+      if (!form) return;
+      event.preventDefault();
+      const itemId = form.dataset.itemId;
+      const qty = form.querySelector("[name='qty']").value;
+      const condition = form.querySelector("[name='condition']").value;
+      const notes = form.querySelector("[name='notes']").value;
+
+      const response = await fetch("/api/return", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId, qty, condition, notes }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        alert(data.error || "Return failed.");
+        return;
+      }
+      window.location.reload();
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

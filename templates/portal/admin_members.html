@@ -1,21 +1,30 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
+<!-- ── Add Member + PDF Download ───────────── -->
 <section class="panel">
   <div class="panel-head">
     <h3>Add Member</h3>
+    <form method="post" action="/portal/admin/members/export-credentials-pdf" style="display:inline;"
+          onsubmit="return confirm('This will reset passwords for all active member/team_leader accounts and download a PDF roster. Continue?');">
+      <input type="hidden" name="next" value="/portal/admin/members" />
+      <button type="submit" class="btn-secondary" style="padding: 8px 14px; font-size: var(--text-xs);">
+        Download Roster PDF
+      </button>
+    </form>
   </div>
+
   <form method="post" action="/portal/admin/members/create" class="form-stack">
     <input type="hidden" name="next" value="/portal/admin/members" />
     <input type="hidden" name="create_user" value="1" />
     <div class="split-fields three-up">
       <div>
         <label for="member_name">Name</label>
-        <input id="member_name" name="name" required />
+        <input id="member_name" name="name" required placeholder="Full name" />
       </div>
       <div>
         <label for="member_email">Email</label>
-        <input id="member_email" name="email" type="email" required />
+        <input id="member_email" name="email" type="email" required placeholder="you@uiowa.edu" />
       </div>
       <div>
         <label for="member_class">Member Class</label>
@@ -36,157 +45,235 @@
         <input id="member_password" name="password" type="password" minlength="8" required />
       </div>
       <div>
-        <label for="member_nfc_uid">NFC UID (optional)</label>
+        <label for="member_nfc_uid">NFC UID <span style="color: var(--muted); text-transform: none; font-weight: 400;">(optional)</span></label>
         <input id="member_nfc_uid" name="nfc_uid" />
       </div>
     </div>
-    <button type="submit">Create Member + Login</button>
+    <button type="submit">Add Member</button>
   </form>
 </section>
 
+<!-- ── Member Search ──────────────────────── -->
 <section class="panel">
   <div class="panel-head">
-    <h3>Bulk Import Roster</h3>
+    <h3>Find Member</h3>
   </div>
-  <p class="muted">
-    Upload roster PDF and the system will import members/users, reset passwords, then immediately download a credentials CSV.
+  <p class="muted" style="font-size: var(--text-xs); margin-bottom: var(--sp-3);">
+    Type a name, email, or role to search. Press <kbd style="padding: 2px 6px; background: var(--bg-subtle); border: 1px solid var(--line); border-radius: 4px; font-family: monospace;">/</kbd>
+    anywhere to focus the search. Click a result to edit.
   </p>
-  <form method="post" action="/portal/admin/members/import-roster" enctype="multipart/form-data" class="form-stack">
-    <input type="hidden" name="next" value="/portal/admin/members" />
-    <input type="hidden" name="reset_existing_passwords" value="1" />
-    <div class="split-fields three-up">
-      <div>
-        <label for="roster_file">Roster PDF</label>
-        <input id="roster_file" name="roster_file" type="file" accept=".pdf" required />
-      </div>
-      <div>
-        <label for="import_role">Default Role</label>
-        <select id="import_role" name="role">
-          <option value="member" selected>member</option>
-          <option value="team_leader">team_leader</option>
-        </select>
-      </div>
-      <div>
-        <label for="import_member_class">Member Class</label>
-        <input id="import_member_class" name="member_class" value="Member" />
-      </div>
+  <input
+    type="text"
+    id="memberSearch"
+    placeholder="/member — search by name, email, role..."
+    style="width: 100%; padding: 10px 14px;"
+    autocomplete="off"
+  />
+
+  <div id="memberResultCount" class="muted" style="font-size: var(--text-xs); margin-top: var(--sp-3); display: none;"></div>
+
+  <div id="memberList" style="display: none; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3);">
+    {% for user in users %}
+    <div class="member-row"
+         data-search="{{ (user.name or '') | lower }} {{ (user.email or '') | lower }} {{ (user.username or '') | lower }} {{ user.role | lower }} {{ (user.exec_title or '') | lower }}">
+      <details>
+        <summary class="member-summary">
+          <div class="member-info">
+            <strong>{{ user.name }}</strong>
+            <span class="member-meta">{{ user.email }}</span>
+          </div>
+          <div class="member-badges">
+            <span class="badge {% if user.role == 'admin' %}bad{% elif user.role == 'team_leader' %}good{% endif %}">{{ user.role }}</span>
+            {% if not user.is_active %}
+            <span class="badge bad">Inactive</span>
+            {% endif %}
+          </div>
+        </summary>
+
+        <form id="user-edit-{{ user.id }}" method="post" action="/portal/admin/users/{{ user.id }}/role" class="member-edit-form">
+          <input type="hidden" name="next" value="/portal/admin/members" />
+
+          <div class="split-fields two-up">
+            <div>
+              <label>Name</label>
+              <input name="name" value="{{ user.name }}" />
+            </div>
+            <div>
+              <label>Email</label>
+              <input name="email" type="email" value="{{ user.email }}" />
+            </div>
+          </div>
+
+          <div class="split-fields three-up">
+            <div>
+              <label>Username</label>
+              <input name="username" value="{{ user.username or '' }}" />
+            </div>
+            <div>
+              <label>Role</label>
+              <select name="role">
+                {% for role in roles %}
+                <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label>Active</label>
+              <select name="is_active">
+                <option value="1" {% if user.is_active %}selected{% endif %}>Yes</option>
+                <option value="0" {% if not user.is_active %}selected{% endif %}>No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="split-fields three-up">
+            <div>
+              <label>Member ID</label>
+              <input name="member_id" type="number" min="1" value="{{ user.member_id or '' }}" />
+            </div>
+            <div>
+              <label>NFC UID</label>
+              <input name="nfc_uid" value="{{ user.nfc_uid or '' }}" />
+            </div>
+            <div>
+              <label>Major</label>
+              <input name="major" value="{{ user.major or '' }}" />
+            </div>
+          </div>
+
+          <div class="split-fields two-up">
+            <div>
+              <label>Graduation Year</label>
+              <input name="graduation_year" type="number" value="{{ user.graduation_year or '' }}" />
+            </div>
+            <div>
+              <label>Exec Title <span style="color: var(--muted); text-transform: none; font-weight: 400;">(optional)</span></label>
+              <input name="exec_title" value="{{ user.exec_title or '' }}" />
+            </div>
+          </div>
+
+          <div>
+            <label>Headshot URL</label>
+            <input name="headshot_url" value="{{ user.headshot_url or '' }}" />
+          </div>
+
+          <div>
+            <label>Exec Message</label>
+            <textarea name="exec_message" rows="2">{{ user.exec_message or '' }}</textarea>
+          </div>
+
+          <div style="display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-3);">
+            <button type="submit">Save Changes</button>
+            <button type="submit" formaction="/portal/admin/users/{{ user.id }}/reset-password" class="btn-secondary"
+                    style="background: var(--bg); color: var(--ink); border-color: var(--line);">
+              Reset Password
+            </button>
+            <button type="submit" formaction="/portal/admin/users/{{ user.id }}/delete" class="btn-secondary"
+                    style="background: #fef2f2; color: #dc2626; border-color: #fecaca; margin-left: auto;"
+                    onclick="return confirm('Delete this account? If it has historical records, it will be deactivated instead.');">
+              Delete
+            </button>
+          </div>
+        </form>
+      </details>
     </div>
-    <button type="submit">Import Roster + Download Credentials CSV</button>
-  </form>
-  <form
-    method="post"
-    action="/portal/admin/members/export-credentials"
-    class="form-stack"
-    onsubmit="return confirm('This will reset passwords for all active member/team_leader accounts and download a fresh CSV. Continue?');"
-  >
-    <input type="hidden" name="next" value="/portal/admin/members" />
-    <button type="submit">Download Fresh Credentials CSV (Resets Passwords)</button>
-  </form>
-  <form
-    method="post"
-    action="/portal/admin/members/export-credentials-pdf"
-    class="form-stack"
-    onsubmit="return confirm('This will reset passwords for all active member/team_leader accounts and download a PDF. Continue?');"
-  >
-    <input type="hidden" name="next" value="/portal/admin/members" />
-    <button type="submit">Download Fresh Credentials PDF (Name + Last Name + NFC + Username + Password)</button>
-  </form>
-  <form
-    method="post"
-    action="/portal/admin/members/reset"
-    class="form-stack"
-    onsubmit="return confirm('This will reset member/team_leader accounts and unlink NFC/member associations. Continue?');"
-  >
-    <input type="hidden" name="next" value="/portal/admin/members" />
-    <label for="members_reset_confirmation">Danger Zone: Reset Members</label>
-    <input
-      id="members_reset_confirmation"
-      name="confirmation"
-      placeholder="Type RESET MEMBERS to confirm"
-      required
-    />
-    <button type="submit">Reset Members</button>
-  </form>
+    {% endfor %}
+
+  </div>
 </section>
 
-<section class="panel">
-  <div class="panel-head">
-    <h3>Members / Roles</h3>
-    <div style="display:flex; gap:10px; align-items:center;">
-      {% if show_inactive %}
-      <a href="/portal/admin/members">Hide Inactive</a>
-      {% elif inactive_user_count %}
-      <a href="/portal/admin/members?show_inactive=1">Show Inactive ({{ inactive_user_count }})</a>
-      {% endif %}
-    </div>
-  </div>
-  <p class="muted">Member ID and NFC UID must be unique. Leave Member ID blank to unlink a user from a member profile.</p>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Username</th>
-          <th>Role</th>
-          <th>Member ID</th>
-          <th>NFC UID</th>
-          <th>Active</th>
-          <th>Edit</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for user in users %}
-        <tr>
-          <td><input name="name" value="{{ user.name }}" form="user-edit-{{ user.id }}" /></td>
-          <td><input name="email" type="email" value="{{ user.email }}" form="user-edit-{{ user.id }}" /></td>
-          <td><input name="username" value="{{ user.username or '' }}" form="user-edit-{{ user.id }}" /></td>
-          <td>
-            <select name="role" form="user-edit-{{ user.id }}">
-              {% for role in roles %}
-              <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td><input name="member_id" type="number" min="1" value="{{ user.member_id or '' }}" form="user-edit-{{ user.id }}" /></td>
-          <td><input name="nfc_uid" value="{{ user.nfc_uid or '' }}" form="user-edit-{{ user.id }}" /></td>
-          <td>
-            <select name="is_active" form="user-edit-{{ user.id }}">
-              <option value="1" {% if user.is_active %}selected{% endif %}>Yes</option>
-              <option value="0" {% if not user.is_active %}selected{% endif %}>No</option>
-            </select>
-          </td>
-          <td>
-            <form id="user-edit-{{ user.id }}" method="post" action="/portal/admin/users/{{ user.id }}/role" class="form-stack compact">
-              <input type="hidden" name="next" value="/portal/admin/members" />
-              <input type="hidden" name="major" value="{{ user.major or '' }}" />
-              <input type="hidden" name="graduation_year" value="{{ user.graduation_year or '' }}" />
-              <button type="submit">Save</button>
-            </form>
-            <form method="post" action="/portal/admin/users/{{ user.id }}/reset-password" class="form-stack compact">
-              <input type="hidden" name="next" value="/portal/admin/members" />
-              <button type="submit">Reset Password</button>
-            </form>
-            <form method="post" action="/portal/admin/users/{{ user.id }}/delete" class="form-stack compact" onsubmit="return confirm('Delete this account? If the account has historical records, it will be deactivated instead.');">
-              <input type="hidden" name="next" value="/portal/admin/members" />
-              <button type="submit">Delete</button>
-            </form>
-            <details>
-              <summary class="muted">More fields</summary>
-              <div class="form-stack compact">
-                <input name="exec_title" placeholder="Exec title" value="{{ user.exec_title or '' }}" form="user-edit-{{ user.id }}" />
-                <input name="headshot_url" placeholder="Headshot URL" value="{{ user.headshot_url or '' }}" form="user-edit-{{ user.id }}" />
-                <textarea name="exec_message" placeholder="Executive message" form="user-edit-{{ user.id }}">{{ user.exec_message or '' }}</textarea>
-              </div>
-            </details>
-          </td>
-        </tr>
-        {% endfor %}
-        {% if not users %}
-        <tr><td colspan="8" class="muted">No users yet.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-</section>
+<style>
+  .member-row {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+  }
+  .member-row details[open] {
+    background: var(--bg-subtle);
+  }
+  .member-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+    gap: var(--sp-3);
+  }
+  .member-summary::-webkit-details-marker { display: none; }
+  .member-summary::before {
+    content: "▸";
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 180ms;
+    display: inline-block;
+  }
+  details[open] .member-summary::before {
+    transform: rotate(90deg);
+  }
+  .member-row:hover { border-color: var(--line-strong); }
+  .member-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .member-info strong { font-size: var(--text-sm); font-weight: 600; }
+  .member-meta { font-size: var(--text-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member-badges { display: flex; gap: 6px; flex-shrink: 0; }
+  .member-edit-form {
+    padding: 16px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .member-row[hidden] { display: none; }
+</style>
+
+<script>
+(function() {
+  const searchInput = document.getElementById('memberSearch');
+  const list = document.getElementById('memberList');
+  const counter = document.getElementById('memberResultCount');
+  const rows = Array.from(document.querySelectorAll('.member-row'));
+
+  function filter(q) {
+    const query = q.trim().toLowerCase().replace(/^\/member\s*/, '');
+
+    if (!query) {
+      list.style.display = 'none';
+      counter.style.display = 'none';
+      return;
+    }
+
+    let shown = 0;
+    rows.forEach(row => {
+      const haystack = row.dataset.search || '';
+      const match = haystack.includes(query);
+      row.hidden = !match;
+      if (match) shown++;
+    });
+
+    list.style.display = 'flex';
+    counter.style.display = 'block';
+    counter.textContent = `${shown} ${shown === 1 ? 'match' : 'matches'}`;
+  }
+
+  searchInput.addEventListener('input', e => filter(e.target.value));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' &&
+        document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+      e.preventDefault();
+      searchInput.focus();
+      if (!searchInput.value.startsWith('/member')) {
+        searchInput.value = '/member ';
+        filter(searchInput.value);
+      }
+    }
+    if (e.key === 'Escape' && document.activeElement === searchInput) {
+      searchInput.value = '';
+      filter('');
+      searchInput.blur();
+    }
+  });
+})();
+</script>
 {% endblock %}

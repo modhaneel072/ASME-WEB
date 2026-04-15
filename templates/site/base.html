@@ -7,6 +7,7 @@
   <title>{{ page_title }} | ASME @ UIowa</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/faq-bot.css') }}" />
   <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
   <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
 </head>
@@ -179,5 +180,8 @@
       }
     });
   </script>
+
+  <!-- ASKme FAQ widget -->
+  <script src="{{ url_for('static', filename='js/faq-bot.js') }}" defer></script>
 </body>
 </html>

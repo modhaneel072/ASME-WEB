@@ -6,6 +6,9 @@
   <title>{{ page_title }} | ASME Portal</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}" />
+  {% if current_user and (current_user.role|lower) == 'admin' and not (active_page and active_page.startswith('member_')) %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-ai.css') }}" />
+  {% endif %}
   <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
 </head>
 <body class="{{ 'portal-theme-admin' if (current_user and (current_user.role|lower) == 'admin' and not (active_page and active_page.startswith('member_'))) else 'portal-theme-member' }}">
@@ -38,19 +41,13 @@
         <a class="{{ 'active' if active_page == 'admin_announcements' else '' }}" href="/portal/admin/announcements">Announcements</a>
         <a class="{{ 'active' if active_page == 'admin_settings' else '' }}" href="/portal/admin/settings">Settings</a>
       </nav>
-      <a class="subtle-switch" href="/portal/member">Switch to Member View</a>
       {% else %}
       <nav>
         <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
         <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
-        <a class="{{ 'active' if active_page == 'member_my_items' else '' }}" href="/portal/member/my-items">My Items</a>
-        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Print Requests</a>
+        <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Prints</a>
         <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
-        {% if current_user and ((current_user.role|lower) == 'team_leader' or (current_user.role|lower) == 'admin') %}
-        <a class="{{ 'active' if active_page == 'member_schedule' else '' }}" href="/portal/member/schedule">Schedule Meeting</a>
-        {% endif %}
         <a class="{{ 'active' if active_page == 'member_profile' else '' }}" href="/portal/member/profile">Profile</a>
-        <a class="{{ 'active' if active_page == 'member_help' else '' }}" href="/portal/member/help">Help</a>
       </nav>
       {% if is_admin %}
       <a class="subtle-switch" href="/portal/admin">Switch to Admin</a>
@@ -109,5 +106,9 @@
     overlay.addEventListener('click', closeSidebar);
     sidebar.querySelectorAll('nav a').forEach(a => a.addEventListener('click', closeSidebar));
   </script>
+
+  {% if current_user and (current_user.role|lower) == 'admin' and not (active_page and active_page.startswith('member_')) %}
+  <script src="{{ url_for('static', filename='js/admin-ai.js') }}" defer></script>
+  {% endif %}
 </body>
 </html>

@@ -1,41 +1,57 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Profile</h3>
+<section class="panel">
+  <div class="panel-head">
+    <h3>Profile</h3>
+  </div>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="action" value="profile" />
+    <div class="split-fields two-up">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input id="name" name="name" value="{{ current_user.name }}" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="{{ current_user.email }}" required />
+      </div>
     </div>
-    <p class="muted"></p>
-    <form method="post" class="form-stack">
-      <input type="hidden" name="action" value="profile" />
-      <label for="name">Name</label>
-      <input id="name" name="name" value="{{ current_user.name }}" required />
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" value="{{ current_user.email }}" required />
-      <label>Role</label>
-      <input value="{{ current_user.role }}" readonly />
-      <label>Linked NFC Tag (read-only)</label>
-      <input value="{{ current_user.nfc_uid or (active_tag.tag_uid if active_tag else 'Not assigned') }}" readonly />
-      <button type="submit">Save Profile</button>
-    </form>
-  </article>
+    <div class="split-fields two-up">
+      <div class="form-group">
+        <label>Role</label>
+        <input value="{{ current_user.role }}" readonly style="background: var(--bg-subtle); color: var(--muted);" />
+      </div>
+      <div class="form-group">
+        <label>NFC Tag</label>
+        <input value="{{ current_user.nfc_uid or (active_tag.tag_uid if active_tag else 'Not assigned') }}" readonly style="background: var(--bg-subtle); color: var(--muted);" />
+      </div>
+    </div>
+    <button type="submit" style="width: fit-content;">Save Changes</button>
+  </form>
+</section>
 
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Change Password</h3>
-    </div>
-    <p class="muted"></p>
-    <form method="post" class="form-stack">
-      <input type="hidden" name="action" value="password" />
+<section class="panel">
+  <div class="panel-head">
+    <h3>Change Password</h3>
+  </div>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="action" value="password" />
+    <div class="form-group">
       <label for="current_password">Current Password</label>
       <input id="current_password" name="current_password" type="password" required />
-      <label for="new_password">New Password</label>
-      <input id="new_password" name="new_password" type="password" minlength="8" required />
-      <label for="confirm_password">Confirm Password</label>
-      <input id="confirm_password" name="confirm_password" type="password" minlength="8" required />
-      <button type="submit">Update Password</button>
-    </form>
-  </article>
+    </div>
+    <div class="split-fields two-up">
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input id="new_password" name="new_password" type="password" minlength="8" required />
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm</label>
+        <input id="confirm_password" name="confirm_password" type="password" minlength="8" required />
+      </div>
+    </div>
+    <button type="submit" style="width: fit-content;">Update Password</button>
+  </form>
 </section>
 {% endblock %}

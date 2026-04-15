@@ -1,65 +1,53 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Upcoming Meetings</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Event</th>
-            <th>Time</th>
-            <th>Status</th>
-            <th>RSVP</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for event in upcoming_events %}
-          <tr>
-            <td>{{ event.title }}<div class="muted">{{ event.location or '' }}</div></td>
-            <td>{{ event.start_time.strftime('%Y-%m-%d %I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</td>
-            <td>{{ event.status }}</td>
-            <td>
-              <form method="post" action="/portal/events/{{ event.id }}/rsvp" class="inline-form">
-                <input type="hidden" name="next" value="/portal/member/calendar" />
-                <button type="submit">RSVP</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-          {% if not upcoming_events %}
-          <tr><td colspan="4" style="text-align: center; padding: var(--sp-6);">
-            <p style="font-weight: 600; margin-bottom: var(--sp-1);">No upcoming events</p>
-            <p class="muted">Check back for scheduled meetings and events.</p>
-          </td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </article>
-
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Live Calendar ({{ calendar_provider|upper }})</h3>
-    </div>
-    {% if calendar_embed_url %}
-    <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
-    {% else %}
-    <p class="muted" style="padding: var(--sp-6) 0; text-align: center;">Calendar embed not configured. Contact an admin to set up the calendar integration.</p>
-    {% endif %}
-  </article>
-</section>
-
-{% if team_mode %}
 <section class="panel">
   <div class="panel-head">
-    <h3>Schedule Meetings</h3>
+    <h3>Calendar</h3>
+    {% if team_mode %}
+    <a href="/portal/member/schedule" style="font-size: var(--text-xs); font-weight: 600; color: var(--accent);">Book a Room &rarr;</a>
+    {% endif %}
   </div>
-  <p class="muted">Use slot-based scheduling to see only available rooms and times.</p>
-  <a href="/portal/member/schedule">Open Schedule Meeting</a>
+  {% if calendar_embed_url %}
+  <iframe class="calendar-embed" src="{{ calendar_embed_url }}" title="Team calendar" loading="lazy"></iframe>
+  {% else %}
+  <p class="muted" style="padding: var(--sp-6) 0; text-align: center;">Calendar not configured yet.</p>
+  {% endif %}
+</section>
+
+{% if upcoming_events %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>Upcoming</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>When</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in upcoming_events %}
+        <tr>
+          <td>
+            <span style="font-weight: 600;">{{ event.title }}</span>
+            {% if event.location %}<div class="muted" style="font-size: var(--text-xs);">{{ event.location }}</div>{% endif %}
+          </td>
+          <td>{{ event.start_time.strftime('%b %d, %I:%M %p') }}</td>
+          <td>
+            <form method="post" action="/portal/events/{{ event.id }}/rsvp" style="display: inline;">
+              <input type="hidden" name="next" value="/portal/member/calendar" />
+              <button type="submit" style="padding: 5px 12px; font-size: var(--text-xs);">RSVP</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endif %}
 {% endblock %}

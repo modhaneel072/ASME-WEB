@@ -1,95 +1,69 @@
 {% extends "portal/base.html" %}
 
 {% block content %}
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Submit Print Request</h3>
-    </div>
-    <form method="post" action="/portal/print/request" enctype="multipart/form-data" class="form-stack">
-      <input type="hidden" name="next" value="/portal/member/prints" />
-      <label for="printer_type">Printer</label>
-      <select id="printer_type" name="printer_type">
-        {% for printer in portal_print_printers %}
-        <option value="{{ printer }}">{{ printer|replace('_', '-') }}</option>
-        {% endfor %}
-      </select>
-      <div class="form-group">
-        <label for="filament">Filament (required)</label>
-        <input id="filament" name="filament" required placeholder="e.g., PLA Black" />
-      </div>
-      <div class="form-group">
-        <label for="print_file">Upload File</label>
-        <input id="print_file" name="print_file" type="file" />
-      </div>
-      <div class="form-group">
-        <label for="file_link">Or Paste File Link</label>
-        <input id="file_link" name="file_link" placeholder="https://..." />
-      </div>
-      <div class="split-fields two-up">
-        <div>
-          <label for="material">Material</label>
-          <input id="material" name="material" />
-        </div>
-        <div>
-          <label for="color">Color</label>
-          <input id="color" name="color" />
-        </div>
-      </div>
-      <div class="split-fields two-up">
-        <div>
-          <label for="infill_percent">Infill %</label>
-          <input id="infill_percent" name="infill_percent" type="number" min="1" max="100" value="20" />
-        </div>
-        <div>
-          <label for="priority">Priority</label>
-          <select id="priority" name="priority">
-            <option value="low">Low</option>
-            <option value="normal" selected>Normal</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-      </div>
-      <label for="deadline">Deadline</label>
-      <input id="deadline" name="deadline" type="date" />
-      <label for="notes">Notes</label>
-      <textarea id="notes" name="notes"></textarea>
-      <button type="submit">Submit Request</button>
-    </form>
-  </article>
+<section class="panel">
+  <div class="panel-head">
+    <h3>Submit Print</h3>
+  </div>
+  <form method="post" action="/portal/print/request" enctype="multipart/form-data" class="form-stack">
+    <input type="hidden" name="next" value="/portal/member/prints" />
 
-  <article class="panel">
-    <div class="panel-head">
-      <h3>My Queue</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Submitted</th>
-            <th>Printer</th>
-            <th>Status</th>
-            <th>Detail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for req in print_requests %}
-          <tr>
-            <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ req.printer_type|replace('_', '-') }}</td>
-            <td><span class="badge">{{ req.status }}</span></td>
-            <td><a href="/portal/member/prints/{{ req.id }}">Open</a></td>
-          </tr>
+    <div class="split-fields two-up">
+      <div class="form-group">
+        <label for="printer_type">Printer</label>
+        <select id="printer_type" name="printer_type">
+          {% for printer in portal_print_printers %}
+          <option value="{{ printer }}">{{ printer|replace('_', '-') }}</option>
           {% endfor %}
-          {% if not print_requests %}
-          <tr><td colspan="4" style="text-align: center; padding: var(--sp-6);">
-            <p style="font-weight: 600; margin-bottom: var(--sp-1);">No print requests yet</p>
-            <p class="muted">Submit your first print request using the form.</p>
-          </td></tr>
-          {% endif %}
-        </tbody>
-      </table>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filament">Filament</label>
+        <input id="filament" name="filament" required placeholder="PLA Black" />
+      </div>
     </div>
-  </article>
+
+    <div class="form-group">
+      <label for="print_file">File (.3mf)</label>
+      <input id="print_file" name="print_file" type="file" accept=".3mf,.gcode" />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes <span style="text-transform: none; font-weight: 400; color: var(--muted);">(optional)</span></label>
+      <textarea id="notes" name="notes" rows="2" placeholder="Deadline, purpose, special instructions..."></textarea>
+    </div>
+
+    <button type="submit">Submit Request</button>
+  </form>
 </section>
+
+{% if print_requests %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>My Queue</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>Printer</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in print_requests %}
+        <tr>
+          <td>{{ req.created_at.strftime('%b %d, %H:%M') }}</td>
+          <td>{{ req.printer_type|replace('_', '-') }}</td>
+          <td><span class="badge">{{ req.status }}</span></td>
+          <td><a href="/portal/member/prints/{{ req.id }}" style="color: var(--accent); font-weight: 600; font-size: var(--text-xs);">View &rarr;</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 {% endblock %}

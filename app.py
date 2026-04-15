@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import csv
 import io
 import json
@@ -3578,6 +3580,29 @@ def arm_sim_assets(subpath):
 @app.route("/arm-sim")
 def arm_sim_index():
     return send_from_directory(os.path.join(app.static_folder, "arm-sim"), "index.html")
+
+
+@app.post("/api/ask")
+def api_ask():
+    """Admin-only: run a single conversation turn against the analytics assistant."""
+    user = current_auth_user()
+    if not user or normalize_role(user.role) != "admin":
+        return jsonify({"error": "admin only"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    message = (payload.get("message") or "").strip()
+    history = payload.get("history") or []
+    if not message:
+        return jsonify({"error": "empty message"}), 400
+    if len(message) > 2000:
+        return jsonify({"error": "message too long"}), 400
+
+    from services.ai_assistant import run_assistant
+    result = run_assistant(message, history=history)
+    return jsonify({
+        "reply": result.get("reply", ""),
+        "tool_calls": result.get("tool_calls", []),
+    })
 
 
 @app.get("/healthz")

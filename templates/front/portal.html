@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASME Club Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/front_portal.css') }}" />
+</head>
+<body>
+  <div class="portal-bg"></div>
+  <div class="portal-shell">
+    <header class="portal-header">
+      <div class="brand-row">
+        <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+        <div>
+          <p class="eyebrow">ASME at Iowa</p>
+          <h1>Club Frontend Portal</h1>
+        </div>
+      </div>
+      <nav class="top-nav">
+        <a href="#club">Club Info</a>
+        <a href="#projects">Projects</a>
+        <a href="#member">Member Login</a>
+        <a href="#scan">Scan</a>
+        <a href="#admin">Admin</a>
+      </nav>
+      <div class="header-actions">
+        <a class="ghost-btn" href="/admin">Admin Backend</a>
+        {% if active_member_is_admin %}
+        <a class="ghost-btn" href="/admin/nfc">NFC Admin</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="hero-grid">
+      <article class="hero-card">
+        <p class="hero-title">NFC Inventory + Member Portal</p>
+        <p class="hero-copy">
+          This frontend is built for members: sign in, scan NFC tags, check out tools, return equipment,
+          and see active club project operations in one place.
+        </p>
+        <div class="hero-stats">
+          <div><span>Tracked Items</span><strong>{{ item_count }}</strong></div>
+          <div><span>Available Units</span><strong>{{ available_total }}</strong></div>
+          <div><span>My Open Items</span><strong data-my-open-count>{{ my_open_count }}</strong></div>
+        </div>
+        <div class="hero-actions">
+          <a class="cta-btn" href="#scan">Scan Equipment</a>
+          <a class="ghost-btn" href="#projects">View Projects</a>
+        </div>
+      </article>
+    </section>
+
+    <section id="club" class="panel club-panel">
+      <div class="panel-head">
+        <h2>About The Club</h2>
+      </div>
+      <p class="panel-sub">{{ club_mission }}</p>
+      <div class="club-highlights">
+        {% for card in club_highlights %}
+        <article class="highlight-card">
+          <p class="highlight-label">{{ card.label }}</p>
+          <p class="muted">{{ card.text }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section id="projects" class="panel">
+      <div class="panel-head">
+        <h2>Projects Showcase</h2>
+      </div>
+      <p class="panel-sub">Current ASME programs and technical tracks.</p>
+      <div class="project-grid">
+        {% for project in project_showcase %}
+        <article class="project-card">
+          <p class="project-team">{{ project.team }}</p>
+          <h3>{{ project.name }}</h3>
+          <p class="muted">{{ project.summary }}</p>
+          <p class="project-status">{{ project.status }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="portal-grid" id="member">
+      <article class="panel member-panel">
+        <div class="panel-head">
+          <h2>ASME Member Login Portal</h2>
+        </div>
+        <p class="panel-sub">Choose your profile or scan your member UID to sign in.</p>
+        <form class="member-form" data-member-form>
+          <label for="member_id">Member</label>
+          <select id="member_id" name="member_id">
+            <option value="">-- Select member --</option>
+            {% for m in members %}
+            <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+            {% endfor %}
+          </select>
+          <label for="member_tag">Member UID (optional)</label>
+          <input id="member_tag" name="member_tag" placeholder="Scan or type member UID" />
+          <div class="row-actions">
+            <button type="submit" class="cta-btn">Sign In</button>
+            <button type="button" class="ghost-btn" data-action="signout">Sign Out</button>
+          </div>
+        </form>
+        <div class="session-box" data-session-box>
+          <p class="muted">No member selected.</p>
+        </div>
+      </article>
+
+      <article class="panel scan-panel" id="scan" data-scan-shell>
+        <div class="panel-head">
+          <h2>NFC Scanner</h2>
+        </div>
+        <p class="panel-sub">Tap a tag to load item actions. Manual code entry is available as fallback.</p>
+        <div class="row-actions">
+          <button type="button" class="cta-btn" data-action="start-nfc">Start NFC Scan</button>
+          <span class="muted" data-scan-status>NFC idle.</span>
+        </div>
+        <form class="manual-form" data-manual-form>
+          <label for="tag_input">Manual Tag / Item Code</label>
+          <div class="manual-inline">
+            <input id="tag_input" name="tag" placeholder="Example: 04A2B1C7 or item_id:5" required />
+            <button type="submit" class="ghost-btn">Find Item</button>
+          </div>
+        </form>
+        <div class="scan-result" data-scan-result>
+          <p class="muted">Scan an item tag to begin.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel my-items-panel" id="my-items">
+      <div class="panel-head">
+        <h2>My Checked Out Items</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Checked Out</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody data-my-items-body>
+            <tr><td colspan="4" class="muted">Sign in to view your checked out items.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel admin-panel" id="admin">
+      <div class="panel-head">
+        <h2>Admin Portal</h2>
+      </div>
+      <p class="panel-sub">
+        Admin backend remains separate from this frontend. Use the links below for dashboard, transactions, and NFC registration.
+      </p>
+      <div class="row-actions">
+        <a class="cta-btn" href="/admin">Open Admin Dashboard</a>
+        <a class="ghost-btn" href="/dashboard">Operations View</a>
+        <a class="ghost-btn" href="/admin/nfc">NFC Registration</a>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const INITIAL_MEMBER = {{ ({
+        "id": active_member.id,
+        "name": active_member.name,
+        "email": active_member.email
+      } | tojson) if active_member else "null" }};
+
+      const state = {
+        member: INITIAL_MEMBER,
+        lastTag: "",
+        reader: null,
+      };
+
+      const memberForm = document.querySelector("[data-member-form]");
+      const signOutBtn = document.querySelector("[data-action='signout']");
+      const sessionBox = document.querySelector("[data-session-box]");
+      const openCount = document.querySelector("[data-my-open-count]");
+      const myItemsBody = document.querySelector("[data-my-items-body]");
+      const scanShell = document.querySelector("[data-scan-shell]");
+      const scanStatus = scanShell.querySelector("[data-scan-status]");
+      const startNfcBtn = scanShell.querySelector("[data-action='start-nfc']");
+      const manualForm = scanShell.querySelector("[data-manual-form]");
+      const scanResult = scanShell.querySelector("[data-scan-result]");
+
+      function esc(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function setScanStatus(message) {
+        scanStatus.textContent = message;
+      }
+
+      function setSessionStatus() {
+        if (!state.member) {
+          sessionBox.innerHTML = "<p class='muted'>No member selected.</p>";
+          return;
+        }
+        sessionBox.innerHTML = `
+          <p class="session-name">${esc(state.member.name)}</p>
+          <p class="muted">${esc(state.member.email)}</p>
+        `;
+      }
+
+      async function refreshSession() {
+        const resp = await fetch("/api/session/me");
+        const data = await resp.json();
+        if (!data.ok) {
+          state.member = null;
+        } else {
+          state.member = data.payload.member;
+        }
+        setSessionStatus();
+      }
+
+      function renderMyItems(items) {
+        if (!state.member) {
+          myItemsBody.innerHTML = "<tr><td colspan='4' class='muted'>Sign in to view your checked out items.</td></tr>";
+          openCount.textContent = "0";
+          return;
+        }
+
+        if (!items.length) {
+          myItemsBody.innerHTML = "<tr><td colspan='4' class='muted'>No open checkouts.</td></tr>";
+          openCount.textContent = "0";
+          return;
+        }
+
+        myItemsBody.innerHTML = items.map((item) => `
+          <tr>
+            <td>
+              <strong>${esc(item.item_name)}</strong>
+              <div class="muted">${esc(item.item_category || "")}${item.item_location ? " | " + esc(item.item_location) : ""}</div>
+            </td>
+            <td>${item.qty}</td>
+            <td>${item.checkout_time ? new Date(item.checkout_time).toLocaleString() : ""}</td>
+            <td>${esc(item.checkout_notes || "")}</td>
+          </tr>
+        `).join("");
+
+        openCount.textContent = String(items.length);
+      }
+
+      async function refreshMyItems() {
+        if (!state.member) {
+          renderMyItems([]);
+          return;
+        }
+        const resp = await fetch("/api/my-items");
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          renderMyItems([]);
+          return;
+        }
+        renderMyItems(data.payload.items || []);
+      }
+
+      function renderLookupMessage(text) {
+        scanResult.innerHTML = `<p class="muted">${esc(text)}</p>`;
+      }
+
+      function renderItemActions(payload) {
+        const item = payload.item;
+        const open = payload.user_open_checkout;
+        const canCheckout = !payload.user_has_open_checkout && item.available_qty > 0;
+        const showUnavailable = !payload.user_has_open_checkout && item.available_qty <= 0;
+
+        const actionHtml = payload.user_has_open_checkout
+          ? `
+            <form class="action-form" data-action="return" data-item-id="${item.id}" enctype="multipart/form-data">
+              <p class="muted">You checked this out on ${open && open.checkout_time ? new Date(open.checkout_time).toLocaleString() : "unknown"}.</p>
+              <label>Return Quantity</label>
+              <input name="qty" value="${open ? open.qty : 1}" />
+              <label>Condition</label>
+              <select name="condition" required>
+                <option value="good">Good</option>
+                <option value="used">Used</option>
+                <option value="damaged">Damaged</option>
+              </select>
+              <label>Notes</label>
+              <input name="notes" placeholder="Optional notes" />
+              <label>Photo (optional)</label>
+              <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp,image/*" />
+              <button type="submit" class="cta-btn">Return Item</button>
+            </form>
+          `
+          : canCheckout
+            ? `
+              <form class="action-form" data-action="checkout" data-item-id="${item.id}">
+                <label>Quantity</label>
+                <input name="qty" value="1" />
+                <label>Notes</label>
+                <input name="notes" placeholder="Optional notes" />
+                <button type="submit" class="cta-btn">Check Out</button>
+              </form>
+            `
+            : `
+              <div class="muted">Unavailable: no stock left right now.</div>
+            `;
+
+        scanResult.innerHTML = `
+          <div class="item-card">
+            <h3>${esc(item.name)}</h3>
+            <p class="muted">${esc(item.category || "Uncategorized")}${item.location ? " | " + esc(item.location) : ""}</p>
+            ${item.description ? `<p class="muted">${esc(item.description)}</p>` : ""}
+            <p class="stock-pill">${item.available_qty} available / ${item.total_qty} total</p>
+            ${showUnavailable ? `<p class="muted">Checked out by others: ${payload.checked_out_by_others_count}</p>` : ""}
+            ${actionHtml}
+          </div>
+        `;
+      }
+
+      async function lookupTag(tag) {
+        if (!state.member) {
+          throw new Error("Sign in first.");
+        }
+        state.lastTag = tag;
+        setScanStatus(`Searching ${tag}...`);
+        const resp = await fetch(`/api/items/by-tag?tag=${encodeURIComponent(tag)}`);
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || "Tag lookup failed.");
+        }
+        renderItemActions(data.payload);
+        setScanStatus("Item loaded.");
+      }
+
+      async function submitCheckout(form) {
+        const itemId = form.dataset.itemId;
+        const qty = form.querySelector("[name='qty']").value;
+        const notes = form.querySelector("[name='notes']").value;
+        const resp = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item_id: itemId, qty, notes }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || "Checkout failed.");
+        }
+        setScanStatus(data.message || "Checkout complete.");
+      }
+
+      async function submitReturn(form) {
+        const fd = new FormData();
+        fd.set("item_id", form.dataset.itemId);
+        fd.set("qty", form.querySelector("[name='qty']").value);
+        fd.set("condition", form.querySelector("[name='condition']").value);
+        fd.set("notes", form.querySelector("[name='notes']").value);
+        const photoInput = form.querySelector("[name='photo']");
+        if (photoInput.files && photoInput.files.length > 0) {
+          fd.set("photo", photoInput.files[0]);
+        }
+
+        const resp = await fetch("/api/return", {
+          method: "POST",
+          body: fd,
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || "Return failed.");
+        }
+        setScanStatus(data.message || "Return complete.");
+      }
+
+      async function startNfc() {
+        if (!state.member) {
+          setScanStatus("Sign in first.");
+          return;
+        }
+        if (!("NDEFReader" in window)) {
+          setScanStatus("Web NFC is not supported on this device. Use manual entry.");
+          return;
+        }
+        try {
+          state.reader = new NDEFReader();
+          await state.reader.scan();
+          setScanStatus("Listening for NFC tag...");
+          state.reader.addEventListener("readingerror", () => {
+            setScanStatus("Tag read failed. Try again.");
+          });
+          state.reader.addEventListener("reading", async (event) => {
+            const serial = (event.serialNumber || "").trim();
+            let payload = "";
+            if (event.message && event.message.records) {
+              for (const record of event.message.records) {
+                try {
+                  if (record.recordType === "text") {
+                    const decoder = new TextDecoder(record.encoding || "utf-8");
+                    payload = decoder.decode(record.data).trim();
+                    if (payload) break;
+                  }
+                } catch (err) {
+                  // Ignore malformed records.
+                }
+              }
+            }
+            const tag = payload || serial;
+            if (!tag) {
+              setScanStatus("Tag detected but no serial/payload value found.");
+              return;
+            }
+            try {
+              await lookupTag(tag);
+            } catch (err) {
+              setScanStatus(err.message);
+              renderLookupMessage(err.message);
+            }
+          });
+        } catch (err) {
+          setScanStatus("Could not start NFC scan. Check browser permission.");
+        }
+      }
+
+      memberForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const memberId = memberForm.member_id.value.trim();
+        const memberTag = memberForm.member_tag.value.trim();
+        const resp = await fetch("/api/session/member", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ member_id: memberId, member_tag: memberTag }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          setScanStatus(data.error || "Sign in failed.");
+          return;
+        }
+        state.member = data.payload.member;
+        setSessionStatus();
+        await refreshMyItems();
+        setScanStatus(data.message || "Signed in.");
+      });
+
+      signOutBtn.addEventListener("click", async () => {
+        await fetch("/api/session/clear", { method: "POST" });
+        state.member = null;
+        setSessionStatus();
+        renderLookupMessage("Scan an item tag to begin.");
+        await refreshMyItems();
+        setScanStatus("Signed out.");
+      });
+
+      startNfcBtn.addEventListener("click", startNfc);
+
+      manualForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const tag = manualForm.tag.value.trim();
+        if (!tag) return;
+        try {
+          await lookupTag(tag);
+        } catch (err) {
+          setScanStatus(err.message);
+          renderLookupMessage(err.message);
+        }
+      });
+
+      scanShell.addEventListener("submit", async (event) => {
+        const form = event.target.closest(".action-form");
+        if (!form) return;
+        event.preventDefault();
+        try {
+          if (form.dataset.action === "checkout") {
+            await submitCheckout(form);
+          } else if (form.dataset.action === "return") {
+            await submitReturn(form);
+          }
+          await refreshMyItems();
+          if (state.lastTag) {
+            await lookupTag(state.lastTag);
+          }
+        } catch (err) {
+          setScanStatus(err.message);
+        }
+      });
+
+      (async () => {
+        await refreshSession();
+        await refreshMyItems();
+      })();
+    })();
+  </script>
+</body>
+</html>

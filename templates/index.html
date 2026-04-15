@@ -1,0 +1,743 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ASME Operations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;700&display=swap");
+
+    :root {
+      --hawk-black: #000000;
+      --hawk-gold: #ffcd00;
+      --hawk-white: #ffffff;
+      --ink: #101010;
+      --ink-soft: #3b3b3b;
+      --line: #d9d9d9;
+      --panel: #ffffff;
+      --panel-alt: #f8f8f8;
+      --danger: #b21f2d;
+      --ok: #176a3a;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 5% -10%, rgba(255, 205, 0, 0.45), transparent 33%),
+        linear-gradient(180deg, #fffdf4 0%, #f4f4f4 100%);
+      background-attachment: fixed;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: linear-gradient(100deg, #000 0%, #111 70%, #181818 100%);
+      color: var(--hawk-white);
+      border-bottom: 5px solid var(--hawk-gold);
+      padding: 14px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 250px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--hawk-white);
+      object-fit: contain;
+      border: 2px solid var(--hawk-gold);
+      padding: 3px;
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      font-size: clamp(26px, 3vw, 34px);
+      line-height: 0.95;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--hawk-gold);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--hawk-white);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      padding: 7px 12px;
+      transition: 140ms ease;
+    }
+
+    nav a:hover {
+      color: var(--hawk-black);
+      background: var(--hawk-gold);
+      border-color: var(--hawk-gold);
+      transform: translateY(-1px);
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 22px auto 42px;
+      padding: 0 16px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      animation: enter 260ms ease;
+    }
+
+    @keyframes enter {
+      from { transform: translateY(5px); opacity: 0.7; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      font-size: clamp(24px, 2.4vw, 30px);
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      color: var(--hawk-black);
+      line-height: 1;
+    }
+
+    h3 {
+      margin: 8px 0 8px;
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      font-size: 24px;
+      color: var(--hawk-black);
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    h4 {
+      margin: 12px 0 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    .section-heading {
+      padding-left: 10px;
+      border-left: 5px solid var(--hawk-gold);
+      margin-bottom: 12px;
+    }
+
+    .helper {
+      color: var(--ink-soft);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .intro {
+      background:
+        linear-gradient(130deg, #fff 0 63%, #fff4c5 63% 100%);
+      border-color: #cfbf72;
+    }
+
+    .intro-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(320px, 1fr) minmax(300px, 420px);
+      align-items: stretch;
+    }
+
+    .note-stack code {
+      background: #fff1b7;
+      border: 1px solid #edd06f;
+      border-radius: 6px;
+      padding: 1px 5px;
+      color: #412e00;
+      font-size: 12px;
+    }
+
+    .note {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #353535;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      background: #0a0a0a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid #2f2f2f;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: var(--hawk-gold);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stat-value {
+      font-family: "Barlow Condensed", "Franklin Gothic Medium", sans-serif;
+      font-size: 34px;
+      color: var(--hawk-gold);
+      line-height: 1;
+      margin-top: 4px;
+    }
+
+    .grid-two {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+    }
+
+    .grid-printers {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+    }
+
+    .card-sub {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel-alt);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #262626;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #bfc3ca;
+      background: #fff;
+      border-radius: 10px;
+      padding: 9px 10px;
+      margin-bottom: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      transition: 120ms ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--hawk-gold);
+      box-shadow: 0 0 0 3px rgba(255, 205, 0, 0.28);
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    button {
+      border: 1px solid #c9a200;
+      border-radius: 10px;
+      padding: 9px 14px;
+      background: var(--hawk-gold);
+      color: var(--hawk-black);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    button.bad {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    .inline {
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 8px;
+      border-bottom: 1px solid #ececec;
+      vertical-align: top;
+    }
+
+    th {
+      background: #0d0d0d;
+      color: var(--hawk-gold);
+      font-size: 12px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      border-bottom: 1px solid #2d2d2d;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fbfbfb;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    a {
+      color: #1a1a1a;
+      text-decoration-thickness: 2px;
+      text-decoration-color: var(--hawk-gold);
+      text-underline-offset: 2px;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration-color: #b89400;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    .badge-ok { background: #eef8f1; color: var(--ok); border-color: #c7e5d2; }
+    .badge-warn { background: #fff4cf; color: #775200; border-color: #e8d08a; }
+    .badge-bad { background: #fde7ea; color: #852430; border-color: #f0bec5; }
+
+    .flash {
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      border: 1px solid;
+    }
+
+    .flash-success { background: #eaf7ef; border-color: #c6e8d2; color: #165935; }
+    .flash-error { background: #fdecef; border-color: #f2c5cd; color: #832330; }
+    .flash-info { background: #f5f2e2; border-color: #e6d493; color: #5f4f00; }
+
+    .active-job {
+      border: 1px solid #3b3b3b;
+      background: linear-gradient(145deg, #101010, #1d1d1d);
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px;
+      margin-bottom: 10px;
+    }
+
+    .active-job b {
+      color: var(--hawk-gold);
+    }
+
+    .queue-card {
+      border: 1px solid #191919;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fdfdfd;
+    }
+
+    @media (max-width: 980px) {
+      .intro-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .grid-two, .grid-printers, .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      header {
+        position: static;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      nav a {
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img class="logo" src="/static/asme_logo.png" alt="ASME logo" />
+      <div>
+        <h1 class="title">ASME Operations Hub</h1>
+        <div class="subtitle">University of Iowa - Attendance, Inventory, and Printing</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#attendance">Attendance</a>
+      <a href="#inventory">Inventory</a>
+      <a href="#prints">Print Queues</a>
+      <a href="/pair/member">Pair Member NFC</a>
+      <a href="/pair/item">Pair Item NFC</a>
+      <a href="/export">Export Excel</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel intro">
+      <div class="intro-grid">
+        <div class="note-stack">
+          {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          <p class="note">Live mode: run on <code>0.0.0.0</code> so everyone on your network can access this app.</p>
+          <p class="note">Printer automation: set <code>ASME_H2S_PRINT_CMD</code> and <code>ASME_P1S_PRINT_CMD</code> using <code>{file}</code> in each command.</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Present Today</div>
+            <div class="stat-value">{{ attendance_count }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Items Tracked</div>
+            <div class="stat-value">{{ items|length }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">H2S Waiting</div>
+            <div class="stat-value">{{ queues["H2S"]["queued"]|length }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">P1S Waiting</div>
+            <div class="stat-value">{{ queues["P1S"]["queued"]|length }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="attendance" class="panel">
+      <div class="section-heading"><h2>Attendance (NFC Scan)</h2></div>
+      <div class="grid-two">
+        <div class="card-sub">
+          <form method="post" action="/attendance/scan">
+            <label>Scan Member UID</label>
+            <input name="uid" placeholder="Tap card to scan UID" autofocus />
+            <button type="submit">Mark Attendance</button>
+          </form>
+          <div class="helper">Each member UID should be paired once in the member pairing page.</div>
+        </div>
+        <div class="card-sub">
+          <h3>{{ today }}</h3>
+          <div class="helper" style="margin-bottom: 10px;">{{ attendance_count }} unique members checked in today.</div>
+          <table>
+            <thead>
+              <tr><th>Member</th><th>UID</th><th>Last Scan</th></tr>
+            </thead>
+            <tbody>
+              {% for s in today_attendance %}
+              <tr>
+                <td>{{ s.member.name }}</td>
+                <td><code>{{ s.scanned_uid }}</code></td>
+                <td>{{ s.scanned_at.strftime("%H:%M:%S") }}</td>
+              </tr>
+              {% endfor %}
+              {% if not today_attendance %}
+              <tr><td colspan="3" class="helper">No attendance scans yet today.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="inventory" class="panel">
+      <div class="section-heading"><h2>Inventory Checkout / Return</h2></div>
+      <form method="post" action="/transact">
+        <div class="form-grid">
+          <div class="card-sub">
+            <label>Member NFC UID (optional)</label>
+            <input name="member_tag" placeholder="Scan member UID" />
+            <label>Or Select Member</label>
+            <select name="member_id">
+              <option value="">-- Select member --</option>
+              {% for m in members %}
+                <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="card-sub">
+            <label>Item NFC UID (optional)</label>
+            <input name="item_tag" placeholder="Scan item UID" />
+            <label>Or Select Item</label>
+            <select name="item_id">
+              <option value="">-- Select item --</option>
+              {% for it in items %}
+                <option value="{{ it.id }}">{{ it.name }} ({{ it.available_qty }}/{{ it.total_qty }} available)</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="card-sub">
+            <label>Action</label>
+            <select name="action">
+              <option value="checkout">Checkout</option>
+              <option value="return">Return</option>
+            </select>
+            <label>Quantity</label>
+            <input name="qty" value="1" />
+          </div>
+          <div class="card-sub">
+            <label>Due Date (checkout only)</label>
+            <input name="due_date" value="{{ default_due }}" placeholder="YYYY-MM-DD" />
+            <label>Notes</label>
+            <input name="notes" placeholder="Optional note" />
+          </div>
+        </div>
+        <button type="submit">Submit Transaction</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading"><h2>Stock Information</h2></div>
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Category</th><th>Location</th><th>Available</th><th>Total</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ it.name }}</td>
+            <td>{{ it.category or "" }}</td>
+            <td>{{ it.location or "" }}</td>
+            <td>{{ it.available_qty }}</td>
+            <td>{{ it.total_qty }}</td>
+            <td>
+              {% if it.available_qty <= 0 %}
+                <span class="badge badge-bad">Out</span>
+              {% elif it.available_qty <= 2 %}
+                <span class="badge badge-warn">Low</span>
+              {% else %}
+                <span class="badge badge-ok">In Stock</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section id="prints" class="panel">
+      <div class="section-heading"><h2>G-code Submission and Auto Queue</h2></div>
+      <form method="post" action="/print/submit" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="card-sub">
+            <label>Member NFC UID (optional)</label>
+            <input name="member_tag" placeholder="Scan member UID" />
+            <label>Or Select Member</label>
+            <select name="member_id">
+              <option value="">-- Select member --</option>
+              {% for m in members %}
+                <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="card-sub">
+            <label>Printer Queue</label>
+            <select name="printer_type">
+              <option value="H2S">H2S</option>
+              <option value="P1S">P1S</option>
+            </select>
+            <label>G-code File</label>
+            <input type="file" name="gcode_file" accept=".gcode,.gco" required />
+          </div>
+        </div>
+        <label>Print Notes</label>
+        <textarea name="notes" placeholder="What should be printed? material? color? due time?"></textarea>
+        <button type="submit">Submit Print Job</button>
+      </form>
+
+      <div class="grid-printers" style="margin-top: 12px;">
+        {% for printer, queue in queues.items() %}
+        <div class="queue-card">
+          <h3>{{ printer }} Queue</h3>
+          {% if queue.active %}
+            <div class="active-job">
+              <div><b>Printing:</b> {{ queue.active.file_name }}</div>
+              <div>Member: {{ queue.active.member.name }}</div>
+              <div>Started: {{ queue.active.started_at.strftime("%Y-%m-%d %H:%M") if queue.active.started_at else "" }}</div>
+              <div style="margin-top: 8px;">
+                <form class="inline" method="post" action="/print/job/{{ queue.active.id }}/complete">
+                  <button type="submit">Mark Done</button>
+                </form>
+                <form class="inline" method="post" action="/print/job/{{ queue.active.id }}/fail">
+                  <button type="submit" class="bad">Mark Failed</button>
+                </form>
+                <a href="/print/job/{{ queue.active.id }}/download">Download File</a>
+              </div>
+            </div>
+          {% else %}
+            <p class="helper">No active print. Next queued job auto-starts after submit/status update.</p>
+          {% endif %}
+
+          <h4>Waiting</h4>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Member</th><th>File</th><th>Submitted</th></tr>
+            </thead>
+            <tbody>
+              {% for job in queue.queued %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ job.member.name }}</td>
+                <td><a href="/print/job/{{ job.id }}/download">{{ job.file_name }}</a></td>
+                <td>{{ job.submitted_at.strftime("%m-%d %H:%M") }}</td>
+              </tr>
+              {% endfor %}
+              {% if not queue.queued %}
+              <tr><td colspan="4" class="helper">Queue is empty.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+
+          <h4>Recent Finished</h4>
+          <table>
+            <thead>
+              <tr><th>Member</th><th>File</th><th>Status</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+              {% for job in queue.recent_finished %}
+              <tr>
+                <td>{{ job.member.name }}</td>
+                <td>{{ job.file_name }}</td>
+                <td>{{ job.status }}</td>
+                <td>{{ job.completed_at.strftime("%m-%d %H:%M") if job.completed_at else "" }}</td>
+              </tr>
+              {% endfor %}
+              {% if not queue.recent_finished %}
+              <tr><td colspan="4" class="helper">No completed jobs yet.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading"><h2>Recent Inventory Transactions</h2></div>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Member</th><th>Item</th><th>Action</th><th>Qty</th><th>Due</th></tr>
+        </thead>
+        <tbody>
+          {% for t in recent_transactions %}
+          <tr>
+            <td>{{ t.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td>{{ t.member.name }}</td>
+            <td>{{ t.item.name }}</td>
+            <td>{{ t.action }}</td>
+            <td>{{ t.qty }}</td>
+            <td>{{ t.due_date or "" }}</td>
+          </tr>
+          {% endfor %}
+          {% if not recent_transactions %}
+          <tr><td colspan="6" class="helper">No inventory transactions yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

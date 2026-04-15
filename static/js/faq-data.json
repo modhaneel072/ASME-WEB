@@ -1,0 +1,146 @@
+{
+  "categories": [
+    {
+      "id": "getting-started",
+      "label": "Getting Started"
+    },
+    {
+      "id": "teams",
+      "label": "Teams & Projects"
+    },
+    {
+      "id": "printing",
+      "label": "3D Printing"
+    },
+    {
+      "id": "events",
+      "label": "Events & Meetings"
+    },
+    {
+      "id": "contact",
+      "label": "Contact"
+    }
+  ],
+  "faqs": [
+    {
+      "category": "getting-started",
+      "question": "How do I join ASME?",
+      "keywords": ["join", "membership", "sign up", "signup", "become member", "how to join", "apply"],
+      "answer": "Fill out the interest form on our Join page. A team lead will follow up with next steps. Freshmen through seniors are welcome, no prior experience required.",
+      "link": {"text": "Join ASME", "url": "/join"}
+    },
+    {
+      "category": "getting-started",
+      "question": "Is there a membership fee?",
+      "keywords": ["fee", "cost", "price", "pay", "dues", "money", "free"],
+      "answer": "There's a small national ASME dues fee (~$30/year) that covers your professional membership and access to ASME resources. The Iowa chapter itself is free to join. Scholarships are available if cost is an issue."
+    },
+    {
+      "category": "getting-started",
+      "question": "Do I need engineering experience?",
+      "keywords": ["experience", "beginner", "new", "major", "mechanical", "prior", "skills"],
+      "answer": "Nope. Most members are mechanical engineering students but we welcome anyone interested in hands-on building — electrical, aerospace, industrial, CS, even non-engineers. You'll learn by doing."
+    },
+    {
+      "category": "getting-started",
+      "question": "Where is ASME located on campus?",
+      "keywords": ["where", "location", "room", "campus", "building", "find", "meet"],
+      "answer": "Our workspace is in the Seamans Center for Engineering on the University of Iowa campus. Most meetings happen in engineering classrooms nearby. Check the calendar for specific rooms."
+    },
+
+    {
+      "category": "teams",
+      "question": "What competition teams do you have?",
+      "keywords": ["teams", "competition", "iam3d", "sdc", "mate rov", "rover", "drone", "projects"],
+      "answer": "We have three main competition teams: IAM3D (lunar rover + 3D-printed chassis), Student Design Competition (yearly engineering challenge), and MATE ROV (underwater remotely operated vehicle).",
+      "link": {"text": "View projects", "url": "/projects"}
+    },
+    {
+      "category": "teams",
+      "question": "What is IAM3D?",
+      "keywords": ["iam3d", "innovative additive manufacturing", "rover", "lunar", "crater cruncher"],
+      "answer": "IAM3D (Innovative Additive Manufacturing 3D) is the ASME national additive manufacturing competition. Our team is designing the Crater Cruncher — a lunar rover with a 6-DOF robotic arm, custom drivetrain, and 3D-printed chassis."
+    },
+    {
+      "category": "teams",
+      "question": "What is MATE ROV?",
+      "keywords": ["mate", "rov", "underwater", "marine", "submarine"],
+      "answer": "MATE ROV stands for Marine Advanced Technology Education Remotely Operated Vehicle. Our team designs an underwater ROV — propulsion, control systems, manipulators, and cameras — to complete timed mission tasks in a pool."
+    },
+    {
+      "category": "teams",
+      "question": "Can I start my own project?",
+      "keywords": ["own", "start", "new", "my project", "propose", "pitch"],
+      "answer": "Absolutely. If you have an idea that fits the ASME mission, pitch it to the exec team. We can help with funding, space, tools, and recruiting teammates.",
+      "link": {"text": "Contact us", "url": "/contact"}
+    },
+
+    {
+      "category": "printing",
+      "question": "How do I submit a 3D print request?",
+      "keywords": ["print", "3d print", "submit", "request", "bambu", "h2s", "p1s", "printer"],
+      "answer": "Log in to the member portal → click Prints → fill out the form with your filament, file (.3mf), and notes. An admin will approve it and queue it on the H2S or P1S printer.",
+      "link": {"text": "Member portal", "url": "/login"}
+    },
+    {
+      "category": "printing",
+      "question": "What printers do you have?",
+      "keywords": ["printers", "bambu", "h2s", "p1s", "machines", "equipment"],
+      "answer": "We have two Bambu Lab printers: the H2S (larger, faster, supports multi-material) and the P1S (enclosed, great for ABS and PETG). Both accept sliced .3mf files from BambuStudio."
+    },
+    {
+      "category": "printing",
+      "question": "Is printing free for members?",
+      "keywords": ["free", "cost", "price", "pay", "charge", "filament"],
+      "answer": "Printing is free for small member projects and coursework. Large multi-hour jobs or competition parts may be prioritized by team need. Bring your own filament for custom colors if we don't stock them."
+    },
+    {
+      "category": "printing",
+      "question": "What file format do I need?",
+      "keywords": ["file", "format", "stl", "3mf", "gcode", "bambu studio", "slicer"],
+      "answer": "Upload a sliced .3mf file from BambuStudio. This includes your slicing settings and picks the right profile for our machines. Raw STL files aren't accepted — slice them in BambuStudio first."
+    },
+
+    {
+      "category": "events",
+      "question": "When are general meetings?",
+      "keywords": ["meeting", "meetings", "when", "time", "schedule", "calendar"],
+      "answer": "General body meetings are typically bi-weekly during the semester. Exact times vary — check the calendar on our Events page or in the member portal.",
+      "link": {"text": "See calendar", "url": "/events"}
+    },
+    {
+      "category": "events",
+      "question": "How do I RSVP to an event?",
+      "keywords": ["rsvp", "sign up event", "attend", "register", "confirm"],
+      "answer": "Log in to the member portal → Calendar → click RSVP next to the event. You can also check in at the door with your NFC tag."
+    },
+    {
+      "category": "events",
+      "question": "Do you have social events?",
+      "keywords": ["social", "events", "fun", "hangout", "cookout", "volleyball", "community"],
+      "answer": "Yes — cookouts, intramural sports, game nights, and end-of-semester socials. Building engineering skills matters, but so does the community. Follow our Instagram for announcements."
+    },
+
+    {
+      "category": "contact",
+      "question": "How do I contact a team lead?",
+      "keywords": ["contact", "reach", "lead", "email", "message", "talk"],
+      "answer": "Use the Contact page to send a message, or join our Discord server for faster replies. Team-specific questions can go to the team lead listed on each project page.",
+      "link": {"text": "Contact page", "url": "/contact"}
+    },
+    {
+      "category": "contact",
+      "question": "Where can I find you on social media?",
+      "keywords": ["social media", "instagram", "discord", "email", "linkedin", "follow"],
+      "answer": "Instagram: @asme_uiowa · Discord: invite on our Contact page · Email: asme@uiowa.edu",
+      "link": {"text": "Contact & Socials", "url": "/contact"}
+    },
+    {
+      "category": "contact",
+      "question": "How do I become a sponsor?",
+      "keywords": ["sponsor", "sponsorship", "partner", "donate", "company", "industry"],
+      "answer": "We love working with industry partners. Sponsor funds go directly to materials, tools, travel, and competition costs. Visit the Sponsors page for partnership tiers and an inquiry form.",
+      "link": {"text": "Become a sponsor", "url": "/sponsors"}
+    }
+  ]
+}
