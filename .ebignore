@@ -14,3 +14,9 @@ node_modules/
 Make-a-thon-3-001/
 Make-a-thon-3-001.zip
 .claude/
+.cache/
+designs/
+test-box.glb
+*.zip
+Make-a-thon-3-001/
+.elasticbeanstalk/
