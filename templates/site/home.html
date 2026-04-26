@@ -1,10 +1,9 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<!-- ── HERO: Robot with speech bubble ─────── -->
-<div class="spline-hero" style="min-height: 560px;">
-  <!-- Spotlight SVG -->
-  <svg class="spline-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
+<!-- HERO: Original local 3D humanoid -->
+<div class="home-hero" style="min-height: 560px;">
+  <svg class="home-hero-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
     <g filter="url(#filter)">
       <ellipse cx="1924.71" cy="273.501" rx="1924.71" ry="273.501"
         transform="matrix(-0.822377 -0.568943 -0.568943 0.822377 3631.88 2291.09)"
@@ -20,59 +19,44 @@
     </defs>
   </svg>
 
-  <div class="spline-hero-flex">
-    <!-- Left content -->
-    <div class="spline-hero-text">
-      <h1 class="spline-hero-title">ASME at Iowa</h1>
-      <p class="spline-hero-sub">Where Engineers Become Builders</p>
-      <p class="spline-hero-desc">
+  <div class="home-hero-flex">
+    <div class="home-hero-text" data-reveal="left">
+      <h1 class="home-hero-title">ASME at Iowa</h1>
+      <p class="home-hero-sub">Where Engineers Become Builders</p>
+      <p class="home-hero-desc">
         Design rovers. Race drones. 3D print anything. We're the University of Iowa's
         hands-on engineering community &mdash; and we'd love to have you on the team.
       </p>
-      <div class="spline-hero-actions">
+      <div class="home-hero-actions">
         <a class="btn btn-gold btn-lg" href="/join">Get Involved</a>
         <a class="btn btn-outline-light btn-lg" href="/projects">See What We Build</a>
       </div>
     </div>
 
-    <!-- Right content: Spline 3D robot -->
-    <div class="spline-hero-scene">
+    <div class="home-hero-scene">
       <spline-viewer id="splineBot" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"></spline-viewer>
     </div>
   </div>
 </div>
-<script>
-  (function killBadge() {
-    const sv = document.getElementById('splineBot');
-    if (!sv || !sv.shadowRoot) return setTimeout(killBadge, 500);
-    const logo = sv.shadowRoot.querySelector('#logo');
-    if (logo) { logo.remove(); return; }
-    const links = sv.shadowRoot.querySelectorAll('a');
-    links.forEach(a => { if (a.href && a.href.includes('spline')) a.remove(); });
-    setTimeout(killBadge, 500);
-  })();
-</script>
 
-<!-- ── SHOWCASE PANELS ──────────────────────── -->
 <section class="section" style="padding-top: var(--sp-8);">
   <div class="showcase-grid">
-    <a class="showcase-panel" href="/projects">
+    <a class="showcase-panel" href="/projects" data-reveal="up">
       <img src="{{ url_for('static', filename='images/gallery/drone_course.jpg') }}" alt="Drone Racing" />
       <span>Competition Teams</span>
     </a>
-    <a class="showcase-panel" href="/about">
+    <a class="showcase-panel" href="/about" data-reveal="up" data-reveal-delay="0.1">
       <img src="{{ url_for('static', filename='images/gallery/electronics_lab.jpg') }}" alt="Lab Work" />
       <span>Hands-On Engineering</span>
     </a>
-    <a class="showcase-panel" href="/contact">
+    <a class="showcase-panel" href="/contact" data-reveal="up" data-reveal-delay="0.2">
       <img src="{{ url_for('static', filename='images/gallery/lounge_hangout.jpg') }}" alt="Community" />
       <span>Community</span>
     </a>
   </div>
 </section>
 
-<!-- ── JOIN CTA ─────────────────────────────── -->
-<section class="cta-section">
+<section class="cta-section" data-reveal="scale">
   <p class="section-label" style="margin-bottom: var(--sp-4);">Ready to build?</p>
   <h3>Join ASME at Iowa</h3>
   <p>
@@ -84,4 +68,18 @@
     <a class="btn btn-secondary btn-lg" href="/about">Learn More</a>
   </div>
 </section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  (function killBadge() {
+    const sv = document.getElementById('splineBot');
+    if (!sv || !sv.shadowRoot) return setTimeout(killBadge, 500);
+    const logo = sv.shadowRoot.querySelector('#logo');
+    if (logo) { logo.remove(); return; }
+    const links = sv.shadowRoot.querySelectorAll('a');
+    links.forEach(a => { if (a.href && a.href.includes('spline')) a.remove(); });
+    setTimeout(killBadge, 500);
+  })();
+</script>
 {% endblock %}

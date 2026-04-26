@@ -2,22 +2,107 @@
 
 {% block content %}
 {% set current_tab = request.args.get('tab', 'items') %}
-<div class="tab-nav">
-  <a class="{{ 'active' if current_tab == 'items' else '' }}" href="/portal/admin/inventory?tab=items">Items</a>
-  <a class="{{ 'active' if current_tab == 'transactions' else '' }}" href="/portal/admin/inventory?tab=transactions">Transactions</a>
+
+<style>
+  .inv-header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+  .inv-header h2 { font-family: "Space Grotesk", sans-serif; font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; line-height: 1.15; margin: 0; }
+  .inv-header p { color: var(--muted); font-size: var(--text-sm); margin: 4px 0 0; }
+  .inv-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+  .inv-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .inv-kpi { border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-4); background: var(--bg); }
+  .inv-kpi dt { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .inv-kpi dd { margin: 4px 0 0; font-family: "Space Grotesk", sans-serif; font-size: 26px; font-weight: 700; line-height: 1; color: var(--ink); }
+  .inv-kpi.warn dd { color: #d97706; }
+  .inv-kpi.danger dd { color: #dc2626; }
+  @media (max-width: 720px) { .inv-kpis { grid-template-columns: repeat(2, 1fr); } }
+
+  .inv-alert { border: 1px solid #fde68a; background: #fffbeb; border-left: 3px solid #d97706; border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4); }
+  .inv-alert.danger { border-color: #fecaca; background: #fef2f2; border-left-color: #dc2626; }
+  .inv-alert h4 { margin: 0 0 4px; font-size: var(--text-sm); font-weight: 700; color: #92400e; }
+  .inv-alert.danger h4 { color: #991b1b; }
+  .inv-alert ul { margin: var(--sp-2) 0 0; padding-left: var(--sp-4); font-size: var(--text-sm); color: var(--ink-secondary); }
+  .inv-alert li { margin-bottom: 2px; }
+
+  .inv-toolbar { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .inv-toolbar input[type="search"] { flex: 1; min-width: 200px; max-width: 360px; }
+  .inv-toolbar select { min-width: 160px; max-width: 220px; }
+
+  details.inv-collapse { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 0; background: var(--bg); margin-bottom: var(--sp-3); }
+  details.inv-collapse > summary { list-style: none; cursor: pointer; padding: var(--sp-3) var(--sp-4); display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); font-weight: 700; font-size: var(--text-sm); color: var(--ink); user-select: none; }
+  details.inv-collapse > summary::-webkit-details-marker { display: none; }
+  details.inv-collapse > summary::after { content: "+"; font-size: 20px; font-weight: 600; color: var(--muted); line-height: 1; transition: transform .2s ease; }
+  details.inv-collapse[open] > summary::after { content: "−"; }
+  details.inv-collapse[open] > summary { border-bottom: 1px solid var(--line); }
+  details.inv-collapse .inv-collapse-body { padding: var(--sp-4); }
+  details.inv-collapse.danger { border-color: #fecaca; }
+  details.inv-collapse.danger > summary { color: #991b1b; }
+
+  .inv-table-row-low { background: #fffbeb; }
+  .inv-stock-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .inv-stock-pill.ok { background: #ecfdf5; color: #065f46; }
+  .inv-stock-pill.low { background: #fef3c7; color: #92400e; }
+  .inv-stock-pill.out { background: #fee2e2; color: #991b1b; }
+  .inv-active-yes { color: #065f46; font-weight: 600; }
+  .inv-active-no { color: var(--muted); }
+
+  .form-section-divider { margin: var(--sp-4) 0 var(--sp-3); padding-top: var(--sp-3); border-top: 1px dashed var(--line); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+  .inv-link-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+  .inv-link-row a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600; color: var(--ink-secondary); background: var(--bg); }
+  .inv-link-row a:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+</style>
+
+<div class="inv-header">
+  <div>
+    <h2>Inventory Admin</h2>
+    <p>Manage items, transactions, and bulk operations.</p>
+  </div>
+  <div class="inv-actions">
+    <a href="/portal/admin/inventory?tab=items#add-item" class="btn btn-primary btn-sm">+ Add Item</a>
+    <a href="/portal/admin/inventory/items-tags.pdf" class="btn btn-secondary btn-sm">Tags PDF</a>
+    <a href="/portal/admin/inventory/treasury-report.csv" class="btn btn-secondary btn-sm">Treasury CSV</a>
+  </div>
 </div>
 
+<dl class="inv-kpis">
+  <div class="inv-kpi">
+    <dt>Total Items</dt>
+    <dd>{{ items|length if items else 0 }}</dd>
+  </div>
+  <div class="inv-kpi {{ 'warn' if low_stock_items and low_stock_items|length > 0 else '' }}">
+    <dt>Low Stock</dt>
+    <dd>{{ low_stock_items|length if low_stock_items else 0 }}</dd>
+  </div>
+  <div class="inv-kpi {{ 'danger' if overdue_transactions and overdue_transactions|length > 0 else '' }}">
+    <dt>Overdue</dt>
+    <dd>{{ overdue_transactions|length if overdue_transactions else 0 }}</dd>
+  </div>
+  <div class="inv-kpi">
+    <dt>Transactions</dt>
+    <dd>{{ transactions|length if transactions else 0 }}</dd>
+  </div>
+</dl>
+
+<div class="tab-nav" style="margin-bottom: var(--sp-4);">
+  <a class="{{ 'active' if current_tab == 'items' else '' }}" href="/portal/admin/inventory?tab=items">Items</a>
+  <a class="{{ 'active' if current_tab == 'transactions' else '' }}" href="/portal/admin/inventory?tab=transactions">Transactions</a>
+  <a class="{{ 'active' if current_tab == 'tools' else '' }}" href="/portal/admin/inventory?tab=tools">Tools</a>
+</div>
+
+{# ─── TRANSACTIONS TAB ───────────────────────────────────── #}
 {% if current_tab == 'transactions' %}
 <section class="panel">
-  <div class="panel-head">
-    <h3>Transactions</h3>
+  <div class="panel-head"><h3>Transactions</h3></div>
+  <div class="inv-toolbar">
+    <input type="search" id="txSearch" placeholder="Search member, item, notes..." />
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr><th>Time</th><th>Member</th><th>Item</th><th>Status</th><th>Qty</th><th>Notes</th></tr>
       </thead>
-      <tbody>
+      <tbody id="txBody">
         {% for tx in transactions %}
         <tr>
           <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
@@ -29,74 +114,122 @@
         </tr>
         {% endfor %}
         {% if not transactions %}
-        <tr><td colspan="6" class="muted">No transactions yet.</td></tr>
+        <tr><td colspan="6" class="muted" style="text-align:center; padding: var(--sp-5);">No transactions yet.</td></tr>
         {% endif %}
       </tbody>
     </table>
   </div>
 </section>
-{% else %}
-<section class="panel">
-  <div class="panel-head">
-    <h3>Bulk Import + Reports</h3>
-  </div>
-  <div class="split-fields two-up">
-    <form method="post" action="/portal/admin/inventory/import" class="form-stack" enctype="multipart/form-data">
-      <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
-      <label for="inventory_file">Bulk Inventory File</label>
-      <input id="inventory_file" name="inventory_file" type="file" accept=".csv,.xlsx,.xls" required />
-      <p class="muted">Use CSV/XLSX with at least a <code>name</code> column. Optional: <code>nfc_tag</code>, <code>total_qty</code>, <code>available_qty</code>, <code>item_code</code>, <code>treasury_tracker_id</code>.</p>
-      <button type="submit">Import Inventory</button>
-    </form>
-    <div class="form-stack">
-      <form method="post" action="/portal/admin/inventory/bootstrap-counts" class="form-stack">
-        <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
-        <label for="starter_qty">Starter Count Autofill</label>
-        <input id="starter_qty" name="starter_qty" type="number" min="1" value="1" />
-        <p class="muted">Sets total + available for items still at zero counts so you can start quickly.</p>
-        <button type="submit">Auto-fill Starting Counts</button>
-      </form>
-      <label>Exports</label>
-      <a href="/portal/admin/inventory/items-tags.pdf">Download PDF: Item + NFC + Tracker</a>
-      <a href="/portal/admin/inventory/treasury-report.csv">Download Treasury CSV</a>
-      <p class="muted">Treasury CSV includes item/tracker IDs, quantities, location, and active status.</p>
-    </div>
-  </div>
-  <form
-    method="post"
-    action="/portal/admin/inventory/reset"
-    class="form-stack"
-    onsubmit="return confirm('This will permanently delete all inventory items, item tags, and inventory transactions. Continue?');"
-  >
+<script>
+  (function(){
+    const search = document.getElementById('txSearch');
+    const rows = document.querySelectorAll('#txBody tr');
+    if (!search) return;
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      rows.forEach(r => { r.style.display = !q || r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+  })();
+</script>
+
+{# ─── TOOLS TAB ──────────────────────────────────────────── #}
+{% elif current_tab == 'tools' %}
+<section class="panel" style="margin-bottom: var(--sp-4);">
+  <div class="panel-head"><h3>Bulk Import</h3></div>
+  <form method="post" action="/portal/admin/inventory/import" class="form-stack" enctype="multipart/form-data">
     <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
-    <label for="inventory_reset_confirmation">Danger Zone: Reset Inventory</label>
-    <input
-      id="inventory_reset_confirmation"
-      name="confirmation"
-      placeholder="Type RESET INVENTORY to confirm"
-      required
-    />
-    <button type="submit">Reset Inventory (Delete All)</button>
+    <label for="inventory_file">Inventory File (CSV / XLSX)</label>
+    <input id="inventory_file" name="inventory_file" type="file" accept=".csv,.xlsx,.xls" required />
+    <p class="muted" style="font-size: var(--text-xs);">Required column: <code>name</code>. Optional: <code>nfc_tag</code>, <code>total_qty</code>, <code>available_qty</code>, <code>item_code</code>, <code>treasury_tracker_id</code>.</p>
+    <button type="submit" class="btn-primary">Import Inventory</button>
   </form>
 </section>
 
-<section class="panel-grid two">
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Add / Edit Item</h3>
+<section class="panel" style="margin-bottom: var(--sp-4);">
+  <div class="panel-head"><h3>Quick Tools</h3></div>
+  <form method="post" action="/portal/admin/inventory/bootstrap-counts" class="form-stack" style="margin-bottom: var(--sp-4);">
+    <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
+    <label for="starter_qty">Auto-fill Starting Counts</label>
+    <div style="display:flex; gap: var(--sp-2); align-items: stretch;">
+      <input id="starter_qty" name="starter_qty" type="number" min="1" value="1" style="max-width: 140px;" />
+      <button type="submit" class="btn-secondary">Apply</button>
     </div>
+    <p class="muted" style="font-size: var(--text-xs); margin: 0;">Sets total + available for items still at zero counts.</p>
+  </form>
+  <div class="form-section-divider">Exports</div>
+  <div class="inv-link-row">
+    <a href="/portal/admin/inventory/items-tags.pdf">Items + NFC + Tracker (PDF)</a>
+    <a href="/portal/admin/inventory/treasury-report.csv">Treasury Report (CSV)</a>
+  </div>
+</section>
+
+<details class="inv-collapse danger">
+  <summary>Danger Zone — Reset Inventory</summary>
+  <div class="inv-collapse-body">
+    <p style="color: #991b1b; font-size: var(--text-sm); margin-bottom: var(--sp-3);">
+      <strong>Permanently deletes</strong> all inventory items, item tags, and inventory transactions. This cannot be undone.
+    </p>
+    <form
+      method="post"
+      action="/portal/admin/inventory/reset"
+      class="form-stack"
+      onsubmit="return confirm('This will permanently delete all inventory items, item tags, and inventory transactions. Continue?');"
+    >
+      <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
+      <label for="inventory_reset_confirmation">Type <code>RESET INVENTORY</code> to confirm</label>
+      <input id="inventory_reset_confirmation" name="confirmation" placeholder="RESET INVENTORY" required />
+      <button type="submit" style="background: linear-gradient(180deg,#ef4444 0%,#b91c1c 100%); border-color:#b91c1c;">Reset Inventory (Delete All)</button>
+    </form>
+  </div>
+</details>
+
+{# ─── ITEMS TAB (default) ────────────────────────────────── #}
+{% else %}
+{% if low_stock_items %}
+<div class="inv-alert">
+  <h4>Low stock — {{ low_stock_items|length }} item{{ 's' if low_stock_items|length != 1 else '' }} at or below threshold</h4>
+  <ul>
+    {% for item in low_stock_items[:6] %}
+    <li><strong>{{ item.name }}</strong> — {{ item.available_qty }} available (threshold {{ item.min_stock_threshold }})</li>
+    {% endfor %}
+    {% if low_stock_items|length > 6 %}<li class="muted">...and {{ low_stock_items|length - 6 }} more</li>{% endif %}
+  </ul>
+</div>
+{% endif %}
+
+{% if overdue_transactions %}
+<div class="inv-alert danger">
+  <h4>Overdue — {{ overdue_transactions|length }} checkout{{ 's' if overdue_transactions|length != 1 else '' }} past due</h4>
+  <ul>
+    {% for tx in overdue_transactions[:6] %}
+    <li><strong>{{ tx.item.name if tx.item else 'Unknown' }}</strong> — {{ tx.member.name if tx.member else 'Unknown' }} (due {{ tx.due_date.strftime('%Y-%m-%d') if tx.due_date else '?' }})</li>
+    {% endfor %}
+    {% if overdue_transactions|length > 6 %}<li class="muted">...and {{ overdue_transactions|length - 6 }} more</li>{% endif %}
+  </ul>
+</div>
+{% endif %}
+
+<details class="inv-collapse" id="add-item" {{ 'open' if request.args.get('add') else '' }}>
+  <summary>+ Add or Edit Item</summary>
+  <div class="inv-collapse-body">
     <form method="post" action="/portal/admin/inventory/item/save" class="form-stack">
       <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
-      <label for="item_id">Existing Item (optional)</label>
-      <select id="item_id" name="item_id">
-        <option value="">New Item</option>
-        {% for item in items %}
-        <option value="{{ item.id }}">{{ item.name }}</option>
-        {% endfor %}
-      </select>
 
-      <label for="name">Name</label>
-      <input id="name" name="name" required />
+      <div class="split-fields two-up">
+        <div>
+          <label for="item_id">Existing Item (leave blank to create)</label>
+          <select id="item_id" name="item_id">
+            <option value="">— New Item —</option>
+            {% for item in items %}
+            <option value="{{ item.id }}">{{ item.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="name">Name</label>
+          <input id="name" name="name" required />
+        </div>
+      </div>
 
       <div class="split-fields three-up">
         <div>
@@ -142,7 +275,7 @@
           <input id="min_stock_threshold" name="min_stock_threshold" type="number" min="0" value="0" />
         </div>
         <div>
-          <label for="active">Active Listing</label>
+          <label for="active">Active</label>
           <select id="active" name="active">
             <option value="1" selected>Active</option>
             <option value="0">Inactive</option>
@@ -161,18 +294,23 @@
         </div>
       </div>
 
+      <div class="form-section-divider">Description &amp; Photo</div>
       <label for="description">Description</label>
-      <textarea id="description" name="description"></textarea>
+      <textarea id="description" name="description" rows="2"></textarea>
       <label for="notes">Notes</label>
-      <textarea id="notes" name="notes"></textarea>
+      <textarea id="notes" name="notes" rows="2"></textarea>
       <label for="photo_url">Photo URL</label>
       <input id="photo_url" name="photo_url" />
-      <button type="submit">Save Item</button>
+      <button type="submit" class="btn-primary">Save Item</button>
     </form>
+  </div>
+</details>
 
+<details class="inv-collapse">
+  <summary>Inventory Correction (manual count adjustment)</summary>
+  <div class="inv-collapse-body">
     <form method="post" action="/portal/admin/inventory/adjust" class="form-stack">
       <input type="hidden" name="next" value="/portal/admin/inventory?tab=items" />
-      <h4>Inventory Correction</h4>
       <label for="adjust_item_id">Item</label>
       <select id="adjust_item_id" name="item_id" required>
         {% for item in items %}
@@ -190,51 +328,105 @@
         </div>
       </div>
       <label for="adjust_notes">Adjustment Notes</label>
-      <input id="adjust_notes" name="notes" />
-      <button type="submit">Apply Correction</button>
+      <input id="adjust_notes" name="notes" placeholder="Reason for the correction" />
+      <button type="submit" class="btn-primary">Apply Correction</button>
     </form>
-  </article>
+  </div>
+</details>
 
-  <article class="panel">
-    <div class="panel-head">
-      <h3>Items</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Item ID</th>
-            <th>Item</th>
-            <th>NFC ID</th>
-            <th>Tracker ID</th>
-            <th>Category</th>
-            <th>Location</th>
-            <th>Type</th>
-            <th>Active</th>
-            <th>Stock</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in items %}
-          <tr>
-            <td><code>{{ item.item_code or ('ASME-INV-' ~ item.id|string) }}</code></td>
-            <td>{{ item.name }}</td>
-            <td><code>{{ item.nfc_tag or item_primary_tags.get(item.id, '') or '-' }}</code></td>
-            <td><code>{{ item.treasury_tracker_id or '' }}</code></td>
-            <td>{{ item.category or '' }}</td>
-            <td>{{ item.location or '' }}</td>
-            <td>{{ item.item_type }}</td>
-            <td>{{ 'yes' if item.active else 'no' }}</td>
-            <td>{{ item.available_qty }} / {{ item.total_qty }}</td>
-          </tr>
-          {% endfor %}
-          {% if not items %}
-          <tr><td colspan="9" class="muted">No inventory items yet.</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </article>
+<section class="panel" style="margin-top: var(--sp-4);">
+  <div class="panel-head">
+    <h3>Items</h3>
+    <span class="muted" style="font-size: var(--text-xs);">{{ items|length if items else 0 }} total</span>
+  </div>
+  <div class="inv-toolbar">
+    <input type="search" id="itemSearch" placeholder="Search name, ID, NFC, location..." />
+    <select id="itemTypeFilter">
+      <option value="">All types</option>
+      {% for item_type in item_types %}
+      <option value="{{ item_type }}">{{ item_type }}</option>
+      {% endfor %}
+    </select>
+    <select id="itemStockFilter">
+      <option value="">Any stock</option>
+      <option value="ok">In stock</option>
+      <option value="low">Low stock</option>
+      <option value="out">Out of stock</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item ID</th>
+          <th>Name</th>
+          <th>NFC</th>
+          <th>Tracker</th>
+          <th>Category</th>
+          <th>Location</th>
+          <th>Type</th>
+          <th>Active</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody id="itemBody">
+        {% for item in items %}
+        {% set is_low = item.available_qty <= item.min_stock_threshold and item.min_stock_threshold > 0 %}
+        {% set is_out = item.available_qty <= 0 %}
+        <tr data-type="{{ item.item_type }}" data-stock="{{ 'out' if is_out else ('low' if is_low else 'ok') }}" class="{{ 'inv-table-row-low' if is_low or is_out else '' }}">
+          <td><code style="font-size: 11px;">{{ item.item_code or ('ASME-INV-' ~ item.id|string) }}</code></td>
+          <td><strong>{{ item.name }}</strong></td>
+          <td><code style="font-size: 11px;">{{ item.nfc_tag or item_primary_tags.get(item.id, '') or '-' }}</code></td>
+          <td><code style="font-size: 11px;">{{ item.treasury_tracker_id or '-' }}</code></td>
+          <td>{{ item.category or '-' }}</td>
+          <td>{{ item.location or '-' }}</td>
+          <td>{{ item.item_type }}</td>
+          <td class="{{ 'inv-active-yes' if item.active else 'inv-active-no' }}">{{ 'Yes' if item.active else 'No' }}</td>
+          <td>
+            {% if is_out %}
+              <span class="inv-stock-pill out">{{ item.available_qty }} / {{ item.total_qty }}</span>
+            {% elif is_low %}
+              <span class="inv-stock-pill low">{{ item.available_qty }} / {{ item.total_qty }}</span>
+            {% else %}
+              <span class="inv-stock-pill ok">{{ item.available_qty }} / {{ item.total_qty }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not items %}
+        <tr><td colspan="9" class="muted" style="text-align:center; padding: var(--sp-5);">No inventory items yet. Use <strong>+ Add Item</strong> above or import via the Tools tab.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </section>
+
+<script>
+  (function(){
+    const search = document.getElementById('itemSearch');
+    const typeF = document.getElementById('itemTypeFilter');
+    const stockF = document.getElementById('itemStockFilter');
+    const rows = Array.from(document.querySelectorAll('#itemBody tr[data-type]'));
+    function apply() {
+      const q = (search.value || '').toLowerCase().trim();
+      const t = typeF.value;
+      const s = stockF.value;
+      rows.forEach(r => {
+        const matchQ = !q || r.textContent.toLowerCase().includes(q);
+        const matchT = !t || r.dataset.type === t;
+        const matchS = !s || r.dataset.stock === s;
+        r.style.display = (matchQ && matchT && matchS) ? '' : 'none';
+      });
+    }
+    [search, typeF, stockF].forEach(el => el && el.addEventListener('input', apply));
+    [search, typeF, stockF].forEach(el => el && el.addEventListener('change', apply));
+  })();
+
+  // If user clicked "+ Add Item" from the header, scroll & open the details
+  if (window.location.hash === '#add-item') {
+    const d = document.getElementById('add-item');
+    if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+</script>
 {% endif %}
 {% endblock %}

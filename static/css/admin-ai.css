@@ -41,6 +41,9 @@
   overflow: hidden;
   animation: adminaiSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.adminai-panel[hidden] {
+  display: none;
+}
 @keyframes adminaiSlideUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }

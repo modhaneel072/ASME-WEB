@@ -1,0 +1,193 @@
+{% extends "site/base.html" %}
+
+{% macro slideshow(images, slug) %}
+<div class="gallery-slideshow" data-slideshow="{{ slug }}" data-count="{{ images|length }}"
+     data-sources='{{ images | map(attribute="url") | list | tojson }}'>
+  <div class="gallery-stage">
+    <figure class="gallery-slide is-active" data-role="slide-a">
+      {% if images %}<img src="{{ images[0].url }}" alt="" />{% endif %}
+    </figure>
+    <figure class="gallery-slide" data-role="slide-b">
+      <img alt="" />
+    </figure>
+
+    <button class="gallery-nav gallery-prev" type="button" aria-label="Previous photo">&#10094;</button>
+    <button class="gallery-nav gallery-next" type="button" aria-label="Next photo">&#10095;</button>
+
+    <div class="gallery-controls">
+      <button class="gallery-play" type="button" aria-label="Pause slideshow" data-playing="true">
+        <span class="icon-pause">&#10074;&#10074;</span>
+        <span class="icon-play">&#9654;</span>
+      </button>
+      <span class="gallery-counter"><span class="gallery-slide-num">1</span> / {{ images|length }}</span>
+    </div>
+  </div>
+
+  <div class="gallery-thumbs">
+    {% for img in images %}
+    <button type="button" class="gallery-thumb {% if loop.first %}is-active{% endif %}" data-index="{{ loop.index0 }}" aria-label="Go to photo {{ loop.index }}">
+      <img src="{{ img.thumb }}" alt="" loading="lazy" decoding="async" />
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<section class="section" style="padding-bottom: var(--sp-6);">
+  <div class="section-header">
+    <p class="section-label">Memories &amp; Moments</p>
+    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Gallery</h3>
+    <p class="section-desc">
+      Competitions, socials, builds, and everything in between — ASME at Iowa in pictures.
+    </p>
+  </div>
+</section>
+
+{% if gallery_images %}
+<section class="section" style="padding-top: 0;">
+  <div class="section-header" style="margin-bottom: var(--sp-5);">
+    <p class="section-label">Highlights</p>
+    <h3 class="section-title">Chapter Moments</h3>
+  </div>
+  {{ slideshow(gallery_images, "highlights") }}
+</section>
+{% endif %}
+
+{% if makeathon_images %}
+<section class="section" style="padding-top: 0;">
+  <div class="section-header" style="margin-bottom: var(--sp-5);">
+    <p class="section-label">Featured Event</p>
+    <h3 class="section-title">Make-a-Thon</h3>
+    <p class="section-desc">48 hours of building, coffee, and creative engineering.</p>
+  </div>
+  {{ slideshow(makeathon_images, "makeathon") }}
+</section>
+{% endif %}
+
+{% if not gallery_images and not makeathon_images %}
+<section class="section" style="padding-top: 0;">
+  <div class="panel" style="max-width: 800px;">
+    <div class="empty-state">
+      <p class="empty-state-title">No photos yet</p>
+      <p class="empty-state-desc">Check back soon — we're putting together the gallery.</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── CTA ──────────────────────────────────── -->
+<section class="cta-section">
+  <h3>Want to be in the next photo?</h3>
+  <p>Join ASME at Iowa and get involved with competitions, socials, and builds.</p>
+  <div class="cta-actions">
+    <a class="btn btn-primary btn-lg" href="/join">Join ASME</a>
+    <a class="btn btn-secondary btn-lg" href="/events">Upcoming Events</a>
+  </div>
+</section>
+
+{% if gallery_images or makeathon_images %}
+<script>
+(function () {
+  const INTERVAL = 4500;
+
+  document.querySelectorAll('.gallery-slideshow').forEach(root => {
+    const sources = JSON.parse(root.dataset.sources || '[]');
+    const total = sources.length;
+    if (!total) return;
+
+    const slideA = root.querySelector('[data-role="slide-a"]');
+    const slideB = root.querySelector('[data-role="slide-b"]');
+    const imgA = slideA.querySelector('img');
+    const imgB = slideB.querySelector('img');
+    const thumbs = Array.from(root.querySelectorAll('.gallery-thumb'));
+    const prev = root.querySelector('.gallery-prev');
+    const next = root.querySelector('.gallery-next');
+    const playBtn = root.querySelector('.gallery-play');
+    const counter = root.querySelector('.gallery-slide-num');
+    const thumbStrip = root.querySelector('.gallery-thumbs');
+
+    let idx = 0;
+    let activeSlot = 'a';
+    let playing = total > 1;
+    let timer = null;
+    let pendingUrl = null;
+
+    // Preload the next image so the switch is instant
+    function preload(url) {
+      const i = new Image();
+      i.decoding = 'async';
+      i.src = url;
+      return i;
+    }
+
+    function show(n) {
+      const nextIdx = (n + total) % total;
+      if (nextIdx === idx && activeSlot) return;
+      idx = nextIdx;
+      const url = sources[idx];
+      const incoming = activeSlot === 'a' ? imgB : imgA;
+      const incomingSlide = activeSlot === 'a' ? slideB : slideA;
+      const outgoingSlide = activeSlot === 'a' ? slideA : slideB;
+
+      pendingUrl = url;
+      const loader = new Image();
+      loader.decoding = 'async';
+      loader.onload = () => {
+        if (pendingUrl !== url) return; // superseded
+        incoming.src = url;
+        incomingSlide.classList.add('is-active');
+        outgoingSlide.classList.remove('is-active');
+        activeSlot = activeSlot === 'a' ? 'b' : 'a';
+      };
+      loader.src = url;
+
+      thumbs.forEach((t, i) => t.classList.toggle('is-active', i === idx));
+      if (counter) counter.textContent = idx + 1;
+      const active = thumbs[idx];
+      if (active && thumbStrip) {
+        active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+      // Warm the neighbor for the next auto-advance
+      preload(sources[(idx + 1) % total]);
+    }
+
+    function start() {
+      stop();
+      if (total < 2) return;
+      timer = setInterval(() => show(idx + 1), INTERVAL);
+      playing = true;
+      playBtn.dataset.playing = 'true';
+      playBtn.setAttribute('aria-label', 'Pause slideshow');
+    }
+
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; }
+      playing = false;
+      playBtn.dataset.playing = 'false';
+      playBtn.setAttribute('aria-label', 'Play slideshow');
+    }
+
+    prev.addEventListener('click', () => { show(idx - 1); if (playing) start(); });
+    next.addEventListener('click', () => { show(idx + 1); if (playing) start(); });
+    playBtn.addEventListener('click', () => { playing ? stop() : start(); });
+    thumbs.forEach(t => t.addEventListener('click', () => {
+      show(parseInt(t.dataset.index, 10));
+      if (playing) start();
+    }));
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else if (playBtn.dataset.playing === 'true') start();
+    });
+
+    if (total > 1) {
+      preload(sources[1]);
+      start();
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

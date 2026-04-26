@@ -5,11 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="ASME at the University of Iowa — Engineering Innovation, Competition Teams, and Professional Development" />
   <title>{{ page_title }} | ASME @ UIowa</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/faq-bot.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css', v='20260416a') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v='20260425b') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/faq-bot.css', v='20260416a') }}" />
   <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
+  <script type="module" src="{{ url_for('static', filename='vendor/model-viewer.min.js', v='20260425a') }}"></script>
   <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  {% block head_extras %}{% endblock %}
 </head>
 <body>
   <div class="site-bg"></div>
@@ -31,6 +36,7 @@
         <a href="/exec">Team</a>
         <a href="/projects">Projects</a>
         <a href="/events">Events</a>
+        <a href="/gallery">Gallery</a>
         <a href="/join">Join</a>
         <a href="/contact">Contact</a>
       </nav>
@@ -60,6 +66,7 @@
     <a href="/exec">Team</a>
     <a href="/projects">Projects</a>
     <a href="/events">Events</a>
+    <a href="/gallery">Gallery</a>
     <a href="/join">Join</a>
     <a href="/contact">Contact</a>
     <div class="mobile-nav-actions">
@@ -90,63 +97,6 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
-
-  <!-- ── FOOTER ────────────────────────────── -->
-  <footer class="site-footer">
-    <div class="site-footer-inner">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-brand">
-            <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME" />
-            <div class="footer-brand-text">
-              <h3>ASME @ UIowa</h3>
-              <p>University of Iowa</p>
-            </div>
-          </div>
-          <p class="footer-desc">
-            The American Society of Mechanical Engineers student chapter at the University of Iowa.
-            Building engineers, building community.
-          </p>
-        </div>
-        <div>
-          <h4 class="footer-heading">Navigate</h4>
-          <div class="footer-links">
-            <a href="/">Home</a>
-            <a href="/about">About Us</a>
-            <a href="/exec">Executive Team</a>
-            <a href="/projects">Projects</a>
-            <a href="/events">Events</a>
-          </div>
-        </div>
-        <div>
-          <h4 class="footer-heading">Get Involved</h4>
-          <div class="footer-links">
-            <a href="/join">Join ASME</a>
-            <a href="/contact">Contact Us</a>
-            <a href="/sponsors">Sponsors</a>
-            <a href="/login">Member Login</a>
-          </div>
-        </div>
-        <div>
-          <h4 class="footer-heading">Resources</h4>
-          <div class="footer-links">
-            <a href="/portal/member/inventory">Inventory</a>
-            <a href="/portal/member/prints">3D Printing</a>
-            <a href="/portal/member/calendar">Calendar</a>
-            <a href="/kiosk">Kiosk</a>
-          </div>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p class="footer-copy">&copy; 2025 ASME @ University of Iowa. All rights reserved.</p>
-        <div class="footer-socials">
-          <a href="https://instagram.com/asme_uiowa" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
-          <a href="https://discord.gg/asme" target="_blank" rel="noopener" aria-label="Discord">DC</a>
-          <a href="mailto:asme@uiowa.edu" aria-label="Email">@</a>
-        </div>
-      </div>
-    </div>
-  </footer>
 
   <!-- ── SCRIPTS ───────────────────────────── -->
   <script>
@@ -181,7 +131,58 @@
     });
   </script>
 
+  {% block page_scripts %}{% endblock %}
+
   <!-- ASKme FAQ widget -->
   <script src="{{ url_for('static', filename='js/faq-bot.js') }}" defer></script>
+
+  <!-- Smooth scroll + scroll-triggered reveals (site-wide) -->
+  <style>
+    [data-reveal]{opacity:0;transition:opacity .8s ease,transform .8s cubic-bezier(.22,.61,.36,1);will-change:opacity,transform}
+    [data-reveal="up"]{transform:translateY(60px)}
+    [data-reveal="down"]{transform:translateY(-60px)}
+    [data-reveal="left"]{transform:translateX(-80px)}
+    [data-reveal="right"]{transform:translateX(80px)}
+    [data-reveal="scale"]{transform:scale(.88)}
+    [data-reveal].is-visible{opacity:1;transform:none}
+    @media (prefers-reduced-motion: reduce){
+      [data-reveal]{opacity:1;transform:none;transition:none}
+    }
+  </style>
+  <script>
+    function asmeInitScroll() {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reveals = document.querySelectorAll('[data-reveal]:not(.is-visible)');
+      if (reduceMotion) { reveals.forEach(el => el.classList.add('is-visible')); return; }
+
+      if (window.Lenis && !window.__asmeLenis) {
+        const lenis = new window.Lenis({ duration: 1.1, smoothWheel: true });
+        window.__asmeLenis = lenis;
+        const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
+        requestAnimationFrame(raf);
+        if (window.gsap && window.ScrollTrigger) lenis.on('scroll', window.ScrollTrigger.update);
+      }
+
+      // Always use IntersectionObserver — guaranteed to work without GSAP
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const el = e.target;
+            const delay = parseFloat(el.dataset.revealDelay || '0');
+            setTimeout(() => el.classList.add('is-visible'), delay * 1000);
+            io.unobserve(el);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      reveals.forEach((el) => io.observe(el));
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', asmeInitScroll);
+    } else {
+      asmeInitScroll();
+    }
+    // Re-run after deferred libs land (Lenis hookup)
+    window.addEventListener('load', asmeInitScroll);
+  </script>
 </body>
 </html>

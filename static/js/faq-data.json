@@ -125,14 +125,14 @@
       "category": "contact",
       "question": "How do I contact a team lead?",
       "keywords": ["contact", "reach", "lead", "email", "message", "talk"],
-      "answer": "Use the Contact page to send a message, or join our Discord server for faster replies. Team-specific questions can go to the team lead listed on each project page.",
+      "answer": "Use the Contact page to send a message. Team-specific questions can go to the team lead listed on each project page.",
       "link": {"text": "Contact page", "url": "/contact"}
     },
     {
       "category": "contact",
       "question": "Where can I find you on social media?",
-      "keywords": ["social media", "instagram", "discord", "email", "linkedin", "follow"],
-      "answer": "Instagram: @asme_uiowa · Discord: invite on our Contact page · Email: asme@uiowa.edu",
+      "keywords": ["social media", "instagram", "email", "linkedin", "follow"],
+      "answer": "Instagram: @asmeatiowa · Email: asme@uiowa.edu",
       "link": {"text": "Contact & Socials", "url": "/contact"}
     },
     {

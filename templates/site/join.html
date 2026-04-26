@@ -55,12 +55,15 @@
           <label for="interest">Interest Area</label>
           <select id="interest" name="interest" required>
             <option value="">Select an area...</option>
-            <option value="Rover">Rover Team</option>
-            <option value="Arm">Robotic Arm</option>
-            <option value="Outreach">Outreach</option>
-            <option value="Manufacturing">Manufacturing</option>
-            <option value="Operations">Operations</option>
+            <option value="IAM3D">IAM3D</option>
+            <option value="Student Design">Student Design Competition</option>
+            <option value="Autonomous Plane">Autonomous Plane</option>
+            <option value="MATE ROV">MATE ROV</option>
+            <option value="Robotic Dog">Robotic Dog (interview required)</option>
           </select>
+          <p id="roboticDogNote" class="form-help" hidden style="margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); background: #fffbeb; border-left: 3px solid #d97706; color: #92400e; font-size: var(--text-sm); border-radius: var(--radius-sm);">
+            <strong>Heads up:</strong> the Robotic Dog team requires an interview. After you submit, we'll reach out to schedule one.
+          </p>
         </div>
         <div class="form-group">
           <label for="message">Tell us about yourself</label>
@@ -68,6 +71,16 @@
         </div>
         <button type="submit">Submit Interest</button>
       </form>
+      <script>
+        (function () {
+          const sel = document.getElementById('interest');
+          const note = document.getElementById('roboticDogNote');
+          if (!sel || !note) return;
+          const sync = () => { note.hidden = sel.value !== 'Robotic Dog'; };
+          sel.addEventListener('change', sync);
+          sync();
+        })();
+      </script>
     </div>
   </div>
 </section>

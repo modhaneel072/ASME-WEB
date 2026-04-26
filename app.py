@@ -108,6 +108,8 @@ def env_non_negative_int(var_name, default):
 
 
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("ASME_DATABASE_URL", "sqlite:///inventory.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.environ.get("ASME_SECRET_KEY", "asme-dev-secret")
@@ -997,6 +999,12 @@ def ensure_inventory_schema_columns():
 
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
+    if "items" not in table_names or "transactions" not in table_names:
+        # Fresh clones may not have any inventory tables yet. Create the base schema
+        # before attempting in-place upgrade queries against legacy tables.
+        db.create_all()
+        inspector = inspect(db.engine)
+        table_names = inspector.get_table_names()
 
     if "items" in table_names:
         item_columns = {col["name"] for col in inspector.get_columns("items")}
@@ -1133,10 +1141,12 @@ def ensure_inventory_schema_columns():
     # Keep legacy Item.nfc_tag mappings working while enabling multiple tags per item.
     # Use raw SQL here so startup upgrades do not fail when ORM-mapped item columns were
     # added in code but are not yet present in an older SQLite database.
-    with db.engine.begin() as conn:
-        legacy_items = conn.execute(
-            text("SELECT id, nfc_tag FROM items WHERE nfc_tag IS NOT NULL AND TRIM(nfc_tag) <> ''")
-        ).fetchall()
+    legacy_items = []
+    if "items" in table_names:
+        with db.engine.begin() as conn:
+            legacy_items = conn.execute(
+                text("SELECT id, nfc_tag FROM items WHERE nfc_tag IS NOT NULL AND TRIM(nfc_tag) <> ''")
+            ).fetchall()
     for item_id, raw_tag in legacy_items:
         tag_value = clean_tag_value(raw_tag)
         if not tag_value:
@@ -3573,6 +3583,35 @@ def public_events():
     return render_template("site/events.html", **public_site_context("Events"))
 
 
+@app.get("/gallery")
+def public_gallery():
+    exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+    def _load(subdir: str):
+        folder = Path(app.static_folder) / "images" / subdir
+        if not folder.is_dir():
+            return []
+        thumbs_dir = folder / "_thumbs"
+        files = sorted(
+            (p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in exts),
+            key=lambda p: p.name.lower(),
+        )
+        result = []
+        for p in files:
+            thumb_name = p.stem + ".jpg"
+            has_thumb = (thumbs_dir / thumb_name).is_file()
+            result.append({
+                "url": url_for("static", filename=f"images/{subdir}/{p.name}"),
+                "thumb": url_for("static", filename=f"images/{subdir}/_thumbs/{thumb_name}") if has_thumb else url_for("static", filename=f"images/{subdir}/{p.name}"),
+            })
+        return result
+
+    context = public_site_context("Gallery")
+    context["gallery_images"] = _load("gallery")
+    context["makeathon_images"] = _load("makeathon")
+    return render_template("site/gallery.html", **context)
+
+
 @app.route("/arm-sim/<path:subpath>")
 def arm_sim_assets(subpath):
     return send_from_directory(os.path.join(app.static_folder, "arm-sim"), subpath)
@@ -3651,6 +3690,12 @@ def public_project_detail(slug):
     context["project"] = project
     context["project_gallery"] = parse_json_list(project.gallery_json)
     context["project_timeline"] = parse_json_list(project.timeline)
+    slug_clean = (project.slug or "").strip().lower()
+    per_slug_glb = os.path.join(app.static_folder, "models", "projects", f"{slug_clean}.glb")
+    if os.path.isfile(per_slug_glb):
+        context["project_model_url"] = url_for("static", filename=f"models/projects/{slug_clean}.glb")
+    else:
+        context["project_model_url"] = url_for("static", filename="models/hero/humanoid-soldering.glb")
     return render_template("site/project_detail.html", **context)
 
 
