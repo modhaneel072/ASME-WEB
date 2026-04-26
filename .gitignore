@@ -32,3 +32,8 @@ designs/
 
 # Build outputs / large local-only assets
 test-box.glb
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

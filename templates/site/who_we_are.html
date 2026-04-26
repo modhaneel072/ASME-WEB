@@ -1,206 +1,221 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<!-- ── PAGE HEADER ──────────────────────────── -->
-<section class="section" style="padding-bottom: var(--sp-8);">
-  <div class="section-header">
-    <p class="section-label">About Us</p>
-    <h3 class="section-title" style="font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));">Who We Are</h3>
-    <p class="section-desc">
-      The University of Iowa ASME student chapter is a community of engineers who design,
-      build, and compete together. We turn classroom knowledge into hands-on experience.
-    </p>
-  </div>
-</section>
+{# ─────────── HERO · Building zoom + title reveal ─────────── #}
+<section class="ww-hero" id="wwHero">
+  <div class="ww-hero-pin">
+    <div class="ww-hero-bg" id="wwHeroBg">
+      <img src="{{ url_for('static', filename='images/hero/droneview.jpg') }}"
+           alt="University of Iowa engineering campus from above" />
+    </div>
+    <div class="ww-hero-veil" id="wwHeroVeil"></div>
+    <div class="ww-hero-vignette"></div>
 
-<!-- ── MISSION ──────────────────────────────── -->
-<section class="panel" style="margin-bottom: var(--sp-5);">
-  <div class="section-head">
-    <h3>Our Mission</h3>
-  </div>
-  <p class="lead">
-    To foster a community of mechanical engineering students at the University of Iowa
-    who grow through hands-on design, competitive teamwork, and professional development.
-    We equip members with real-world engineering skills and a network that lasts beyond college.
-  </p>
-</section>
+    <div class="ww-hero-meta" id="wwHeroMeta">
+      <span class="ww-hero-eyebrow">Seamans Center</span>
+      <span class="ww-hero-divider"></span>
+      <span class="ww-hero-coords">41.6611&deg; N &middot; 91.5302&deg; W</span>
+    </div>
 
-<!-- ── WHY ASME ─────────────────────────────── -->
-<section class="section">
-  <div class="section-header">
-    <p class="section-label">Why ASME</p>
-    <h3 class="section-title">More Than a Club</h3>
-    <p class="section-desc">
-      ASME at Iowa gives you access to real engineering projects, professional connections,
-      and the tools to build things that matter.
-    </p>
-  </div>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <div class="feature-icon">&#9881;</div>
-      <h4>Hands-On Projects</h4>
-      <p>Design, prototype, and compete in national ASME competitions. Work on real engineering challenges with real deadlines.</p>
+    <div class="ww-hero-text" id="wwHeroText">
+      <h1 class="ww-hero-title">
+        <span class="ww-line"><span class="ww-l-inner">Who</span></span>
+        <span class="ww-line"><span class="ww-l-inner">we</span></span>
+        <span class="ww-line"><span class="ww-l-inner">are.</span></span>
+      </h1>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#9889;</div>
-      <h4>3D Print Lab</h4>
-      <p>Free access to Bambu Lab printers for coursework, personal projects, and competition parts. Submit prints through our portal.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#127891;</div>
-      <h4>Professional Growth</h4>
-      <p>Industry speakers, resume workshops, networking events, and connections to engineering companies hiring Iowa grads.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#128736;</div>
-      <h4>Tool &amp; Equipment Library</h4>
-      <p>Borrow tools, measurement equipment, and prototyping supplies from our inventory system. Check out with NFC or through the portal.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#128640;</div>
-      <h4>Competition Teams</h4>
-      <p>Join our drone racing, robotics, or design competition teams. Travel to regionals and nationals representing Iowa.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#129309;</div>
-      <h4>Community</h4>
-      <p>Social events, study groups, cookouts, and a network of like-minded engineers. The people you build with become your network.</p>
+
+    <div class="ww-hero-cue" id="wwHeroCue" aria-hidden="true">
+      <span>Scroll</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+      </svg>
     </div>
   </div>
 </section>
 
-<!-- ── PHOTO STRIP ──────────────────────────── -->
-<section class="photo-strip">
-  <div class="photo-strip-item">
-    <img src="{{ url_for('static', filename='images/gallery/asme_cards.jpg') }}" alt="ASME at Iowa business cards" />
-  </div>
-  <div class="photo-strip-item">
-    <img src="{{ url_for('static', filename='images/gallery/lecture_hall.jpg') }}" alt="ASME general meeting" />
-  </div>
-  <div class="photo-strip-item">
-    <img src="{{ url_for('static', filename='images/gallery/group_photo.jpg') }}" alt="ASME team photo" />
-  </div>
-  <div class="photo-strip-item">
-    <img src="{{ url_for('static', filename='images/gallery/volleyball_campus.jpg') }}" alt="Volleyball on campus" />
-  </div>
-</section>
-
-<!-- ── WHAT WE DO ──────────────────────────── -->
-<section class="section">
-  <div class="section-header">
-    <p class="section-label">What We Do</p>
-    <h3 class="section-title">Three Pillars</h3>
-  </div>
-  <div class="feature-grid" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="feature-card">
-      <div class="feature-icon">&#9881;</div>
-      <h4>Design &amp; Build</h4>
-      <p>We design, manufacture, and test real engineering systems.
-         From drones to rovers, our teams take projects from concept to competition.</p>
+{# ─────────── EDITORIAL · Mission with reveal image ─────────── #}
+<section class="ww-edit" id="wwEdit">
+  <div class="ww-edit-inner">
+    <div class="ww-edit-text-col">
+      <p class="ww-edit-eyebrow">— Mission</p>
+      <h2 class="ww-edit-line">
+        <span class="ww-edit-row"><span class="ww-edit-text">Engineers,</span></span>
+        <span class="ww-edit-row"><span class="ww-edit-text">not just</span></span>
+        <span class="ww-edit-row"><span class="ww-edit-text"><em>students.</em></span></span>
+      </h2>
+      <p class="ww-edit-body">
+        We design, prototype, and compete &mdash; turning a four-year degree into
+        a working craft. Real machines. Real deadlines. The chapter is the work.
+      </p>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#128200;</div>
-      <h4>Testing &amp; Validation</h4>
-      <p>Our projects go through rigorous testing cycles. Members learn to iterate,
-         measure, and improve designs using real engineering processes.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">&#128101;</div>
-      <h4>Leadership &amp; Collaboration</h4>
-      <p>Run meetings, manage budgets, coordinate teams, and present to stakeholders.
-         ASME builds leaders, not just engineers.</p>
+    <div class="ww-edit-img-col">
+      <figure class="ww-edit-img">
+        <img src="{{ url_for('static', filename='images/gallery/electronics_lab.jpg') }}"
+             alt="ASME members working on electronics in the lab"
+             loading="lazy" decoding="async" />
+        <figcaption>Inside Seamans Center &middot; PCB bench</figcaption>
+      </figure>
     </div>
   </div>
 </section>
 
-<!-- ── DRONEVIEW IMAGE ─────────────────────── -->
-<div class="photo-strip" style="grid-template-columns: 1fr;">
-  <div class="photo-strip-item" style="aspect-ratio: 21/7;">
-    <img src="{{ url_for('static', filename='images/hero/droneview.jpg') }}" alt="University of Iowa Engineering Campus" style="object-position: center 40%;" />
-  </div>
-</div>
-
-<!-- ── WHAT MEMBERS GAIN + ABOUT ASME ─────── -->
-<section class="section">
-  <div class="split">
-    <div class="panel">
-      <div class="section-head">
-        <h3>What Members Gain</h3>
-      </div>
-      <ul class="bulleted">
-        <li>Hands-on experience with CAD, manufacturing, electronics, and systems integration</li>
-        <li>Free access to 3D printers and prototyping tools through our inventory system</li>
-        <li>Travel to regional and national ASME competitions</li>
-        <li>Resume-building project leadership and team management experience</li>
-        <li>Professional networking with industry engineers and Iowa alumni</li>
-        <li>A community of motivated, like-minded engineering students</li>
-      </ul>
-    </div>
-
-    <div class="panel">
-      <div class="section-head">
-        <h3>About ASME</h3>
-      </div>
-      <ul class="bulleted">
-        <li>ASME (American Society of Mechanical Engineers) is a global professional organization founded in 1880</li>
-        <li>Over 85,000 members across 140+ countries in industry, academia, and government</li>
-        <li>ASME sets engineering standards used worldwide in design, manufacturing, and safety</li>
-        <li>Student chapters connect university engineers to the broader professional community</li>
-      </ul>
-    </div>
+{# ─────────── PILLARS · Three numbered slabs ─────────── #}
+<section class="ww-slabs" id="wwSlabs">
+  <p class="ww-slabs-eyebrow">— What we do</p>
+  <div class="ww-slabs-grid">
+    <article class="ww-slab">
+      <span class="ww-slab-num">01</span>
+      <h3>Design &amp; Build</h3>
+      <p>From CAD model to driving rover. We manufacture, assemble, and ship our own hardware &mdash; no kits, no shortcuts.</p>
+    </article>
+    <article class="ww-slab">
+      <span class="ww-slab-num">02</span>
+      <h3>Test &amp; Validate</h3>
+      <p>Bench tests, drop tests, range trials. Iterate, measure, break things, measure again.</p>
+    </article>
+    <article class="ww-slab">
+      <span class="ww-slab-num">03</span>
+      <h3>Lead &amp; Collaborate</h3>
+      <p>Project leads, treasurers, machinists, EEs. Running ASME is a 30-person operation.</p>
+    </article>
   </div>
 </section>
 
-<!-- ── CURRENT PROJECTS ────────────────────── -->
-{% if uiowa_projects %}
-<section class="section">
-  <div class="section-header">
-    <p class="section-label">Active Work</p>
-    <h3 class="section-title">Current Projects</h3>
+{# ─────────── BENTO · Why ASME ─────────── #}
+<section class="ww-bento">
+  <div class="ww-bento-head">
+    <p class="ww-eyebrow" data-reveal="up">— Why ASME</p>
+    <h2 class="ww-bento-title" data-reveal="up" data-reveal-delay="0.05">More than a club.</h2>
+    <p class="ww-bento-desc" data-reveal="up" data-reveal-delay="0.1">Real engineering work, real tools, real responsibility.</p>
   </div>
-  <div class="feature-grid">
-    {% for project in uiowa_projects %}
-    <div class="feature-card">
-      <h4>{{ project.name }}</h4>
-      <p>{{ project.description or 'Active competition team project.' }}</p>
-    </div>
-    {% endfor %}
+  <div class="ww-bento-grid">
+    <article class="ww-bento-card" data-reveal="up">
+      <svg class="ww-bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <h3>Hands-on projects</h3>
+      <p>National ASME competitions. Real deadlines.</p>
+    </article>
+    <article class="ww-bento-card" data-reveal="up" data-reveal-delay="0.05">
+      <svg class="ww-bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <h3>3D print lab</h3>
+      <p>Bambu Lab printers. Free for members.</p>
+    </article>
+    <article class="ww-bento-card ww-b-wide" data-reveal="up" data-reveal-delay="0.1">
+      <svg class="ww-bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v6.5L8 6 4 8.5 8 11l4-2.5L16 11l4-2.5L16 6l-4 2.5V2z"/><path d="M4 8.5V14l8 5 8-5V8.5"/></svg>
+      <h3>Tool &amp; equipment library</h3>
+      <p>Calipers, scopes, soldering kits &mdash; NFC checkout via the portal.</p>
+    </article>
+    <article class="ww-bento-card" data-reveal="up" data-reveal-delay="0.15">
+      <svg class="ww-bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <h3>Competition teams</h3>
+      <p>IAM3D, MATE ROV, drone, autonomous plane.</p>
+    </article>
+    <article class="ww-bento-card" data-reveal="up" data-reveal-delay="0.2">
+      <svg class="ww-bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <h3>Community</h3>
+      <p>Cookouts, study sessions, late-night builds.</p>
+    </article>
   </div>
 </section>
-{% endif %}
 
-<!-- ── TEAM STRUCTURE ──────────────────────── -->
-<section class="panel">
-  <div class="section-head">
-    <h3>Team Structure</h3>
-    <a href="/exec">Meet the Team &rarr;</a>
-  </div>
-  <p style="color: var(--muted); margin-bottom: var(--sp-5);">
-    ASME at Iowa is led by a student executive board and organized into specialized teams.
-    Each team has a lead who coordinates with the executive board to keep projects on track.
-  </p>
-  {% if highlights %}
-  <div class="feature-grid">
-    {% for card in highlights %}
-    <div class="feature-card">
-      <h4>{{ card.label }}</h4>
-      <p>{{ card.description or 'Core team function.' }}</p>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-</section>
-
-<!-- ── CTA ──────────────────────────────────── -->
-<section class="cta-section" style="margin-top: var(--sp-10);">
-  <h3>Ready to join?</h3>
-  <p>
-    Whether you're a freshman exploring engineering or a senior looking for hands-on
-    experience, there's a place for you in ASME at Iowa.
-  </p>
-  <div class="cta-actions">
+{# ─────────── CTA ─────────── #}
+<section class="ww-cta" data-reveal="scale">
+  <h2 class="ww-cta-title">Build something with us.</h2>
+  <p class="ww-cta-desc">Freshman or senior, every major welcome.</p>
+  <div class="ww-cta-actions">
     <a class="btn btn-primary btn-lg" href="/join">Join ASME</a>
-    <a class="btn btn-secondary btn-lg" href="/exec">Meet the Team</a>
+    <a class="btn btn-secondary btn-lg" href="/exec">Meet the team</a>
   </div>
 </section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  (function () {
+    const hero = document.getElementById('wwHero');
+    const bg = document.getElementById('wwHeroBg');
+    const veil = document.getElementById('wwHeroVeil');
+    const text = document.getElementById('wwHeroText');
+    const meta = document.getElementById('wwHeroMeta');
+    const cue = document.getElementById('wwHeroCue');
+    if (!hero || !bg) {
+      console.warn('[ww] hero elements not found', {hero: !!hero, bg: !!bg});
+      return;
+    }
+    console.info('[ww] scrollytelling engine started');
+
+    const lines = text ? text.querySelectorAll('.ww-l-inner') : [];
+
+    // Editorial — IntersectionObserver triggers staggered text+image reveal
+    const editEl = document.getElementById('wwEdit');
+    if (editEl) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.25, rootMargin: '0px 0px -12% 0px' });
+      io.observe(editEl);
+    }
+
+    // Slabs — scroll-tied scrubbing in rAF (forward-only — no reset on scroll up)
+    const slabsSection = document.getElementById('wwSlabs');
+    const slabs = slabsSection ? slabsSection.querySelectorAll('.ww-slab') : [];
+    const slabsEyebrow = slabsSection ? slabsSection.querySelector('.ww-slabs-eyebrow') : null;
+    let slabsMaxSp = 0; // monotonically non-decreasing — locks reveal once reached
+
+    function loop() {
+      const vh = window.innerHeight;
+
+      // ── HERO ──────────────────────────────
+      const r = hero.getBoundingClientRect();
+      const total = Math.max(1, r.height - vh);
+      const p = Math.max(0, Math.min(1, -r.top / total));
+
+      const scale = 1 + p * 1.2;
+      const rotate = p * -2.5;
+      const ty = -p * 140;
+      bg.style.transform = 'translate3d(0,' + ty.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ') rotate(' + rotate.toFixed(2) + 'deg)';
+      if (veil) veil.style.opacity = (0.15 + p * 0.75).toFixed(3);
+
+      lines.forEach((l, i) => {
+        const start = 0.05 + i * 0.07;
+        const end = start + 0.18;
+        const lp = Math.max(0, Math.min(1, (p - start) / (end - start)));
+        const eased = 1 - Math.pow(1 - lp, 3);
+        l.style.transform = 'translate3d(0,' + ((1 - eased) * 110).toFixed(1) + '%,0) skewY(' + ((1 - eased) * 6).toFixed(2) + 'deg)';
+      });
+
+      if (meta) meta.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3);
+      if (cue) cue.style.opacity = Math.max(0, 1 - p * 4).toFixed(3);
+
+      // ── SLABS — forward-only scrub ───────
+      if (slabsSection && slabs.length) {
+        const sr = slabsSection.getBoundingClientRect();
+        const sTotal = Math.max(1, sr.height + vh * 0.8);
+        const rawSp = Math.max(0, Math.min(1, (vh - sr.top) / sTotal * 1.15));
+        // Lock progress monotonically — never goes back down
+        if (rawSp > slabsMaxSp) slabsMaxSp = rawSp;
+        const sp = slabsMaxSp;
+
+        if (slabsEyebrow) {
+          const ep2 = Math.max(0, Math.min(1, sp * 5));
+          slabsEyebrow.style.opacity = ep2.toFixed(3);
+          slabsEyebrow.style.transform = 'translate3d(0,' + ((1 - ep2) * 20).toFixed(1) + 'px,0)';
+        }
+        slabs.forEach((s, i) => {
+          const start = 0.08 + i * 0.12;
+          const end = start + 0.35;
+          const lp = Math.max(0, Math.min(1, (sp - start) / (end - start)));
+          const eased = 1 - Math.pow(1 - lp, 3);
+          s.style.opacity = (eased).toFixed(3);
+          s.style.transform = 'translate3d(0,' + ((1 - eased) * 100).toFixed(1) + 'px,0) scale(' + (0.92 + eased * 0.08).toFixed(3) + ')';
+        });
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+</script>
 {% endblock %}

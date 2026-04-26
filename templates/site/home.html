@@ -1,45 +1,104 @@
 {% extends "site/base.html" %}
 
 {% block content %}
-<!-- HERO: Original local 3D humanoid -->
-<div class="home-hero" style="min-height: 560px;">
-  <svg class="home-hero-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
-    <g filter="url(#filter)">
-      <ellipse cx="1924.71" cy="273.501" rx="1924.71" ry="273.501"
-        transform="matrix(-0.822377 -0.568943 -0.568943 0.822377 3631.88 2291.09)"
-        fill="white" fill-opacity="0.21"></ellipse>
-    </g>
-    <defs>
-      <filter id="filter" x="0.860352" y="0.838989" width="3785.16" height="2840.26"
-        filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-        <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
-        <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur_1065_8"></feGaussianBlur>
-      </filter>
-    </defs>
-  </svg>
+{# ─────────── HERO · Spline humanoid + kinetic title scrub ─────────── #}
+<section class="hh-hero" id="hhHero">
+  <div class="hh-hero-pin">
+    <svg class="hh-hero-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none" aria-hidden="true">
+      <g filter="url(#hhFilter)">
+        <ellipse cx="1924.71" cy="273.501" rx="1924.71" ry="273.501"
+          transform="matrix(-0.822377 -0.568943 -0.568943 0.822377 3631.88 2291.09)"
+          fill="white" fill-opacity="0.21"></ellipse>
+      </g>
+      <defs>
+        <filter id="hhFilter" x="0.860352" y="0.838989" width="3785.16" height="2840.26"
+          filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+          <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
+          <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur_1065_8"></feGaussianBlur>
+        </filter>
+      </defs>
+    </svg>
 
-  <div class="home-hero-flex">
-    <div class="home-hero-text" data-reveal="left">
-      <h1 class="home-hero-title">ASME at Iowa</h1>
-      <p class="home-hero-sub">Where Engineers Become Builders</p>
-      <p class="home-hero-desc">
-        Design rovers. Race drones. 3D print anything. We're the University of Iowa's
-        hands-on engineering community &mdash; and we'd love to have you on the team.
+    <div class="hh-hero-bot" id="hhHeroBot">
+      <spline-viewer id="splineBot" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"></spline-viewer>
+    </div>
+
+    <div class="hh-hero-content">
+      <h1 class="hh-hero-title" id="hhHeroTitle">
+        <span class="hh-line"><span class="hh-l-inner">ASME</span></span>
+        <span class="hh-line"><span class="hh-l-inner">at <em>Iowa.</em></span></span>
+      </h1>
+      <p class="hh-hero-sub" id="hhHeroSub">
+        Design rovers. Race drones. 3D print anything. We&rsquo;re the
+        University of Iowa&rsquo;s hands-on engineering community.
       </p>
-      <div class="home-hero-actions">
+      <div class="hh-hero-actions" id="hhHeroActions">
         <a class="btn btn-gold btn-lg" href="/join">Get Involved</a>
         <a class="btn btn-outline-light btn-lg" href="/projects">See What We Build</a>
       </div>
-    </div>
-
-    <div class="home-hero-scene">
-      <spline-viewer id="splineBot" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"></spline-viewer>
+      <div class="hh-hero-cue" id="hhHeroCue" aria-hidden="true">
+        <span>Scroll</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+        </svg>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<section class="section" style="padding-top: var(--sp-8);">
+{# ─────────── EDITORIAL · Where engineers become builders ─────────── #}
+<section class="ww-edit" id="hhEdit">
+  <div class="ww-edit-inner">
+    <div class="ww-edit-text-col">
+      <p class="ww-edit-eyebrow">— What we are</p>
+      <h2 class="ww-edit-line">
+        <span class="ww-edit-row"><span class="ww-edit-text">Where engineers</span></span>
+        <span class="ww-edit-row"><span class="ww-edit-text">become</span></span>
+        <span class="ww-edit-row"><span class="ww-edit-text"><em>builders.</em></span></span>
+      </h2>
+      <p class="ww-edit-body">
+        We don&rsquo;t just study mechanical engineering &mdash; we ship it.
+        Every semester turns coursework into something that drives, flies,
+        prints, or wins a competition.
+      </p>
+    </div>
+    <div class="ww-edit-img-col">
+      <figure class="ww-edit-img">
+        <img src="{{ url_for('static', filename='images/gallery/team_presenting.jpg') }}"
+             alt="ASME team presenting their build at a design review"
+             loading="lazy" decoding="async" />
+        <figcaption>Design review &middot; Spring 2026</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+{# ─────────── SLABS · Three numbered offerings ─────────── #}
+<section class="ww-slabs" id="hhSlabs">
+  <p class="ww-slabs-eyebrow">— Why join</p>
+  <div class="ww-slabs-grid">
+    <article class="ww-slab">
+      <span class="ww-slab-num">01</span>
+      <h3>Build</h3>
+      <p>Real hardware. Rovers, drones, ROVs, soldered PCBs. From CAD to driving prototype in one season.</p>
+    </article>
+    <article class="ww-slab">
+      <span class="ww-slab-num">02</span>
+      <h3>Compete</h3>
+      <p>IAM3D, MATE ROV, drone racing, autonomous plane. National brackets, real travel, real stakes.</p>
+    </article>
+    <article class="ww-slab">
+      <span class="ww-slab-num">03</span>
+      <h3>Belong</h3>
+      <p>Cookouts, study sessions, late-night builds. The chapter is the people you build with.</p>
+    </article>
+  </div>
+</section>
+
+{# ─────────── SHOWCASE · 3 destination panels ─────────── #}
+<section class="section" style="padding: var(--sp-12) 0;">
   <div class="showcase-grid">
     <a class="showcase-panel" href="/projects" data-reveal="up">
       <img src="{{ url_for('static', filename='images/gallery/drone_course.jpg') }}" alt="Drone Racing" />
@@ -56,14 +115,11 @@
   </div>
 </section>
 
-<section class="cta-section" data-reveal="scale">
-  <p class="section-label" style="margin-bottom: var(--sp-4);">Ready to build?</p>
-  <h3>Join ASME at Iowa</h3>
-  <p>
-    Whether you want to compete, build, learn, or just hang out with fellow engineers
-    &mdash; there's a place for you here.
-  </p>
-  <div class="cta-actions">
+{# ─────────── CTA ─────────── #}
+<section class="ww-cta" data-reveal="scale">
+  <h2 class="ww-cta-title">Build something with us.</h2>
+  <p class="ww-cta-desc">Freshman or senior, every major welcome.</p>
+  <div class="ww-cta-actions">
     <a class="btn btn-primary btn-lg" href="/join">Join Now</a>
     <a class="btn btn-secondary btn-lg" href="/about">Learn More</a>
   </div>
@@ -72,6 +128,7 @@
 
 {% block page_scripts %}
 <script>
+  // Spline watermark removal
   (function killBadge() {
     const sv = document.getElementById('splineBot');
     if (!sv || !sv.shadowRoot) return setTimeout(killBadge, 500);
@@ -80,6 +137,106 @@
     const links = sv.shadowRoot.querySelectorAll('a');
     links.forEach(a => { if (a.href && a.href.includes('spline')) a.remove(); });
     setTimeout(killBadge, 500);
+  })();
+
+  // Scrollytelling engine — same pattern as about page
+  (function () {
+    const hero = document.getElementById('hhHero');
+    const bot = document.getElementById('hhHeroBot');
+    const title = document.getElementById('hhHeroTitle');
+    const sub = document.getElementById('hhHeroSub');
+    const actions = document.getElementById('hhHeroActions');
+    const cue = document.getElementById('hhHeroCue');
+    if (!hero) return;
+    const lines = hero.querySelectorAll('.hh-l-inner');
+
+    // Editorial — IO once, never resets
+    const editEl = document.getElementById('hhEdit');
+    if (editEl) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.25, rootMargin: '0px 0px -12% 0px' });
+      io.observe(editEl);
+    }
+
+    // Slabs — forward-only scroll-tied
+    const slabsSection = document.getElementById('hhSlabs');
+    const slabs = slabsSection ? slabsSection.querySelectorAll('.ww-slab') : [];
+    const slabsEyebrow = slabsSection ? slabsSection.querySelector('.ww-slabs-eyebrow') : null;
+    let slabsMaxSp = 0;
+
+    function loop() {
+      const vh = window.innerHeight;
+
+      // ── HERO scrub ──
+      const r = hero.getBoundingClientRect();
+      const total = Math.max(1, r.height - vh);
+      const p = Math.max(0, Math.min(1, -r.top / total));
+
+      // Synchronized fade-out for hero content (bot + title + sub + actions)
+      // Stays fully visible until p > 0.55, then fades out together by p = 0.95
+      const heroFade = Math.max(0, Math.min(1, 1 - (p - 0.55) / 0.40));
+
+      // Spline bot — scale + drift, fade synced
+      if (bot) {
+        const scale = 1 + p * 0.30;
+        const ty = -p * 70;
+        bot.style.transform = 'translate3d(0,' + ty.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+        bot.style.opacity = heroFade.toFixed(3);
+      }
+
+      // Title lines reveal-in (early), then fade-out via container opacity (synced with bot)
+      lines.forEach((l, i) => {
+        const start = 0.02 + i * 0.06;
+        const end = start + 0.18;
+        const lp = Math.max(0, Math.min(1, (p - start) / (end - start)));
+        const eased = 1 - Math.pow(1 - lp, 3);
+        l.style.transform = 'translate3d(0,' + ((1 - eased) * 110).toFixed(1) + '%,0) skewY(' + ((1 - eased) * 6).toFixed(2) + 'deg)';
+      });
+      if (title) title.style.opacity = heroFade.toFixed(3);
+
+      if (sub) {
+        const sp_ = Math.max(0, Math.min(1, (p - 0.14) * 5));
+        const e = 1 - Math.pow(1 - sp_, 3);
+        sub.style.opacity = (e * heroFade).toFixed(3);
+        sub.style.transform = 'translate3d(0,' + ((1 - e) * 24).toFixed(1) + 'px,0)';
+      }
+      if (actions) {
+        const ap = Math.max(0, Math.min(1, (p - 0.22) * 5));
+        const e = 1 - Math.pow(1 - ap, 3);
+        actions.style.opacity = (e * heroFade).toFixed(3);
+        actions.style.transform = 'translate3d(0,' + ((1 - e) * 28).toFixed(1) + 'px,0)';
+      }
+      if (cue) cue.style.opacity = Math.max(0, 1 - p * 4).toFixed(3);
+
+      // ── SLABS — forward-only ──
+      if (slabsSection && slabs.length) {
+        const sr = slabsSection.getBoundingClientRect();
+        const sTotal = Math.max(1, sr.height + vh * 0.8);
+        const rawSp = Math.max(0, Math.min(1, (vh - sr.top) / sTotal * 1.15));
+        if (rawSp > slabsMaxSp) slabsMaxSp = rawSp;
+        const sp = slabsMaxSp;
+
+        if (slabsEyebrow) {
+          const ep2 = Math.max(0, Math.min(1, sp * 5));
+          slabsEyebrow.style.opacity = ep2.toFixed(3);
+          slabsEyebrow.style.transform = 'translate3d(0,' + ((1 - ep2) * 20).toFixed(1) + 'px,0)';
+        }
+        slabs.forEach((s, i) => {
+          const start = 0.08 + i * 0.12;
+          const end = start + 0.35;
+          const lp = Math.max(0, Math.min(1, (sp - start) / (end - start)));
+          const eased = 1 - Math.pow(1 - lp, 3);
+          s.style.opacity = (eased).toFixed(3);
+          s.style.transform = 'translate3d(0,' + ((1 - eased) * 100).toFixed(1) + 'px,0) scale(' + (0.92 + eased * 0.08).toFixed(3) + ')';
+        });
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
   })();
 </script>
 {% endblock %}

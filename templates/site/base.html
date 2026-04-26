@@ -6,7 +6,7 @@
   <meta name="description" content="ASME at the University of Iowa — Engineering Innovation, Competition Teams, and Professional Development" />
   <title>{{ page_title }} | ASME @ UIowa</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css', v='20260416a') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v='20260425b') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v='20260425o') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/faq-bot.css', v='20260416a') }}" />
   <link rel="icon" href="{{ url_for('static', filename='asme_logo.png') }}" />
   <script type="module" src="{{ url_for('static', filename='vendor/model-viewer.min.js', v='20260425a') }}"></script>
@@ -156,7 +156,7 @@
       if (reduceMotion) { reveals.forEach(el => el.classList.add('is-visible')); return; }
 
       if (window.Lenis && !window.__asmeLenis) {
-        const lenis = new window.Lenis({ duration: 1.1, smoothWheel: true });
+        const lenis = new window.Lenis({ duration: 0.6, smoothWheel: true, wheelMultiplier: 1.0 });
         window.__asmeLenis = lenis;
         const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
         requestAnimationFrame(raf);

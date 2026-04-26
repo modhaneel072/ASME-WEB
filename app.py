@@ -3620,6 +3620,14 @@ def arm_sim_assets(subpath):
 def arm_sim_index():
     return send_from_directory(os.path.join(app.static_folder, "arm-sim"), "index.html")
 
+@app.route("/stl/<path:subpath>")
+def arm_sim_stl(subpath):
+    return send_from_directory(os.path.join(app.static_folder, "arm-sim", "stl"), subpath)
+
+@app.route("/hdri/<path:subpath>")
+def arm_sim_hdri(subpath):
+    return send_from_directory(os.path.join(app.static_folder, "arm-sim", "hdri"), subpath)
+
 
 @app.post("/api/ask")
 def api_ask():
