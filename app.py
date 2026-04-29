@@ -3482,12 +3482,21 @@ def public_site_context(page_title):
                 "note": parsed_message.get("note") or "",
                 "headshot": headshot_url,
                 "_alt_name_keys": {normalize_text_key(exec_user.name or "")},
+                "_email": (exec_user.email or "").strip().lower(),
             }
         )
     existing_exec_keys = set()
+    existing_exec_emails = set()
+    email_pattern = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
     for card in executive_cards:
         existing_exec_keys.add(normalize_text_key(card.get("name") or ""))
         existing_exec_keys.update(card.pop("_alt_name_keys", set()) or set())
+        card_email = card.pop("_email", "") or ""
+        if card_email:
+            existing_exec_emails.add(card_email)
+        contact_email_match = email_pattern.search(card.get("contact") or "")
+        if contact_email_match:
+            existing_exec_emails.add(contact_email_match.group(0).lower())
     for profile in MANUAL_EXECUTIVE_PROFILES:
         name = (profile.get("name") or "").strip()
         if not name:
@@ -3495,6 +3504,9 @@ def public_site_context(page_title):
         if normalize_text_key(name) in existing_exec_keys:
             continue
         profile_message = (profile.get("message") or "").strip()
+        profile_email_match = email_pattern.search(profile_message)
+        if profile_email_match and profile_email_match.group(0).lower() in existing_exec_emails:
+            continue
         parsed_profile_message = parse_executive_message(profile_message)
         executive_cards.append(
             {
