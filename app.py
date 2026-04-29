@@ -3575,7 +3575,7 @@ def admin_dashboard_context():
 
 @app.get("/")
 def public_home():
-    return render_template("site/home.html", **public_site_context("Home"))
+    return render_template("site/landing.html")
 
 
 @app.get("/events")

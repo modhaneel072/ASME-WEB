@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>ASME at Iowa</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='asme_logo.png') }}" />
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;700&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #000;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  /* ─── Stage with canvas + blackout ─── */
+  .stage {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    overflow: hidden;
+  }
+  canvas#scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    will-change: opacity, transform;
+    transform-origin: 50% 60%;
+  }
+
+  /* Subtle vignette so the rover scene feels framed, not flat-filled */
+  .stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center,
+      rgba(0,0,0,0) 45%,
+      rgba(0,0,0,0.35) 80%,
+      rgba(0,0,0,0.7) 100%);
+    z-index: 10;
+  }
+
+  .blackout {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    pointer-events: none;
+    will-change: opacity;
+    z-index: 12;
+  }
+
+  /* ─── Custom scrollbar ─── */
+  .scrollbar {
+    position: fixed;
+    top: 0; right: 0;
+    width: 14px;
+    height: 100vh;
+    background: #0a0a0a;
+    z-index: 100;
+    cursor: pointer;
+    user-select: none;
+  }
+  .scrollbar-thumb {
+    position: absolute;
+    left: 2px; right: 2px;
+    top: 0;
+    height: 60px;
+    background: rgba(255,255,255,0.40);
+    border-radius: 5px;
+    transition: background .15s ease;
+    will-change: transform;
+  }
+  .scrollbar:hover .scrollbar-thumb,
+  .scrollbar.dragging .scrollbar-thumb {
+    background: rgba(255,255,255,0.65);
+  }
+
+  /* ─── Frame readout ─── */
+  .readout {
+    position: fixed;
+    bottom: 24px; right: 28px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.55);
+    z-index: 50;
+    mix-blend-mode: difference;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── End welcome card ─── */
+  .welcome {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 60;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    will-change: opacity, transform;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #fff;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.6);
+    width: min(90vw, 1100px);
+  }
+  .welcome-eyebrow {
+    font-size: clamp(10px, 0.9vw, 12px);
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 22px;
+    font-weight: 300;
+    padding-left: 0.5em;
+  }
+  .welcome-title {
+    font-size: clamp(38px, 7vw, 96px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 200;
+    margin-bottom: 18px;
+  }
+  .welcome-title .accent {
+    font-weight: 500;
+    font-style: italic;
+  }
+  .welcome-sub {
+    font-size: clamp(13px, 1.1vw, 16px);
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    font-weight: 300;
+  }
+  .welcome-divider {
+    width: 60px;
+    height: 1px;
+    background: rgba(255,255,255,0.5);
+    margin: 26px auto;
+  }
+
+  .welcome-cta {
+    display: inline-block;
+    margin-top: 38px;
+    padding: 15px 40px;
+    border: 1px solid rgba(255,255,255,0.55);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    font-weight: 300;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(6px);
+    transition: background .25s ease, border-color .25s ease, transform .25s ease, letter-spacing .25s ease;
+    pointer-events: auto;
+  }
+  .welcome-cta:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: #fff;
+    transform: translateY(-2px);
+    letter-spacing: 0.46em;
+  }
+
+  /* ─── Top-bar nav ─── */
+  .landing-nav {
+    position: fixed;
+    top: 0; left: 0; right: 14px;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 36px;
+    font-family: 'Inter', sans-serif;
+    pointer-events: none;
+  }
+  .landing-nav a { pointer-events: auto; }
+  .landing-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    text-decoration: none;
+  }
+  .landing-brand img {
+    width: 34px; height: 34px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  }
+  .landing-brand-text { line-height: 1.1; }
+  .landing-brand-text .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    font-weight: 300;
+  }
+  .landing-brand-text .name {
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+    color: #fff;
+  }
+  .landing-links { display: flex; gap: 28px; }
+  .landing-links a {
+    color: rgba(255,255,255,0.78);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-weight: 300;
+    transition: color .2s ease;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+  }
+  .landing-links a:hover { color: #fff; }
+  @media (max-width: 720px) {
+    .landing-nav { padding: 16px 18px; }
+    .landing-links { gap: 14px; }
+    .landing-links a { font-size: 10px; letter-spacing: 0.18em; }
+    .landing-brand-text .eyebrow { display: none; }
+  }
+
+  /* ─── Intro overlay ─── */
+  .intro {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 70;
+    width: min(94vw, 1180px);
+    text-align: center;
+    color: #fff;
+    pointer-events: none;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.8);
+    will-change: opacity, transform;
+  }
+  .intro-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    margin-bottom: 56px;
+    opacity: 0;
+    animation: metaIn 0.9s 0.1s ease-out forwards;
+  }
+  .intro-meta .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 12px rgba(255,255,255,0.85);
+    animation: dotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50%      { opacity: 1;   transform: scale(1.1);  }
+  }
+  @keyframes metaIn { to { opacity: 1; } }
+
+  .intro-stack {
+    display: flex;
+    flex-direction: column;
+    margin: 0 0 48px;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+  }
+  .intro-stack .word {
+    display: block;
+    font-size: clamp(54px, 11vw, 168px);
+    font-weight: 200;
+    color: #fff;
+    overflow: hidden;
+  }
+  .intro-stack .word > span {
+    display: inline-block;
+    transform: translateY(108%);
+    animation: wordRise 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .intro-stack .w1 > span { animation-delay: 0.35s; }
+  .intro-stack .w2 > span { animation-delay: 0.55s; }
+  .intro-stack .w3 > span { animation-delay: 0.75s; }
+  .intro-stack .accent {
+    font-weight: 400;
+    font-style: italic;
+    background: linear-gradient(180deg, #fff 0%, #c8c8c8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  @keyframes wordRise {
+    from { transform: translateY(108%); }
+    to   { transform: translateY(0);    }
+  }
+
+  .intro-rule {
+    width: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.55);
+    margin: 0 auto 22px;
+    animation: ruleDraw 1s 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes ruleDraw { to { width: 220px; } }
+
+  .intro-caption {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    font-weight: 300;
+    margin-bottom: 64px;
+    opacity: 0;
+    animation: metaIn 0.9s 1.15s ease-out forwards;
+  }
+
+  .scroll-cue {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: rgba(255,255,255,0.78);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    font-weight: 400;
+    opacity: 0;
+    animation: metaIn 0.9s 1.4s ease-out forwards;
+  }
+  .scroll-line {
+    position: relative;
+    width: 1px;
+    height: 64px;
+    background: rgba(255,255,255,0.18);
+    overflow: hidden;
+  }
+  .scroll-line::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: -40%;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #fff 90%, rgba(255,255,255,0) 100%);
+    animation: scrollPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(280%); }
+  }
+
+  /* ─── Viewport corner brackets ─── */
+  .corner {
+    position: fixed;
+    width: 26px; height: 26px;
+    border: 1px solid rgba(255,255,255,0.32);
+    z-index: 65;
+    pointer-events: none;
+    transition: opacity .4s ease;
+  }
+  .corner.tl { top: 16px; left: 16px;  border-right: 0; border-bottom: 0; }
+  .corner.tr { top: 16px; right: 30px; border-left: 0;  border-bottom: 0; }
+  .corner.bl { bottom: 16px; left: 16px;  border-right: 0; border-top: 0; }
+  .corner.br { bottom: 16px; right: 30px; border-left: 0;  border-top: 0; }
+
+  /* ─── Vertical spine on the left edge ─── */
+  .spine {
+    position: fixed;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: left center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.55em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.42);
+    z-index: 65;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+    animation: metaIn 0.9s 1.6s ease-out forwards;
+  }
+
+  /* ─── Vertical progress rail ─── */
+  .progress-rail {
+    position: fixed;
+    left: 14px;
+    top: 22%;
+    bottom: 22%;
+    width: 1px;
+    z-index: 65;
+    background: rgba(255,255,255,0.14);
+    pointer-events: none;
+  }
+  .progress-rail .fill {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 0%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.35));
+    will-change: height;
+  }
+  .progress-rail .pip {
+    position: absolute;
+    left: 50%; top: 0;
+    width: 8px; height: 8px;
+    margin-left: -4px; margin-top: -4px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 14px rgba(255,255,255,0.85);
+    will-change: top;
+  }
+  .progress-rail .ticks { position: absolute; inset: 0; }
+  .progress-rail .tick {
+    position: absolute;
+    left: -3px;
+    width: 7px;
+    height: 1px;
+    background: rgba(255,255,255,0.35);
+  }
+
+  @media (max-width: 720px) {
+    .intro-meta { font-size: 9px; letter-spacing: 0.22em; margin-bottom: 28px; }
+    .intro-stack { margin-bottom: 28px; }
+    .intro-caption { margin-bottom: 36px; font-size: 9px; letter-spacing: 0.22em; }
+    .corner { width: 18px; height: 18px; }
+    .spine, .progress-rail { display: none; }
+  }
+
+  /* ─── Spline humanoid stage (rises bottom-to-top at end of timeline) ─── */
+  .spline-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(0);
+    will-change: opacity, transform;
+    background: #000;
+  }
+  .spline-stage.interactive { pointer-events: auto; }
+
+  .spline-float {
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+    animation: botIdle 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    will-change: transform;
+  }
+  .spline-stage spline-viewer {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  @keyframes botIdle {
+    0%   { transform: translateY(0)     scale(1);     }
+    25%  { transform: translateY(-10px) scale(1.012); }
+    50%  { transform: translateY(0)     scale(1.022); }
+    75%  { transform: translateY(-6px)  scale(1.012); }
+    100% { transform: translateY(0)     scale(1);     }
+  }
+
+  /* Crossfade veil for the spline hand-off */
+  .crossfade-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, rgba(0,0,0,0.85) 100%), #000;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <canvas id="scene"></canvas>
+  <div class="blackout" id="blackout"></div>
+</div>
+
+<div class="crossfade-veil" id="crossfadeVeil"></div>
+
+<div class="spline-stage" id="splineStage" aria-hidden="true">
+  <div class="spline-float">
+    <spline-viewer id="splineBot" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"></spline-viewer>
+  </div>
+</div>
+
+<div class="scrollbar" id="scrollbar">
+  <div class="scrollbar-thumb" id="thumb"></div>
+</div>
+
+<nav class="landing-nav">
+  <a class="landing-brand" href="/">
+    <img src="{{ url_for('static', filename='asme_logo.png') }}" alt="ASME logo" />
+    <div class="landing-brand-text">
+      <div class="eyebrow">University of Iowa</div>
+      <div class="name">ASME</div>
+    </div>
+  </a>
+  <div class="landing-links">
+    <a href="/about">About</a>
+    <a href="/exec">Team</a>
+    <a href="/projects">Projects</a>
+    <a href="/events">Events</a>
+    <a href="/gallery">Gallery</a>
+    <a href="/join">Join</a>
+    <a href="/contact">Contact</a>
+  </div>
+</nav>
+
+
+<div class="intro" id="intro">
+  <h1 class="intro-stack">
+    <span class="word w1"><span>Build.</span></span>
+    <span class="word w2"><span>Compete.</span></span>
+    <span class="word w3 accent"><span>Engineer.</span></span>
+  </h1>
+  <div class="intro-rule"></div>
+  <div class="intro-caption">American Society of Mechanical Engineers</div>
+  <div class="scroll-cue">
+    <span class="scroll-line"></span>
+    <span>Scroll</span>
+  </div>
+</div>
+
+<div class="welcome" id="welcome">
+  <div class="welcome-eyebrow">University of Iowa</div>
+  <div class="welcome-title">Welcome to <span class="accent">ASME</span></div>
+  <div class="welcome-divider"></div>
+  <div class="welcome-sub">American Society of Mechanical Engineers</div>
+  <a class="welcome-cta" href="/about">Learn More</a>
+</div>
+
+<script>
+(() => {
+  // Single 192-frame scrubbed sequence (rover @ 24fps, 8s)
+  const FRAME_COUNT = 192;
+  const PATH = (n) => `{{ url_for('static', filename='landing/rover/') }}ezgif-frame-${String(n).padStart(3,'0')}.jpg`;
+
+  const canvas    = document.getElementById('scene');
+  const ctx       = canvas.getContext('2d');
+  const scrollbar = document.getElementById('scrollbar');
+  const thumb     = document.getElementById('thumb');
+  const welcome   = document.getElementById('welcome');
+  const intro     = document.getElementById('intro');
+  const blackout  = document.getElementById('blackout');
+  const splineStage   = document.getElementById('splineStage');
+  const splineBot     = document.getElementById('splineBot');
+  const crossfadeVeil = document.getElementById('crossfadeVeil');
+
+  // Strip the Spline watermark from the viewer's shadow DOM
+  (function killSplineBadge() {
+    if (!splineBot || !splineBot.shadowRoot) return setTimeout(killSplineBadge, 400);
+    const logo = splineBot.shadowRoot.querySelector('#logo');
+    if (logo) logo.remove();
+    splineBot.shadowRoot.querySelectorAll('a').forEach(a => {
+      if (a.href && a.href.includes('spline')) a.remove();
+    });
+    setTimeout(killSplineBadge, 1200);
+  })();
+
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+  const frames = new Array(FRAME_COUNT);
+  let virtualFrame = 0;
+  let displayedFrame = 0;
+  const THUMB_HEIGHT = 60;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawFrame(Math.round(displayedFrame));
+  }
+  window.addEventListener('resize', resize);
+
+  function drawFrame(idx) {
+    const img = frames[idx];
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const cw = window.innerWidth, ch = window.innerHeight;
+    const ir = img.naturalWidth / img.naturalHeight;
+    const cr = cw / ch;
+    let dw, dh, dx, dy;
+    if (ir > cr) { dh = ch; dw = ch * ir; dx = (cw - dw) / 2; dy = 0; }
+    else         { dw = cw; dh = cw / ir; dx = 0; dy = (ch - dh) / 2; }
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function preload() {
+    for (let n = 1; n <= FRAME_COUNT; n++) {
+      const img = new Image();
+      img.src = PATH(n);
+      frames[n - 1] = img;
+    }
+  }
+
+  // ─── Input ───
+  // Wheel sensitivity is dialed down to ~/26 so the scrub feels deliberate
+  // and premium — covers the 192 frames over a longer, more intentional scroll.
+  const WHEEL_DIVISOR = 26;
+  const TOUCH_DIVISOR = 12;
+  const clampFrame = (v) => Math.max(0, Math.min(FRAME_COUNT - 1, v));
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    virtualFrame = clampFrame(virtualFrame + e.deltaY / WHEEL_DIVISOR);
+  }, { passive: false });
+
+  let touchY = null;
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length) touchY = e.touches[0].clientY;
+  }, { passive: false });
+  window.addEventListener('touchmove', (e) => {
+    if (touchY === null || !e.touches.length) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    virtualFrame = clampFrame(virtualFrame + (touchY - y) / TOUCH_DIVISOR);
+    touchY = y;
+  }, { passive: false });
+  window.addEventListener('touchend', () => { touchY = null; });
+
+  window.addEventListener('keydown', (e) => {
+    const step = (e.key === 'PageDown' || e.key === 'PageUp') ? 10 : 2.5;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      virtualFrame = clampFrame(virtualFrame + step);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      virtualFrame = clampFrame(virtualFrame - step);
+    } else if (e.key === 'Home') virtualFrame = 0;
+    else if (e.key === 'End')  virtualFrame = FRAME_COUNT - 1;
+  });
+
+  // Scrollbar drag
+  let dragging = false, dragOffset = 0;
+  function thumbToVirtual(thumbY) {
+    const trackH = window.innerHeight - THUMB_HEIGHT;
+    const p = Math.max(0, Math.min(1, thumbY / trackH));
+    virtualFrame = p * (FRAME_COUNT - 1);
+  }
+  thumb.addEventListener('mousedown', (e) => {
+    dragging = true;
+    dragOffset = e.clientY - thumb.getBoundingClientRect().top;
+    scrollbar.classList.add('dragging');
+    e.preventDefault();
+  });
+  scrollbar.addEventListener('mousedown', (e) => {
+    if (e.target === thumb) return;
+    thumbToVirtual(e.clientY - THUMB_HEIGHT / 2);
+    dragging = true;
+    dragOffset = THUMB_HEIGHT / 2;
+    scrollbar.classList.add('dragging');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    thumbToVirtual(e.clientY - dragOffset);
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    scrollbar.classList.remove('dragging');
+  });
+
+  // Forward wheel/touch from spline-stage so users can scrub backwards
+  // while the live bot is interactive at the end
+  splineStage.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    virtualFrame = clampFrame(virtualFrame + e.deltaY / WHEEL_DIVISOR);
+  }, { passive: false });
+  let splineTouchY = null;
+  splineStage.addEventListener('touchstart', (e) => {
+    if (e.touches.length) splineTouchY = e.touches[0].clientY;
+  }, { passive: false });
+  splineStage.addEventListener('touchmove', (e) => {
+    if (splineTouchY === null || !e.touches.length) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    virtualFrame = clampFrame(virtualFrame + (splineTouchY - y) / TOUCH_DIVISOR);
+    splineTouchY = y;
+  }, { passive: false });
+  splineStage.addEventListener('touchend', () => { splineTouchY = null; });
+
+  // ─── Render loop ─────────────────────────────────────────
+  // Eased lerp toward the target frame — moves a fraction of the gap each
+  // tick rather than capping at 1 frame/tick. Eliminates the "freeze" feel
+  // when the user scrolls fast: there's always motion, just decelerating.
+  const LERP_RATE = 0.15;
+  function tick() {
+    const diff = virtualFrame - displayedFrame;
+    if (Math.abs(diff) < 0.05) {
+      displayedFrame = virtualFrame;
+    } else {
+      displayedFrame += diff * LERP_RATE;
+    }
+
+    const i = Math.max(0, Math.min(FRAME_COUNT - 1, Math.round(displayedFrame)));
+    drawFrame(i);
+
+    // Final hand-off: rover canvas → live Spline humanoid (frames 175..191)
+    const SPLINE_FADE_START = 175, SPLINE_FADE_END = 191;
+    let splineT = 0;
+    if (i > SPLINE_FADE_START) {
+      splineT = Math.min(1, (i - SPLINE_FADE_START) / (SPLINE_FADE_END - SPLINE_FADE_START));
+    }
+    const splineEased = easeOut(splineT);
+
+    canvas.style.opacity = (1 - splineEased).toFixed(3);
+
+    // Veil bell-curve masks the cut around frame 183
+    const endDist = Math.abs(i - 183);
+    crossfadeVeil.style.opacity = (endDist < 6 ? (1 - endDist / 6) * 0.7 : 0).toFixed(3);
+
+    // Spline bot rises bottom-to-top with scale-up entrance, then idle
+    // float CSS keyframe takes over via .spline-float wrapper
+    splineStage.style.opacity = splineEased.toFixed(3);
+    const entryLift  = (1 - splineEased) * 80;
+    const entryScale = 0.86 + splineEased * 0.14;
+    splineStage.style.transform = `translateY(${entryLift.toFixed(1)}px) scale(${entryScale.toFixed(3)})`;
+    splineStage.classList.toggle('interactive', splineEased > 0.92);
+
+    // Welcome text starts rising earlier (130..172) so by frame 172 it is
+    // fully visible — leaves the last 20 frames for it to sit and breathe
+    const FADE_START = 130, FADE_END = 172;
+    let welcomeOpacity = 0;
+    if (i >= FADE_START) welcomeOpacity = Math.min(1, (i - FADE_START) / (FADE_END - FADE_START));
+    welcome.style.opacity = welcomeOpacity.toFixed(3);
+    const rise = (1 - welcomeOpacity) * 18;
+    welcome.style.transform = `translate(-50%, calc(-50% + ${rise.toFixed(1)}px))`;
+
+    // Intro fades + lifts away over the first 14 frames
+    const INTRO_FADE_END = 14;
+    let introOpacity = Math.max(0, 1 - (i / INTRO_FADE_END));
+    intro.style.opacity = introOpacity.toFixed(3);
+    const introLift = (1 - introOpacity) * 24;
+    intro.style.transform = `translate(-50%, calc(-50% - ${introLift.toFixed(1)}px))`;
+    intro.style.display = introOpacity <= 0.001 ? 'none' : '';
+
+    // Initial blackout fades 4..20
+    let blackoutOpacity = 1;
+    if (i > 4) blackoutOpacity = Math.max(0, 1 - (i - 4) / (20 - 4));
+    blackout.style.opacity = blackoutOpacity.toFixed(3);
+
+    // Scroll thumb position
+    const trackH = window.innerHeight - THUMB_HEIGHT;
+    const p = displayedFrame / (FRAME_COUNT - 1);
+    thumb.style.transform = `translateY(${(p * trackH).toFixed(2)}px)`;
+
+    // Hide custom scrollbar near the end so the final hero is uncluttered
+    scrollbar.style.opacity = Math.max(0, 1 - Math.max(0, i - 165) / 14).toFixed(3);
+
+    requestAnimationFrame(tick);
+  }
+
+  resize();
+  preload();
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>
