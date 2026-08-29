@@ -1,0 +1,5 @@
+GSAP 3.15.0
+
+Vendored from the published gsap@3.15.0 package for the ASME landing page.
+The minified files retain their upstream copyright and license headers.
+License information: https://gsap.com/standard-license/

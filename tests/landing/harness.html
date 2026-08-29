@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build Line integration harness</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #050607; color: #f5f4ef; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #050607; }
+    body { overflow-x: hidden; }
+    [hidden] { display: none !important; }
+    #landing-webgl { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    #landing-canvas { width: 100%; height: 100%; display: block; }
+    #landing-loader, #landing-fallback { position: fixed; inset: 0; z-index: 20; display: grid; place-content: center; gap: 1rem; background: #050607; text-align: center; }
+    #landing-loader-progress { width: min(22rem, 72vw); }
+    #landing-navigation { position: fixed; inset: 1rem 1rem auto; z-index: 12; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+    #landing-navigation a, #landing-navigation button { pointer-events: auto; }
+    #landing-progress { position: fixed; z-index: 12; right: 1rem; bottom: 1rem; font: 12px ui-monospace, monospace; text-transform: uppercase; }
+    #landing-progress::before { content: ''; display: block; width: 8rem; height: 2px; margin-bottom: .5rem; background: linear-gradient(90deg, #ffcd00 calc(var(--landing-progress, 0) * 100%), #34373b 0); }
+    .landing-hotspots { position: fixed; inset: 0; z-index: 11; pointer-events: none; }
+    .landing-hotspot { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: auto; border: 1px solid rgba(255,205,0,.72); background: rgba(7,8,9,.86); color: #fff; padding: .55rem .75rem; }
+    .landing-hotspot-marker { display: inline-block; width: .5rem; height: .5rem; margin-right: .45rem; border-radius: 50%; background: #ffcd00; }
+    main { position: relative; z-index: 2; }
+    [data-scene] { min-height: 115vh; display: grid; align-items: center; padding: 14vh max(6vw, 1.5rem); pointer-events: none; }
+    [data-scene] > div { max-width: 32rem; text-shadow: 0 2px 20px #000; }
+    [data-scene] h2 { margin: 0 0 .5rem; font-size: clamp(2rem, 7vw, 6rem); font-weight: 300; letter-spacing: -.04em; }
+    [data-scene] p { color: #c8c9c8; line-height: 1.6; }
+    [data-scene="join"] { min-height: 100vh; place-items: center; text-align: center; }
+    #landing-final-cta { pointer-events: auto; }
+    #landing-final-cta nav { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
+    #landing-final-cta a, button { color: #fff; background: #111417; border: 1px solid #71757a; padding: .75rem 1rem; text-decoration: none; }
+    #team-panel { position: fixed; z-index: 30; right: 1rem; top: 5rem; width: min(24rem, calc(100vw - 2rem)); padding: 1.25rem; background: #111417; border: 1px solid #ffcd00; }
+    #team-panel button { float: right; }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <div id="landing-root">
+    <div id="landing-webgl" aria-hidden="true"><canvas id="landing-canvas"></canvas></div>
+    <div id="landing-loader" role="status">
+      <strong>Built at Iowa</strong>
+      <progress id="landing-loader-progress" max="1" value="0"></progress>
+      <span id="landing-loader-status">Loading scene</span>
+    </div>
+    <div id="landing-fallback" hidden>
+      <strong>Built at Iowa</strong>
+      <p>The accessible project overview remains available.</p>
+      <a href="#landing-final-cta">Continue to join links</a>
+    </div>
+    <nav id="landing-navigation" aria-label="Landing controls">
+      <a href="#landing-final-cta">ASME at Iowa</a>
+      <span>
+        <button id="sound-toggle" type="button">Sound</button>
+        <button id="skip-experience" type="button">Skip experience</button>
+      </span>
+    </nav>
+    <div id="landing-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <span id="landing-progress-label">intro</span>
+    </div>
+    <main>
+      <section data-scene="intro" data-start="0" data-end="0.08"><div><h2>Built at Iowa</h2><p>One engineering datum becomes the work.</p></div></section>
+      <section data-scene="design" data-start="0.08" data-end="0.18"><div><h2>Design</h2><p>Sketch. Wireframe. Solid. Assembly.</p></div></section>
+      <section data-scene="iam3d" data-start="0.18" data-end="0.31"><div><h2>IAM3D</h2><p>Additive manufacturing becomes a moving mechanism.</p></div></section>
+      <section data-scene="plane" data-start="0.31" data-end="0.43"><div><h2>Autonomous Plane</h2><p>Airframe, control surfaces, propulsion, and electronics.</p></div></section>
+      <section data-scene="rov" data-start="0.43" data-end="0.56"><div><h2>MATE ROV</h2><p>Underwater systems engineered for a controlled test course.</p></div></section>
+      <section data-scene="student-design" data-start="0.56" data-end="0.68"><div><h2>Student Design Competition</h2><p>Load, failure, revision, and improved motion.</p></div></section>
+      <section data-scene="robotic-dog" data-start="0.68" data-end="0.82"><div><h2>Robotic Dog</h2><p>Selective team — interview required</p></div></section>
+      <section data-scene="people" data-start="0.82" data-end="0.92"><div><h2>Made by students</h2><p>Real workshop, fabrication, testing, and teamwork.</p></div></section>
+      <section data-scene="join" data-start="0.92" data-end="1">
+        <div id="landing-final-cta" tabindex="-1">
+          <h2>Build with us</h2>
+          <nav aria-label="Final calls to action">
+            <a href="/join">Join ASME</a><a href="/projects">Explore Teams</a><a href="/events">View Events</a><a href="/portal">Member Portal</a>
+          </nav>
+        </div>
+      </section>
+    </main>
+    <aside id="team-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>
+      <button id="team-panel-close" type="button" aria-label="Close team details">Close</button>
+      <h2>Team details</h2><p>Panel content is owned by the landing shell.</p>
+    </aside>
+  </div>
+  <script>
+    if (new URLSearchParams(location.search).get('reducedMotion') === '1') {
+      const nativeMatchMedia = window.matchMedia.bind(window);
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: (query) => query.includes('prefers-reduced-motion')
+          ? { matches: true, media: query, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent() { return true; } }
+          : nativeMatchMedia(query),
+      });
+      document.documentElement.dataset.harnessReducedMotion = 'true';
+    }
+  </script>
+  <script type="module" src="/static/js/landing/main.js"></script>
+</body>
+</html>
