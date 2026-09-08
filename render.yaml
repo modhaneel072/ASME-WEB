@@ -4,9 +4,13 @@ services:
     env: python
     plan: free
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt
-    startCommand: python app.py
+    startCommand: python manage.py upgrade && gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: ASME_SECRET_KEY
         generateValue: true
+      - key: ASME_ENV
+        value: production
+      - key: ASME_AUTO_MIGRATE
+        value: "0"

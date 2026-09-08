@@ -1,0 +1,170 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+{% set base = '/portal/admin/launchpad' if is_admin_view else '/portal/leader' %}
+<style>
+  .lp-bar { height: 10px; background: var(--bg-subtle, #eef0ee); border-radius: 999px; overflow: hidden; margin: 10px 0 6px; }
+  .lp-bar-fill { height: 100%; background: var(--accent, #1e6b57); border-radius: 999px; }
+  .lp-phase { border-left: 4px solid var(--line, #d7dbd6); }
+  .lp-phase.lp-active { border-left-color: var(--accent, #1e6b57); }
+  .lp-phase.lp-complete { border-left-color: #3f9b70; }
+  .lp-phase.lp-locked { opacity: .6; }
+  .lp-pill { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border: 1px solid currentColor; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .lp-tasks { list-style: none; margin: 0; padding: 0; }
+  .lp-task { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line, #e3e6e1); }
+  .lp-task:first-child { border-top: 0; }
+  .lp-task-main p { margin: 4px 0 0; }
+  .lp-tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: var(--bg-subtle, #eef0ee); margin-left: 6px; vertical-align: middle; }
+  .lp-task-actions { flex-shrink: 0; display: flex; gap: 8px; align-items: center; }
+  .lp-task-actions form { margin: 0; display: flex; gap: 6px; align-items: center; }
+  .lp-done { color: #3f9b70; font-weight: 600; }
+  .lp-chip { display: inline-block; font-family: ui-monospace, monospace; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--bg-subtle, #eef0ee); margin: 2px 4px 2px 0; }
+  .lp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .lp-table th, .lp-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line, #e3e6e1); vertical-align: top; }
+  .lp-table th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+  .lp-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lp-inline input, .lp-inline select { max-width: 160px; }
+  .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .lp-scroll { overflow-x: auto; }
+</style>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Enforcement</h3>
+    <span class="muted">{{ 'ON — routes require entitlements' if onboarding_enforced else 'SHADOW — recording what would be blocked, nothing locked' }}</span>
+  </div>
+  <p class="muted">Toggle with <code>ASME_ONBOARDING_ENFORCE=1</code>. Shadow blocks are logged per request (<code>shadow_blocks</code>) so you can see who would have been stopped before flipping it.</p>
+  {% if is_admin_view %}
+  <form method="post" action="/portal/admin/launchpad/reevaluate" class="lp-inline">
+    <button type="submit">Re-evaluate everyone</button>
+    <span class="muted">Outbox: {% for k, v in outbox_stats.items() %}{{ k }}={{ v }} {% endfor %}</span>
+  </form>
+  {% endif %}
+</section>
+
+{% if is_admin_view and chapter_track %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>{{ chapter_track.name }} · {{ chapter.subject.id }}</h3>
+    <span class="muted">{{ chapter_track.percent }}% · {{ chapter_track.steps_left }} steps left{% if chapter_track.current_phase %} in {{ chapter_track.current_phase.name }}{% endif %}</span>
+  </div>
+  <div class="lp-bar"><div class="lp-bar-fill" style="width: {{ chapter_track.percent }}%"></div></div>
+  <p class="muted">{{ chapter_track.description }}</p>
+</section>
+{% for phase in chapter_track.phases %}
+<section class="panel lp-phase lp-{{ phase.status }}">
+  <div class="panel-head">
+    <h3>Phase {{ phase.order }} · {{ phase.name }} <span class="lp-pill">{{ phase.status }}</span></h3>
+    <span class="muted">{{ phase.tagline }}{% if phase.est_minutes %} · about {{ phase.est_minutes }} min{% endif %} · {{ phase.required_done }}/{{ phase.required_total }} required done</span>
+  </div>
+  <ul class="lp-tasks">
+    {% for task in phase.tasks %}
+    <li class="lp-task">
+      <div class="lp-task-main">
+        <strong>{{ task.name }}</strong>
+        {% if task.target > 1 %}<span class="lp-tag">{{ task.current }} / {{ task.target }}</span>{% endif %}
+        {% if task.description %}<p class="muted">{{ task.description }}</p>{% endif %}
+        {% if task.evidence and task.evidence.detail %}<p class="muted">{{ task.evidence.detail }}</p>{% endif %}
+      </div>
+      <div class="lp-task-actions">
+        {% if task.status == 'complete' %}
+          <span class="lp-done">Done</span>
+          {% if task.human %}
+          <form method="post" action="/portal/admin/launchpad/tasks/{{ task.key }}/reopen"><button type="submit">Reopen</button></form>
+          {% endif %}
+        {% elif task.human %}
+          <form method="post" action="/portal/admin/launchpad/tasks/{{ task.key }}/complete">
+            <input name="note" placeholder="note" {% if task.rule_config.note_required %}required{% endif %} />
+            <button type="submit">Mark done</button>
+          </form>
+        {% elif task.cta_route %}
+          <a href="{{ task.cta_route }}"><button type="button">{{ task.cta_label or 'Go' }}</button></a>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endif %}
+
+<section class="panel">
+  <div class="panel-head"><h3>Waiting on a lead</h3><span class="muted">{{ pending_signoffs|length }} sign-off task{{ '' if pending_signoffs|length == 1 else 's' }} · {{ unsigned_loans|length }} unsigned checkout{{ '' if unsigned_loans|length == 1 else 's' }}</span></div>
+  {% if pending_signoffs %}
+  <ul class="lp-tasks">
+    {% for row in pending_signoffs %}
+    <li class="lp-task">
+      <div class="lp-task-main">
+        <strong>{{ row.user.name }}</strong> <span class="lp-tag">{{ row.phase.name }}</span>
+        <p class="muted">{{ row.task.name }}{% if row.task.rule_config.by_role %} · needs {{ row.task.rule_config.by_role.replace('_', ' ') }}{% endif %}</p>
+      </div>
+      <div class="lp-task-actions">
+        <form method="post" action="{{ base }}/users/{{ row.user.id }}/tasks/{{ row.task.key }}/signoff">
+          <input name="note" placeholder="note" />
+          <button type="submit">Sign off</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No member is waiting on a manual sign-off right now.</p>
+  {% endif %}
+  {% if unsigned_loans %}
+  <h4 style="margin: 14px 0 6px;">Open checkouts without a supervisor sign-off</h4>
+  <ul class="lp-tasks">
+    {% for loan in unsigned_loans %}
+    <li class="lp-task">
+      <div class="lp-task-main"><strong>{{ loan.borrower_name }}</strong> · {{ loan.item.name if loan.item else '' }} × {{ loan.qty }}<p class="muted">{{ loan.checkout_time.strftime('%b %d %H:%M') if loan.checkout_time else '' }}</p></div>
+      <div class="lp-task-actions">
+        <form method="post" action="{{ base }}/loans/{{ loan.id }}/signoff"><button type="submit">I supervised this</button></form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h3>Members</h3><span class="muted">{{ member_overview|length }} active</span></div>
+  <div class="lp-scroll">
+  <table class="lp-table">
+    <thead><tr><th>Member</th><th>Phase</th><th>Progress</th><th>Entitlements</th><th>Record training</th>{% if is_admin_view %}<th>Override</th>{% endif %}</tr></thead>
+    <tbody>
+      {% for row in member_overview %}
+      <tr>
+        <td><strong>{{ row.user.name }}</strong><br /><span class="muted">{{ row.user.email }} · {{ row.user.role }}</span></td>
+        <td>{% if row.current_phase %}{{ row.current_phase.name }}<br /><span class="muted">{{ row.steps_left }} left</span>{% elif row.complete %}<span class="lp-done">Complete</span>{% else %}—{% endif %}</td>
+        <td style="min-width: 120px;"><div class="lp-bar" style="margin: 4px 0;"><div class="lp-bar-fill" style="width: {{ row.percent }}%"></div></div><span class="muted">{{ row.percent }}%</span></td>
+        <td>{% for key in row.entitlements %}<span class="lp-chip">{{ key }}</span>{% else %}<span class="muted">none</span>{% endfor %}</td>
+        <td>
+          <form method="post" action="{{ base }}/users/{{ row.user.id }}/training" class="lp-inline">
+            <select name="module_key" required>
+              {% for module in training_modules %}<option value="{{ module.key }}">{{ module.title }}</option>{% endfor %}
+            </select>
+            <input name="score" type="number" min="0" max="100" placeholder="score" />
+            <button type="submit">Record</button>
+          </form>
+        </td>
+        {% if is_admin_view %}
+        <td>
+          <form method="post" action="/portal/admin/launchpad/users/{{ row.user.id }}/entitlements/grant" class="lp-inline">
+            <select name="key">{% for key in all_entitlements %}<option value="{{ key }}">{{ key }}</option>{% endfor %}</select>
+            <input name="expires_days" type="number" min="0" placeholder="days" />
+            <input name="reason" placeholder="reason" />
+            <button type="submit">Grant</button>
+          </form>
+          <form method="post" action="/portal/admin/launchpad/users/{{ row.user.id }}/entitlements/revoke" class="lp-inline" style="margin-top: 6px;">
+            <select name="key">{% for key in all_entitlements %}<option value="{{ key }}">{{ key }}</option>{% endfor %}</select>
+            <input name="reason" placeholder="reason" />
+            <button type="submit">Revoke</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -8,12 +8,28 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app import (
-    _http_json_request,
-    get_outlook_access_token,
-    get_outlook_calendar_id_for_room,
-    validate_outlook_sync_config,
-)
+from asme import create_app
+from asme.integrations.calendar.outlook import OutlookCalendarProvider, validate_outlook_sync_config as _validate
+from asme.integrations.http import http_json_request as _http_json_request
+
+_app = create_app(outbox_worker_enabled=False, auto_migrate=False)
+_cfg = _app.config["SETTINGS"]
+_provider = OutlookCalendarProvider(_cfg)
+
+
+def validate_outlook_sync_config():
+    return _validate(_cfg)
+
+
+def get_outlook_access_token():
+    try:
+        return _provider.access_token(), None
+    except Exception as exc:  # CalendarError
+        return None, str(exc)
+
+
+def get_outlook_calendar_id_for_room(room):
+    return _provider.calendar_id_for_room(room)
 
 
 def print_section(title):

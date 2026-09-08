@@ -31,6 +31,7 @@
       {% if show_admin_nav %}
       <nav>
         <a class="{{ 'active' if active_page == 'admin_dashboard' else '' }}" href="/portal/admin">Dashboard</a>
+        <a class="{{ 'active' if active_page == 'admin_launchpad' else '' }}" href="/portal/admin/launchpad">Launchpad</a>
         <a class="{{ 'active' if active_page == 'admin_members' else '' }}" href="/portal/admin/members">Members</a>
         <a class="{{ 'active' if active_page == 'admin_attendance' else '' }}" href="/portal/admin/attendance">Attendance</a>
         <a class="{{ 'active' if active_page == 'admin_inventory' else '' }}" href="/portal/admin/inventory">Inventory</a>
@@ -44,6 +45,7 @@
       {% else %}
       <nav>
         <a class="{{ 'active' if active_page == 'member_dashboard' else '' }}" href="/portal/member">Dashboard</a>
+        <a class="{{ 'active' if active_page in ['member_launchpad', 'member_launchpad_lead'] else '' }}" href="/portal/member/launchpad">Launchpad</a>
         <a class="{{ 'active' if active_page == 'member_inventory' else '' }}" href="/portal/member/inventory">Inventory</a>
         <a class="{{ 'active' if active_page == 'member_prints' else '' }}" href="/portal/member/prints">Prints</a>
         <a class="{{ 'active' if active_page == 'member_calendar' else '' }}" href="/portal/member/calendar">Calendar</a>
@@ -51,6 +53,8 @@
       </nav>
       {% if is_admin %}
       <a class="subtle-switch" href="/portal/admin">Switch to Admin</a>
+      {% elif current_user and (current_user.role|lower) == 'team_leader' %}
+      <a class="subtle-switch" href="/portal/leader/launchpad">Team Launchpad</a>
       {% endif %}
       {% endif %}
 

@@ -1,0 +1,181 @@
+{% extends "portal/base.html" %}
+
+{% block content %}
+<style>
+  .lp-bar { height: 10px; background: var(--bg-subtle, #eef0ee); border-radius: 999px; overflow: hidden; margin: 10px 0 6px; }
+  .lp-bar-fill { height: 100%; background: var(--accent, #1e6b57); border-radius: 999px; transition: width .3s ease; }
+  .lp-phase { border-left: 4px solid var(--line, #d7dbd6); }
+  .lp-phase.lp-active { border-left-color: var(--accent, #1e6b57); }
+  .lp-phase.lp-complete { border-left-color: #3f9b70; opacity: .92; }
+  .lp-phase.lp-locked { opacity: .6; }
+  .lp-pill { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border: 1px solid currentColor; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .lp-tasks { list-style: none; margin: 0; padding: 0; }
+  .lp-task { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line, #e3e6e1); }
+  .lp-task:first-child { border-top: 0; }
+  .lp-task-main p { margin: 4px 0 0; }
+  .lp-task-complete .lp-task-main strong { text-decoration: line-through; opacity: .7; }
+  .lp-tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: var(--bg-subtle, #eef0ee); margin-left: 6px; vertical-align: middle; }
+  .lp-tag-opt { opacity: .7; }
+  .lp-task-actions { flex-shrink: 0; display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+  .lp-task-actions form { margin: 0; }
+  .lp-done { color: #3f9b70; font-weight: 600; }
+  .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .lp-chip { display: inline-block; font-family: ui-monospace, monospace; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--bg-subtle, #eef0ee); margin: 2px 4px 2px 0; }
+</style>
+
+{% if track %}
+<section class="panel">
+  <div class="panel-head">
+    <h3>{{ track.name }}</h3>
+    <span class="muted">
+      {{ track.percent }}% of required steps ·
+      {% if track.current_phase %}{{ track.steps_left }} step{{ '' if track.steps_left == 1 else 's' }} left in {{ track.current_phase.name }}{% else %}every phase complete{% endif %}
+    </span>
+  </div>
+  <div class="lp-bar"><div class="lp-bar-fill" style="width: {{ track.percent }}%"></div></div>
+  <p class="muted">{{ track.description }}</p>
+  {% if not onboarding_enforced %}
+  <p class="muted">Launchpad is in preview: nothing is locked yet, but each phase you finish is recorded and unlocks the moment enforcement is switched on.</p>
+  {% endif %}
+</section>
+
+{% for phase in track.phases %}
+<section class="panel lp-phase lp-{{ phase.status }}">
+  <div class="panel-head">
+    <h3>Phase {{ phase.order }} · {{ phase.name }} <span class="lp-pill">{{ phase.status }}</span></h3>
+    <span class="muted">
+      {{ phase.tagline }}{% if phase.est_minutes %} · about {{ phase.est_minutes }} min{% endif %}
+      · {{ phase.required_done }}/{{ phase.required_total }} required done
+    </span>
+  </div>
+  {% if phase.description %}<p class="muted">{{ phase.description }}</p>{% endif %}
+  <ul class="lp-tasks">
+    {% for task in phase.tasks %}
+    <li class="lp-task lp-task-{{ task.status }}">
+      <div class="lp-task-main">
+        <strong>{{ task.name }}</strong>
+        {% if task.required %}<span class="lp-tag">required</span>{% else %}<span class="lp-tag lp-tag-opt">optional</span>{% endif %}
+        {% if task.est_minutes %}<span class="lp-tag">{{ task.est_minutes }} min</span>{% endif %}
+        {% if task.target > 1 %}<span class="lp-tag">{{ task.current }} / {{ task.target }}</span>{% endif %}
+        {% if task.description %}<p class="muted">{{ task.description }}</p>{% endif %}
+        {% if task.status != 'complete' and task.evidence and task.evidence.missing %}
+          <p class="muted">Missing: {{ task.evidence.missing | join(', ') }}</p>
+        {% endif %}
+        {% if task.status == 'complete' and task.completed_at %}
+          <p class="muted">Done {{ task.completed_at[:10] }}</p>
+        {% endif %}
+      </div>
+      <div class="lp-task-actions">
+        {% if task.status == 'complete' %}
+          <span class="lp-done">Done</span>
+        {% elif task.rule_type == 'manual' and phase.status == 'active' %}
+          <form method="post" action="/portal/member/launchpad/tasks/{{ task.key }}/complete">
+            <button type="submit">Mark done</button>
+          </form>
+        {% elif task.rule_type == 'signoff' %}
+          <span class="muted">Needs a lead's sign-off</span>
+        {% elif task.cta_route %}
+          <a href="{{ task.cta_route }}"><button type="button">{{ task.cta_label or 'Go' }}</button></a>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if phase.grants %}
+  <p class="muted" style="margin-top: 10px;">Unlocks: {% for g in phase.grants %}<span class="lp-chip">{{ g }}</span>{% endfor %}</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% else %}
+<section class="panel"><p class="muted">No Launchpad track is configured yet. Ask an admin to run <code>python manage.py seed</code>.</p></section>
+{% endif %}
+
+<div class="lp-grid">
+  <section class="panel" id="teams">
+    <div class="panel-head"><h3>Project teams</h3></div>
+    {% if memberships %}
+      <p>You are on:</p>
+      <ul class="lp-tasks">
+        {% for m in memberships %}
+        <li class="lp-task">
+          <div class="lp-task-main"><strong>{{ m.project.title }}</strong><p class="muted">since {{ m.joined_at.strftime('%b %d, %Y') }}</p></div>
+          <div class="lp-task-actions">
+            <form method="post" action="/portal/member/launchpad/teams/leave">
+              <input type="hidden" name="project_id" value="{{ m.project_id }}" />
+              <button type="submit">Leave</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">You have not joined a team yet.</p>
+    {% endif %}
+    <form method="post" action="/portal/member/launchpad/teams/join" class="form-stack" style="margin-top: 10px;">
+      <div class="form-group">
+        <label for="project_id">Join a team</label>
+        <select id="project_id" name="project_id" required>
+          <option value="">Choose…</option>
+          {% for p in joinable_projects %}<option value="{{ p.id }}">{{ p.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" style="width: fit-content;">Join</button>
+    </form>
+  </section>
+
+  <section class="panel" id="hours">
+    <div class="panel-head"><h3>Project hours</h3><span class="muted">{{ '%.1f' % hours_total }} h logged</span></div>
+    <form method="post" action="/portal/member/launchpad/hours" class="form-stack">
+      <div class="split-fields two-up">
+        <div class="form-group">
+          <label for="hours">Hours</label>
+          <input id="hours" name="hours" type="number" step="0.25" min="0.25" max="24" required />
+        </div>
+        <div class="form-group">
+          <label for="logged_for">Date</label>
+          <input id="logged_for" name="logged_for" type="date" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="hours_project">Project</label>
+        <select id="hours_project" name="project_id">
+          <option value="">General</option>
+          {% for m in memberships %}<option value="{{ m.project_id }}">{{ m.project.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="note">What did you work on?</label>
+        <input id="note" name="note" maxlength="300" />
+      </div>
+      <button type="submit" style="width: fit-content;">Log hours</button>
+    </form>
+  </section>
+</div>
+
+<section class="panel" id="training">
+  <div class="panel-head"><h3>Training</h3><span class="muted">Recorded by a lead or admin after you complete it</span></div>
+  <ul class="lp-tasks">
+    {% for module in training_modules %}
+    <li class="lp-task">
+      <div class="lp-task-main">
+        <strong>{{ module.title }}</strong>
+        {% if module.is_optional %}<span class="lp-tag lp-tag-opt">optional</span>{% else %}<span class="lp-tag">required</span>{% endif %}
+        {% if module.duration_min %}<span class="lp-tag">{{ module.duration_min }} min</span>{% endif %}
+        {% if module.min_score %}<span class="lp-tag">pass ≥ {{ module.min_score }}%</span>{% endif %}
+        {% if module.description %}<p class="muted">{{ module.description }}</p>{% endif %}
+        {% if module.provider %}<p class="muted">Provider: {{ module.provider }}{% if module.url %} · <a href="{{ module.url }}" target="_blank" rel="noopener">Open</a>{% endif %}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h3>What you can do right now</h3></div>
+  {% if entitlement_keys %}
+    <p>{% for key in entitlement_keys %}<span class="lp-chip">{{ key }}</span>{% endfor %}</p>
+  {% else %}
+    <p class="muted">Nothing unlocked yet — finish Phase 1 to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}
