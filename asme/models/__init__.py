@@ -8,6 +8,7 @@ from asme.models.events import AttendanceRecord, AttendanceScan, CalendarSync, E
 from asme.models.fabrication import PrintJob, PrintRequest, PrintRun
 from asme.models.identity import Member, NFCTag, PasswordResetToken, User
 from asme.models.inventory import Item, ItemTag, Loan, StockDiscrepancy, StockLedger, Transaction
+from asme.ops import models as _ops_models  # noqa: F401  (registers ops tables on the same metadata)
 from asme.models.onboarding import (
     Entitlement,
     Phase,

@@ -29,7 +29,7 @@ ADMIN = [
     "/portal/admin/attendance/export.csv",
     "/portal/admin/inventory/treasury-report.csv",
 ]
-LEGACY_REDIRECTS = ["/dashboard", "/attendance", "/inventory", "/prints", "/activity", "/settings", "/scan", "/my-items", "/admin/nfc", "/calendar", "/app"]
+LEGACY_REDIRECTS = ["/dashboard", "/attendance", "/inventory", "/prints", "/activity", "/settings", "/scan", "/my-items", "/admin/nfc", "/calendar", "/legacy/app"]
 
 
 @pytest.mark.parametrize("path", PUBLIC)

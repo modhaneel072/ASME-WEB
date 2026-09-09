@@ -56,7 +56,7 @@ def _gate(portal_endpoint):
     return None
 
 
-@bp.get("/app")
+@bp.get("/legacy/app")
 def app_frontend():
     if not legacy_enabled():
         return redirect("/kiosk")

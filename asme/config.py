@@ -145,6 +145,12 @@ class Settings:
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5"
 
+    # -- ASME Ops ------------------------------------------------------------
+    ops_enabled: bool = True
+    ops_web_dist: str = ""
+    file_max_mb: int = 25
+    file_url_ttl_seconds: int = 900
+
     @property
     def is_production(self) -> bool:
         return self.env == "production"
@@ -224,6 +230,10 @@ class Settings:
             p1s_print_cmd=_str("ASME_P1S_PRINT_CMD"),
             anthropic_api_key=_str("ANTHROPIC_API_KEY"),
             anthropic_model=_str("ASME_ASSISTANT_MODEL", "claude-sonnet-5"),
+            ops_enabled=_bool("ASME_OPS_ENABLED", default=True),
+            ops_web_dist=_str("ASME_OPS_WEB_DIST"),
+            file_max_mb=_int("ASME_FILE_MAX_MB", 25, minimum=1),
+            file_url_ttl_seconds=_int("ASME_FILE_URL_TTL_SECONDS", 900, minimum=10),
         )
         if values["calendar_provider"] not in {"google", "outlook"}:
             values["calendar_provider"] = "google"

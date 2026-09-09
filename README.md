@@ -9,8 +9,35 @@ One Flask application, packaged as `asme/`, serving:
 - NFC attendance, kiosk login and meeting check-in
 - room scheduling mirrored to Google Calendar or Outlook
 - **Launchpad** – the onboarding engine that turns a new signup into someone trusted with the shop
+- **ASME Ops** – work orders, projects, assets and teams for the chapter, served at `/app` (see below)
 
 The design this codebase implements is the *ASME Backend Blueprint* (sections 00–09); the layout below follows it.
+
+## ASME Ops (operations platform at `/app`)
+
+ASME Ops is the chapter's work-management app: work orders, projects, assets, teams, locations,
+categories and an operations dashboard, with a Setup Center that tracks what is actually configured.
+It is a React 18 + TypeScript SPA in `apps/ops-web`, served by this Flask app under `/app` and backed
+by the `/api/v1` ops API (`asme/ops`). The legacy portal moved to `/legacy/app`.
+
+```powershell
+cd apps/ops-web
+npm ci
+npm run build                 # -> apps/ops-web/dist, served by Flask at /app
+cd ../..
+python manage.py seed-demo    # development only: Crater Cruncher Rover demo chapter, password ChangeMe123!
+python manage.py serve        # http://127.0.0.1:5000/app  (sign in as admin@uiowa.edu)
+```
+
+For frontend development run `npm run dev` in `apps/ops-web` and open `http://localhost:5173/app`
+(the Vite dev server proxies `/api` to Flask on :5000).
+
+Quality gates: `npm run typecheck`, `npm run lint`, `npm run test` (vitest), `npm run test:e2e`
+(Playwright against a throwaway seeded server started by `python manage.py serve-e2e`), and `python -m pytest`.
+
+Docs: [architecture](docs/architecture/overview.md) · [API](docs/api.md) · [permissions](docs/permissions-matrix.md) ·
+[reporting metrics](docs/reporting-metrics.md) · [migration plan](docs/migration-plan.md) · [deployment](docs/deployment.md) ·
+[test plan](docs/test-plan.md) · [implementation status](docs/implementation-status.md) · [ADR-0001](docs/decisions/ADR-0001-transitional-architecture.md).
 
 ## Layout
 
@@ -30,7 +57,9 @@ asme/
   integrations/        calendar (google/outlook adapters), mail, assistant (Anthropic)
   events/              in-process domain event bus (services emit, Launchpad subscribes)
   jobs/                transactional outbox + in-process worker + handlers
-migrations/            Alembic (Flask-Migrate) – 0001_baseline, 0002_launchpad
+  ops/                 ASME Ops domain: models · authz · tenancy · services · api (/api/v1) · schemas · seeds · web (/app)
+apps/ops-web/          ASME Ops frontend (React 18 + TypeScript + Vite); build output served by asme/ops/web.py
+migrations/            Alembic (Flask-Migrate) – 0001_baseline, 0002_launchpad, 0003_ops_foundation
 tests/                 pytest suite (app factory, in-memory SQLite)
 templates/ static/     unchanged; two new pages: portal/member_launchpad.html, portal/admin_launchpad.html
 models.py              compatibility shim -> asme.models

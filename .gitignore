@@ -39,3 +39,11 @@ test-box.glb
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# ASME Ops frontend
+apps/ops-web/node_modules/
+apps/ops-web/dist/
+apps/ops-web/test-results/
+apps/ops-web/playwright-report/
+apps/ops-web/e2e/screenshots/*.png
+apps/ops-web/tsconfig.tsbuildinfo

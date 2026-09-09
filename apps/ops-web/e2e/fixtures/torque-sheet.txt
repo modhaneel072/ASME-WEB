@@ -1,0 +1,5 @@
+RL wheel module torque sheet
+Bolt 1: 12.0 Nm
+Bolt 2: 12.1 Nm
+Bolt 3: 11.9 Nm
+Bolt 4: 12.0 Nm

@@ -9,3 +9,10 @@ def register_blueprints(app):
 
     for module in (public, auth, kiosk, portal, admin, api_v1, api_legacy, legacy_ops):
         app.register_blueprint(module.bp)
+
+    if app.config["SETTINGS"].ops_enabled:
+        from asme.ops import web as ops_web
+        from asme.ops.api import bp as ops_api_bp
+
+        app.register_blueprint(ops_api_bp)
+        app.register_blueprint(ops_web.bp)

@@ -153,6 +153,11 @@ def seed_defaults(commit=True) -> dict:
         created["users"] += 1
 
     seed_default_tracks(commit=False)
+    db.session.flush()
+    if cfg.ops_enabled:
+        from asme.ops.seeds import seed_ops_defaults
+
+        created["ops"] = seed_ops_defaults(commit=False)
     if commit:
         db.session.commit()
     return created

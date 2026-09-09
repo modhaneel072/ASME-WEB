@@ -40,7 +40,8 @@ def test_available_slots_exclude_busy_and_existing(app, db, users):
 
 def test_double_booking_conflicts(app, db, users):
     app.extensions["asme_calendar_provider"] = FakeProvider()
-    slots, _ = scheduling.compute_available_slots(60, 1, "Fluids Lab")
+    # two days ahead so a slot exists even when the suite runs after the last work-hour of today
+    slots, _ = scheduling.compute_available_slots(60, 2, "Fluids Lab")
     token = slots[0]["token"]
     scheduling.book_slot(users["lead"], "A", token)
     with pytest.raises(Conflict):

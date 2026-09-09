@@ -2,6 +2,8 @@
 
     python manage.py upgrade      # migrate to head (stamps legacy DBs) + seed defaults
     python manage.py seed         # seed defaults only
+    python manage.py seed-demo    # development: Crater Cruncher Rover demo data (ASME Ops)
+    python manage.py serve-e2e    # throwaway seeded server for Playwright
     python manage.py evaluate     # re-run the Launchpad engine for everyone
     python manage.py reconcile    # file stock discrepancies
     python manage.py worker       # dedicated outbox worker loop
@@ -17,11 +19,40 @@ import time
 from asme import create_app
 
 
+def serve_e2e():
+    """Fresh SQLite database + demo seed, served on ASME_E2E_PORT (default 5055) for Playwright."""
+    import os
+    import tempfile
+    from pathlib import Path
+
+    port = int(os.environ.get("ASME_E2E_PORT", "5055"))
+    db_path = Path(tempfile.gettempdir()) / "asme_e2e.db"
+    if db_path.exists():
+        db_path.unlink()
+    app = create_app(
+        env="testing", secret_key="e2e-secret", database_url=f"sqlite:///{db_path.as_posix()}", auto_migrate=False,
+        outbox_worker_enabled=False, onboarding_enforce=False, session_cookie_secure=False, login_rate_max_attempts=1000,
+    )
+    with app.app_context():
+        from asme.services import bootstrap
+        from asme.ops.seeds import seed_ops_demo
+
+        bootstrap.sync_schema()
+        bootstrap.seed_defaults()
+        print("demo:", seed_ops_demo(), flush=True)
+    print(f"e2e server ready on http://127.0.0.1:{port}", flush=True)
+    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+    return 0
+
+
 def main(argv):
     command = (argv[1] if len(argv) > 1 else "help").strip().lower()
     if command in {"help", "-h", "--help"}:
         print(__doc__)
         return 0
+
+    if command == "serve-e2e":
+        return serve_e2e()
 
     # Never spin up the background worker for one-shot commands.
     app = create_app(outbox_worker_enabled=(command in {"serve"}), auto_migrate=False)
@@ -34,6 +65,13 @@ def main(argv):
             return 0
         if command == "seed":
             print("seed:", bootstrap.seed_defaults())
+            return 0
+        if command == "seed-demo":
+            from asme.ops.seeds import seed_ops_demo
+
+            print("schema:", bootstrap.sync_schema())
+            print("seed:", bootstrap.seed_defaults())
+            print("demo:", seed_ops_demo())
             return 0
         if command == "evaluate":
             from asme.models import User
