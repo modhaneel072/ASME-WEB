@@ -19,7 +19,7 @@ test.describe('@responsive layout and accessibility', () => {
     }
     await expect(page.getByTestId('work-order-row').first()).toBeVisible();
     await testInfo.attach(`work-orders-list-${width}`, {
-      body: await page.screenshot({ fullPage: false }),
+      body: await page.screenshot({ fullPage: false, animations: 'disabled' }),
       contentType: 'image/png',
     });
 
@@ -34,7 +34,7 @@ test.describe('@responsive layout and accessibility', () => {
       await expect(page.getByTestId('work-order-list')).toBeVisible();
     }
     await testInfo.attach(`work-order-detail-${width}`, {
-      body: await page.screenshot(),
+      body: await page.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     // Body never scrolls horizontally.
@@ -45,8 +45,9 @@ test.describe('@responsive layout and accessibility', () => {
 
     await page.getByTestId('new-work-order').click();
     await expect(page.getByTestId('work-order-form')).toBeVisible();
+    await page.waitForTimeout(250); // let the 180ms slide-in finish so the capture is opaque
     await testInfo.attach(`work-order-create-${width}`, {
-      body: await page.screenshot(),
+      body: await page.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await page.keyboard.press('Escape');
